@@ -12,14 +12,14 @@ class Result implements ResultInterface, \JsonSerializable
     protected $skip = false;
     protected $opti = true;
 
-    protected $fake_key = 0;
-    protected $real_key = 0;
-    public function __construct(QueryResult $rslt, $key = null, $skip_key = false, $mode = 'assoc', $opti = true)
+    protected $fakeKey = 0;
+    protected $realKey = 0;
+    public function __construct(QueryResult $rslt, $key = null, $skip = false, $mode = 'assoc', $opti = true)
     {
         $this->rslt = $rslt;
         $this->mode = $mode;
         $this->fake = $key;
-        $this->skip = $skip_key;
+        $this->skip = $skip;
         $this->opti = $opti;
     }
     public function count()
@@ -87,7 +87,7 @@ class Result implements ResultInterface, \JsonSerializable
                 break;
         }
         if ($this->fake) {
-            $this->fake_key = $row[$this->fake];
+            $this->fakeKey = $row[$this->fake];
         }
         if ($this->skip) {
             unset($row[$this->fake]);
@@ -111,7 +111,7 @@ class Result implements ResultInterface, \JsonSerializable
             return key($this->all);
         }
 
-        return $this->fake ? $this->fake_key : $this->real_key;
+        return $this->fake ? $this->fakeKey : $this->realKey;
     }
     public function next()
     {
@@ -119,18 +119,18 @@ class Result implements ResultInterface, \JsonSerializable
             return next($this->all);
         }
         $this->rslt->nextr();
-        ++$this->real_key;
+        ++$this->realKey;
     }
     public function rewind()
     {
-        if ($this->real_key !== 0 && !$this->rdy && !$this->rslt->seekable()) {
+        if ($this->realKey !== 0 && !$this->rdy && !$this->rslt->seekable()) {
             $this->get();
         }
         if ($this->rdy) {
             return reset($this->all);
         }
         if ($this->rslt->seekable()) {
-            $this->rslt->seek(($this->real_key = 0));
+            $this->rslt->seek(($this->realKey = 0));
         }
         $this->rslt->nextr();
     }
@@ -167,7 +167,7 @@ class Result implements ResultInterface, \JsonSerializable
             return isset($this->all[$offset]);
         }
         if ($this->fake === null && $this->rslt->seekable()) {
-            if ($this->rslt->seek(($this->real_key = $offset)) === false || $this->rslt->nextr() === false) {
+            if ($this->rslt->seek(($this->realKey = $offset)) === false || $this->rslt->nextr() === false) {
                 return false;
             }
 
@@ -183,7 +183,7 @@ class Result implements ResultInterface, \JsonSerializable
             return $this->all[$offset];
         }
         if ($this->fake === null && $this->rslt->seekable()) {
-            if ($this->rslt->seek(($this->real_key = $offset)) === false || $this->rslt->nextr() === false) {
+            if ($this->rslt->seek(($this->realKey = $offset)) === false || $this->rslt->nextr() === false) {
                 return;
             }
 

@@ -11,7 +11,6 @@ class QueryResult
     protected $num = null;
     protected $aff = null;
     protected $iid = null;
-    protected $var = null;
 
     public function __construct(driver\DriverInterface $drv, $prp, $data = null)
     {
@@ -19,7 +18,9 @@ class QueryResult
         $this->drv = $drv;
         $this->prp = $prp;
         $this->rsl = $this->drv->execute($this->prp, $data);
-        $this->num = (is_object($this->rsl) || is_resource($this->rsl)) && $this->drv->countable() ? (int) @$this->drv->count($this->rsl) : 0;
+        $this->num = (is_object($this->rsl) || is_resource($this->rsl)) && $this->drv->countable() ?
+            (int) @$this->drv->count($this->rsl) :
+            0;
         $this->aff = $this->drv->affected();
         try {
             $this->iid = $this->drv->insertId();
@@ -29,11 +30,13 @@ class QueryResult
     }
     public function __destruct()
     {
-        $this->free();
+        if (is_object($this->rsl) || is_resource($this->rsl)) {
+            $this->drv->free($this->rsl);
+        }
     }
-    public function result($key = null, $skip_key = false, $mode = 'assoc', $opti = true)
+    public function result($key = null, $skip = false, $mode = 'assoc', $opti = true)
     {
-        return new Result($this, $key, $skip_key, $mode, $opti);
+        return new Result($this, $key, $skip, $mode, $opti);
     }
     public function row()
     {
@@ -44,14 +47,6 @@ class QueryResult
         $this->row = $this->drv->nextr($this->rsl);
 
         return $this->row !== false && $this->row !== null;
-    }
-    public function f($key)
-    {
-        if (isset($this->row) && is_array($this->row) && isset($this->row[$key])) {
-            return $this->row[$key];
-        }
-
-        return;
     }
     public function seek($offset)
     {
@@ -68,12 +63,6 @@ class QueryResult
     public function insertId($name = null)
     {
         return $this->iid ? $this->iid : $this->drv->insertId($name);
-    }
-    public function free()
-    {
-        if (is_object($this->rsl) || is_resource($this->rsl)) {
-            $this->drv->free($this->rsl);
-        }
     }
     public function seekable()
     {

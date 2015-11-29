@@ -5,6 +5,9 @@ engines:
     enabled: true
   phpmd:
     enabled: true
+    checks:
+      CleanCode/BooleanArgumentFlag:
+        enabled: false
 ratings:
   paths:
   - "**.php"

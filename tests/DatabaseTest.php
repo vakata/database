@@ -31,13 +31,12 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 	public function testQuery() {
 		$this->assertEquals(1, self::$db->query('INSERT INTO test VALUES(NULL, ?)', ['user1'])->affected());
 		$this->assertEquals(1, self::$db->query('INSERT INTO test VALUES(NULL, ?)', ['user2'])->affected());
-		$this->assertEquals(1, self::$db->query('INSERT INTO test VALUES(NULL, ?)', ['user3'])->affected());
 	}
 	/**
 	 * @depends testQuery
 	 */
 	public function testInsertId() {
-		$this->assertEquals(3, self::$db->insertId());
+		$this->assertEquals(3, self::$db->query('INSERT INTO test VALUES(NULL, ?)', ['user3'])->insertId());
 	}
 
 	/**

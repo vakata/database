@@ -5,15 +5,13 @@ namespace vakata\database;
 class DB implements DatabaseInterface
 {
     protected $drv = null;
-    protected $que = null;
-    protected $rsl = null;
 
     /**
-     * Създаване на инстанция.
+     * Create an instance.
      *
      * @method __construct
      *
-     * @param mixed $drv Инстанция на драйвър или connection string, а ако не е подадено се използва константата DATABASE
+     * @param mixed $drv Driver instance or connection string (DSN)
      */
     public function __construct($drv = null)
     {
@@ -37,142 +35,110 @@ class DB implements DatabaseInterface
         $this->drv = $drv;
     }
     /**
-     * Създаване на параметризирана заявка
-     * Да се използва само ако е необходимо една и съща заявка да се изпълни много пъти с различни параметри.
+     * Prepare a statement.
+     * Use only if you need a single query to be performed multiple times with different parameters
      *
      * @method prepare
      *
-     * @param String $sql Заявката за подготовка, за placeholder на стойности се използва ?
+     * @param String $sql The query to prepare - use ? for arguments
      *
-     * @return Query Потготвената заявка
+     * @return Query The prepared statement
      */
     public function prepare($sql)
     {
         try {
-            return $this->que = new Query($this->drv, $sql);
+            return new Query($this->drv, $sql);
         } catch (\Exception $e) {
             throw new DatabaseException($e->getMessage(), 2);
         }
     }
     /**
-     * Изпълненение на последната параметризирана заявка с подадените параметри.
-     *
-     * @method execute
-     *
-     * @param array $data Параметри за изпълнението
-     *
-     * @return QueryResult Резултат от изпълнението на заявката
-     */
-    public function execute($data = null)
-    {
-        try {
-            return $this->rsl = $this->que->execute($data);
-        } catch (\Exception $e) {
-            throw new DatabaseException($e->getMessage(), 3);
-        }
-    }
-    /**
-     * Изпълнение на заявка (параметризиране и изпълнение).
+     * Run a query (prepare & execute).
      *
      * @method query
      *
-     * @param string $sql  SQL заявка
-     * @param array  $data Параметри за изпълнението
+     * @param string $sql  SQL query
+     * @param array  $data parameters
      *
-     * @return QueryResult Резултат от изпълнението на заявката
+     * @return QueryResult The result of the execution
      */
     public function query($sql, $data = null)
     {
         try {
-            $this->prepare($sql);
-
-            return $this->execute($data);
+            return $this->prepare($sql)->execute($data);
         } catch (\Exception $e) {
             throw new DatabaseException($e->getMessage(), 4);
         }
     }
     /**
-     * Изпълнение на SELECT заявка и връщане на ArrayLike резултат (който можем да достъпваме с [] или да подадем на foreach).
+     * Run a SELECT query and get an array-like result
      *
      * @method get
      *
-     * @param string $sql      SQL заявка
-     * @param array  $data     Параметри за изпълнението
-     * @param string $key      Ключ за резултатния масив (ако искаме можем да използваме някоя от колоните за ключ)
-     * @param bool   $skip_key Ако сме използвали колона за ключ можем да не я включим в списъка със стойности (по подразбиране е изключено)
-     * @param string $mode     Режим на извличане - по подразбиране е "assoc" но може да се подаде "num"
-     * @param bool   $opti     Ако заявката връща само една стойност - да не се обгражда в масив (включено по подразбиране)
+     * @param string $sql      SQL query
+     * @param array  $data     Parameters
+     * @param string $key      Column name to use as the array index
+     * @param bool   $skip     Do not include the column used as index in the value (defaults to false)
+     * @param string $mode     Result mode - "assoc" by default, but "num" can be used
+     * @param bool   $opti     If a single column is returned - do not use an array wrapper (defaults to true)
      *
-     * @return ArrayLike Резултат от заявката, който можем да подадем на foreach
+     * @return ArrayLike The result of the execution
      */
-    public function get($sql, $data = null, $key = null, $skip_key = false, $mode = 'assoc', $opti = true)
+    public function get($sql, $data = null, $key = null, $skip = false, $mode = 'assoc', $opti = true)
     {
-        return (new Query($this->drv, $sql))->execute($data)->result($key, $skip_key, $mode, $opti);
+        return (new Query($this->drv, $sql))->execute($data)->result($key, $skip, $mode, $opti);
     }
     /**
-     * Изпълнение на SELECT заявка и връщане на масив с резултата.
+     * Run a SELECT query and get an array result
      *
      * @method all
      *
-     * @param string $sql      SQL заявка
-     * @param array  $data     Параметри за изпълнението
-     * @param string $key      Ключ за резултатния масив (ако искаме можем да използваме някоя от колоните за ключ)
-     * @param bool   $skip_key Ако сме използвали колона за ключ можем да не я включим в списъка със стойности (по подразбиране е изключено)
-     * @param string $mode     Режим на извличане - по подразбиране е "assoc" но може да се подаде "num"
-     * @param bool   $opti     Ако заявката връща само една стойност - да не се обгражда в масив (включено по подразбиране)
+     * @param string $sql      SQL query
+     * @param array  $data     Parameters
+     * @param string $key      Column name to use as the array index
+     * @param bool   $skip     Do not include the column used as index in the value (defaults to false)
+     * @param string $mode     Result mode - "assoc" by default, but "num" can be used
+     * @param bool   $opti     If a single column is returned - do not use an array wrapper (defaults to true)
      *
-     * @return array Резултат от изпълнението
+     * @return array the result of the execution
      */
-    public function all($sql, $data = null, $key = null, $skip_key = false, $mode = 'assoc', $opti = true)
+    public function all($sql, $data = null, $key = null, $skip = false, $mode = 'assoc', $opti = true)
     {
-        return $this->get($sql, $data, $key, $skip_key, $mode, $opti)->get();
+        return $this->get($sql, $data, $key, $skip, $mode, $opti)->get();
     }
     /**
-     * Изпълнение на SELECT заявка и връщане на първия ред от резултата.
+     * Run a SELECT query and get the first row
      *
      * @method one
      *
-     * @param string $sql  SQL заявка
-     * @param array  $data Параметри за изпълнението
-     * @param string $mode Режим на извличане - по подразбиране е "assoc" но може да се подаде "num"
-     * @param bool   $opti Ако заявката връща само една стойност - да не се обгражда в масив (включено по подразбиране)
+     * @param string $sql      SQL query
+     * @param array  $data     Parameters
+     * @param string $mode     Result mode - "assoc" by default, but "num" can be used
+     * @param bool   $opti     If a single column is returned - do not use an array wrapper (defaults to true)
      *
-     * @return array Резултат от изпълнението
+     * @return mixed the result of the execution
      */
     public function one($sql, $data = null, $mode = 'assoc', $opti = true)
     {
         return $this->get($sql, $data, null, false, $mode, $opti)->one();
     }
     /**
-     * Връща името нa текущо използвания драйвър (mysql, mysqli, postgre, oracle, ibase, pdo).
+     * Get the current driver name
      *
-     * @method get_driver
+     * @method driver
      *
-     * @return string името нa текущо използвания драйвър
+     * @return string the current driver name
      */
     public function driver()
     {
         return $this->drv->settings()->type;
     }
     /**
-     * Подготвя string за вмъкване в заявка - по възможност да се използва параметризирана заявка, а не този метод.
-     *
-     * @method escape
-     *
-     * @param string $str string за подготовка
-     *
-     * @return string Готов за вмъкване в заявка string
-     */
-    public function escape($str)
-    {
-        return $this->drv->escape($str);
-    }
-    /**
-     * Начало на транзакция.
+     * Begin a transaction
      *
      * @method begin
      *
-     * @return bool Индикатор дали началото на транзакция е успешно
+     * @return bool true if a transaction was opened, false otherwise
      */
     public function begin()
     {
@@ -183,47 +149,36 @@ class DB implements DatabaseInterface
         return $this->drv->begin();
     }
     /**
-     * Финализиране на транзакция.
+     * Commit a transaction
      *
      * @method commit
      *
-     * @return bool Индикатор дали финализирането е успешно
+     * @return bool was the commit successful
      */
     public function commit($isTransaction = true)
     {
         return $isTransaction && $this->drv->isTransaction() && $this->drv->commit();
     }
     /**
-     * Връщане на транзакция до предишен стейт.
+     * Rollback a transaction
      *
      * @method rollback
      *
-     * @return bool Индикатор дали връщането е успешно
+     * @return bool was the rollback successful
      */
     public function rollback($isTransaction = true)
     {
         return $isTransaction && $this->drv->isTransaction() && $this->drv->rollback();
     }
     /**
-     * Връщане на транзакция до предишен стейт.
+     * Is a transaction open
      *
      * @method isTransaction
      *
-     * @return bool Индикатор дали в момента сме в транзакция
+     * @return bool open
      */
     public function isTransaction()
     {
         $this->drv->isTransaction();
-    }
-
-    public function __call($method, $args)
-    {
-        if ($this->rsl && is_callable(array($this->rsl, $method))) {
-            try {
-                return call_user_func_array(array($this->rsl, $method), $args);
-            } catch (\Exception $e) {
-                throw new DatabaseException($e->getMessage(), 5);
-            }
-        }
     }
 }

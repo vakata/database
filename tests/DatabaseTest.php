@@ -6,14 +6,14 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 	protected static $db = null;
 
 	public static function setUpBeforeClass() {
-		self::$db = new \vakata\database\DB('mysqli://root@127.0.0.1/test');
-		self::$db->query("
-			CREATE TEMPORARY TABLE IF NOT EXISTS test (
-				id int(10) unsigned NOT NULL AUTO_INCREMENT,
-				name varchar(255) NOT NULL,
-				PRIMARY KEY (id)
-			) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
-		");
+		//self::$db = new \vakata\database\DB('mysqli://root@127.0.0.1/test');
+		//self::$db->query("
+		//	CREATE TEMPORARY TABLE IF NOT EXISTS test (
+		//		id int(10) unsigned NOT NULL AUTO_INCREMENT,
+		//		name varchar(255) NOT NULL,
+		//		PRIMARY KEY (id)
+		//	) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+		//");
 	}
 	public static function tearDownAfterClass() {
 		self::$db->query("
@@ -28,9 +28,16 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 	}
 
 	public function testCreate() {
-		$temp = new \vakata\database\DB('mysqli://root@127.0.0.1/test');
-		$this->assertEquals(true, $temp instanceof \vakata\database\DatabaseInterface);
-		$this->assertEquals('mysqli', $temp->driver());
+		self::$db = new \vakata\database\DB('mysqli://root@127.0.0.1/test?charset=utf8');
+		$this->assertEquals(true, self::$db instanceof \vakata\database\DatabaseInterface);
+		$this->assertEquals('mysqli', self::$db->driver());
+		self::$db->query("
+			CREATE TEMPORARY TABLE IF NOT EXISTS test (
+				id int(10) unsigned NOT NULL AUTO_INCREMENT,
+				name varchar(255) NOT NULL,
+				PRIMARY KEY (id)
+			) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+		");
 	}
 
 	public function testQuery() {
@@ -123,5 +130,20 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 		$q2 = self::$db->prepare('SELECT name FROM test WHERE id = ?');
 		$this->assertEquals('user1', $q2->execute([1])->result()->get()[0]);
 		$this->assertEquals(1, $q1->execute([1])->result()->get()[0]);
+	}
+
+	/**
+	 * @depends testQuery
+	 */
+	public function testTransaction() {
+		$this->assertEquals(true, self::$db->begin());
+		$this->assertEquals(false, self::$db->begin());
+		$this->assertEquals(4, self::$db->query('INSERT INTO test VALUES(NULL, ?)', ['user4'])->insertId());
+		$this->assertEquals(true, self::$db->rollback());
+		$this->assertEquals(3, self::$db->one('SELECT MAX(id) FROM test'));
+		$this->assertEquals(true, self::$db->begin());
+		$this->assertEquals(true, self::$db->query('INSERT INTO test VALUES(NULL, ?)', ['user4'])->insertId() > 3);
+		$this->assertEquals(true, self::$db->commit());
+		$this->assertEquals(true, self::$db->one('SELECT MAX(id) FROM test') > 3);
 	}
 }

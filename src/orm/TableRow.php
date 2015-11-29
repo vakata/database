@@ -11,27 +11,27 @@ class TableRow implements TableRowInterface
     protected $definition = null;
     protected $relations = [];
 
-    protected $is_new = false;
-    protected $original_id = null;
+    protected $isNew = false;
+    protected $originalID = null;
 
     protected $data = [];
     protected $chng = [];
     protected $cche = [];
 
-    public function __construct(TableInterface $table, array $data = [], $is_new = false)
+    public function __construct(TableInterface $table, array $data = [], $isNew = false)
     {
         $this->table = $table;
         $this->database = $table->getDatabase();
         $this->definition = $table->getDefinition();
         $this->relations = $table->getRelations();
 
-        $this->is_new = $is_new;
+        $this->isNew = $isNew;
         foreach ($this->definition->getColumns() as $column) {
             if (isset($data[$column])) {
                 $this->data[$column] = $data[$column];
             }
         }
-        $this->original_id = $this->getID();
+        $this->originalID = $this->getID();
         foreach ($data as $k => $v) {
             if (!isset($this->data[$k])) {
                 $this->data[str_replace('___', '.', $k)] = $v;
@@ -42,8 +42,8 @@ class TableRow implements TableRowInterface
     public function getID()
     {
         $temp = [];
-        foreach ($this->definition->getPrimaryKey() as $pk_field) {
-            $temp[$pk_field] = $this->{$pk_field};
+        foreach ($this->definition->getPrimaryKey() as $pkField) {
+            $temp[$pkField] = $this->{$pkField};
         }
 
         return $temp;
@@ -98,7 +98,10 @@ class TableRow implements TableRowInterface
             }
 
             return $this->cche[$ckey] = $table->where(
-                ' ('.implode(',', $relation['pivot_keymap']).') IN ('.implode(',', array_fill(0, count($ids), (count($relation['pivot_keymap']) === 1 ? '?' : '('.implode(',', array_fill(0, count($relations['pivot_keymap']), '?')).')'))).')',
+                ' ('.implode(',', $relation['pivot_keymap']).') IN ('.
+                    implode(',', array_fill(0, count($ids), (count($relation['pivot_keymap']) === 1 ?
+                        '?' : '('.implode(',', array_fill(0, count($relation['pivot_keymap']), '?')).
+                ')'))).')',
                 count($relation['pivot_keymap']) === 1 ? $ids : call_user_func_array('array_merge', $ids)
             )->select();
         }
@@ -142,7 +145,10 @@ class TableRow implements TableRowInterface
     }
     public function __set($key, $value)
     {
-        if (in_array($key, $this->definition->getColumns()) && (isset($this->chng[$key]) || !isset($this->data[$key]) || $this->data[$key] !== $value)) {
+        if (
+            in_array($key, $this->definition->getColumns()) &&
+            (isset($this->chng[$key]) || !isset($this->data[$key]) || $this->data[$key] !== $value)
+        ) {
             $this->chng[$key] = $value;
         }
         if (isset($this->relations[$key])) {
@@ -165,7 +171,7 @@ class TableRow implements TableRowInterface
         try {
             $fk = $this->getID();
 
-            if (!$this->is_new) {
+            if (!$this->isNew) {
                 $this->chng = array_merge($this->data, $this->chng);
             }
 
@@ -193,7 +199,11 @@ class TableRow implements TableRowInterface
                                 $sql[] = $local;
                                 $par[] = isset($item[$remote]) ? $item[$remote] : null;
                             }
-                            $que[] = ['INSERT INTO '.$v['pivot'].' ('.implode(', ', $sql).') VALUES('.implode(', ', array_fill(0, count($par), '?')).')', $par];
+                            $que[] = [
+                                'INSERT INTO '.$v['pivot'].' ('.implode(', ', $sql).') '.
+                                'VALUES('.implode(', ', array_fill(0, count($par), '?')).')',
+                                $par
+                            ];
                         }
 
                         foreach ($que as $sql) {
@@ -213,7 +223,7 @@ class TableRow implements TableRowInterface
 
             // own data
             if (count($this->chng)) {
-                if (!$this->is_new) {
+                if (!$this->isNew) {
                     $col = [];
                     $par = [];
                     $idf = [];
@@ -224,11 +234,15 @@ class TableRow implements TableRowInterface
                         }
                     }
                     if (count($col)) {
-                        foreach ($this->definition->getPrimaryKey() as $pk_field) {
-                            $idf[] = $pk_field.' = ? ';
-                            $par[] = isset($this->original_id[$pk_field]) ? $this->original_id[$pk_field] : $fk[$pk_field];
+                        foreach ($this->definition->getPrimaryKey() as $pkField) {
+                            $idf[] = $pkField.' = ? ';
+                            $par[] = isset($this->originalID[$pkField]) ? $this->originalID[$pkField] : $fk[$pkField];
                         }
-                        $this->database->query('UPDATE '.$this->definition->getName().' SET '.implode(', ', $col).' WHERE '.implode(' AND ', $idf), $par);
+                        $this->database->query(
+                            'UPDATE '.$this->definition->getName().' SET '.implode(', ', $col).' '.
+                            'WHERE '.implode(' AND ', $idf),
+                            $par
+                        );
                     }
                 } else {
                     $temp = [];
@@ -240,7 +254,11 @@ class TableRow implements TableRowInterface
                     if (!count($temp)) {
                         throw new ORMException('Nothing to insert');
                     }
-                    $iid = $this->database->query('INSERT INTO '.$this->definition->getName().' ('.implode(', ', array_keys($temp)).') VALUES ('.implode(', ', array_fill(0, count($temp), '?')).')', array_values($temp))->insertId();
+                    $iid = $this->database->query(
+                        'INSERT INTO '.$this->definition->getName().' ('.implode(', ', array_keys($temp)).') '.
+                        'VALUES ('.implode(', ', array_fill(0, count($temp), '?')).')',
+                        array_values($temp)
+                    )->insertId();
                     if (count($fk) === 1 && current($fk) === null) {
                         $fk[key($fk)] = $iid;
                     }
@@ -271,7 +289,11 @@ class TableRow implements TableRowInterface
                                 $sql[] = $local;
                                 $par[] = isset($item[$remote]) ? $item[$remote] : null;
                             }
-                            $que[] = ['INSERT INTO '.$v['pivot'].' ('.implode(', ', $sql).') VALUES('.implode(', ', array_fill(0, count($par), '?')).')', $par];
+                            $que[] = [
+                                'INSERT INTO '.$v['pivot'].' ('.implode(', ', $sql).') '.
+                                'VALUES('.implode(', ', array_fill(0, count($par), '?')).')',
+                                $par
+                            ];
                         }
 
                         foreach ($que as $sql) {
@@ -323,7 +345,9 @@ class TableRow implements TableRowInterface
                 foreach ($fk as $k => $v) {
                     $sql[] = $k.' = ? ';
                 }
-                $this->database->query('DELETE FROM '.$this->definition->getName().' WHERE '.implode(' AND ', $sql), $fk);
+                $this->database->query(
+                    'DELETE FROM '.$this->definition->getName().' WHERE '.implode(' AND ', $sql), $fk
+                );
             }
             $this->database->commit($trans);
 

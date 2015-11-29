@@ -67,7 +67,7 @@ class Table implements TableInterface
 
         return $to_table;
     }
-    public function addAdvancedRelation($to_table, $name, array $keymap, $many = true, $pivot = null, array $pivot_keymap = [])
+    public function addAdvancedRelation($to_table, $name, array $keymap, $many = true, $pivot = null, array $map = [])
     {
         if (!count($keymap)) {
             throw new ORMException('No linking fields specified');
@@ -79,7 +79,7 @@ class Table implements TableInterface
             'keymap' => $keymap,
             'many' => (bool) $many,
             'pivot' => $pivot,
-            'pivot_keymap' => $pivot_keymap,
+            'pivot_keymap' => $map
         ];
 
         return $this;

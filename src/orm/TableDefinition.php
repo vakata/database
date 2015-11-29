@@ -8,7 +8,7 @@ class TableDefinition implements TableDefinitionInterface, \JsonSerializable
 {
     protected $definition = [];
 
-    public function __construct(DatabaseInterface $database, $table, array $searchable = [])
+    public function __construct(DatabaseInterface $database, $table)
     {
         $this->definition = ['name' => $table, 'primary_key' => [], 'columns' => [], 'definitions' => [], 'indexed' => []];
         switch ($database->driver()) {

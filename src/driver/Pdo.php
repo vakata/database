@@ -18,7 +18,12 @@ class Pdo extends AbstractDriver
     {
         if ($this->lnk === null) {
             try {
-                $this->lnk = new \PDO($this->settings->original, $this->settings->username, $this->settings->password, $this->settings->options);
+                $this->lnk = new \PDO(
+                    $this->settings->original,
+                    $this->settings->username,
+                    $this->settings->password,
+                    $this->settings->options
+                );
             } catch (\Exception $e) {
                 throw new DatabaseException('Connect error: '.$e->getMessage());
             }

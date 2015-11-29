@@ -21,7 +21,7 @@ before_install:
   - mysql -e "create database IF NOT EXISTS test;" -uroot
 
 script:
-  - vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover
+  - vendor/bin/phpunit
 
 after_script:
   - vendor/bin/test-reporter

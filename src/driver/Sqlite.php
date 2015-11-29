@@ -14,7 +14,11 @@ class Sqlite extends AbstractDriver
     {
         parent::__construct($settings);
         $this->settings->database = explode('://', $this->settings->original, 2)[1];
-        if (!is_file($this->settings->database) && is_file('/'.$this->settings->database) && is_readable('/'.$this->settings->database)) {
+        if (
+            !is_file($this->settings->database) &&
+            is_file('/'.$this->settings->database) &&
+            is_readable('/'.$this->settings->database)
+        ) {
             $this->settings->database = '/'.$this->settings->database;
         }
     }
@@ -62,7 +66,7 @@ class Sqlite extends AbstractDriver
     {
         $this->connect();
         if (!is_array($data)) {
-            $data = array();
+            $data = [];
         }
         if (is_string($sql)) {
             return parent::execute($sql, $data);
@@ -154,15 +158,6 @@ class Sqlite extends AbstractDriver
     public function insertId()
     {
         return $this->iid;
-    }
-
-    public function seekable()
-    {
-        return false;
-    }
-    public function countable()
-    {
-        return false;
     }
 
     public function begin()

@@ -1,6 +1,4 @@
 engines:
-  fixme:
-    enabled: true
   phpcodesniffer:
     enabled: true
   phpmd:

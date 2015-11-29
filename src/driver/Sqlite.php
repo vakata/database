@@ -14,11 +14,7 @@ class Sqlite extends AbstractDriver
     {
         parent::__construct($settings);
         $this->settings->database = explode('://', $this->settings->original, 2)[1];
-        if (
-            !is_file($this->settings->database) &&
-            is_file('/'.$this->settings->database) &&
-            is_readable('/'.$this->settings->database)
-        ) {
+        if (!is_file($this->settings->database) && is_file('/'.$this->settings->database)) {
             $this->settings->database = '/'.$this->settings->database;
         }
     }

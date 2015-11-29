@@ -13,8 +13,18 @@ class Oracle extends AbstractDriver
     {
         if ($this->lnk === null) {
             $this->lnk = ($this->settings->persist) ?
-                    @oci_pconnect($this->settings->username, $this->settings->password, $this->settings->servername, $this->settings->charset) :
-                    @oci_connect($this->settings->username, $this->settings->password, $this->settings->servername, $this->settings->charset);
+                @oci_pconnect(
+                    $this->settings->username,
+                    $this->settings->password,
+                    $this->settings->servername,
+                    $this->settings->charset
+                ) :
+                @oci_connect(
+                    $this->settings->username,
+                    $this->settings->password,
+                    $this->settings->servername,
+                    $this->settings->charset
+                );
             if ($this->lnk === false) {
                 throw new DatabaseException('Connect error');
             }

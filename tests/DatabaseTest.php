@@ -27,6 +27,11 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 		// self::$db->query("TRUNCATE TABLE test;");
 	}
 
+	public function testCreate() {
+		$temp = new \vakata\database\DB('mysqli://root@127.0.0.1/test');
+		$this->assertEquals(true, $temp instanceof \vakata\database\DatabaseInterface);
+		$this->assertEquals('mysqli', $temp->driver());
+	}
 
 	public function testQuery() {
 		$this->assertEquals(1, self::$db->query('INSERT INTO test VALUES(NULL, ?)', ['user1'])->affected());

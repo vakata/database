@@ -15,25 +15,26 @@ class Ibase extends AbstractDriver
         if (!is_file($this->settings->database) && is_file('/'.$this->settings->database)) {
             $this->settings->database = '/'.$this->settings->database;
         }
-        $this->settings->servername = ($this->settings->servername === 'localhost' || $this->settings->servername === '') ?
-            '' :
-            $this->settings->servername.':';
+        $this->settings->servername =
+            ($this->settings->servername === 'localhost' || $this->settings->servername === '') ?
+                '' :
+                $this->settings->servername.':';
     }
     protected function connect()
     {
         if ($this->lnk === null) {
             $this->lnk = ($this->settings->persist) ?
                     @\ibase_pconnect(
-                                    $this->settings->servername.$this->settings->database,
-                                    $this->settings->username,
-                                    $this->settings->password,
-                                    strtoupper($this->settings->charset)
+                        $this->settings->servername.$this->settings->database,
+                        $this->settings->username,
+                        $this->settings->password,
+                        strtoupper($this->settings->charset)
                     ) :
                     @\ibase_connect(
-                                    $this->settings->servername.$this->settings->database,
-                                    $this->settings->username,
-                                    $this->settings->password,
-                                    strtoupper($this->settings->charset)
+                        $this->settings->servername.$this->settings->database,
+                        $this->settings->username,
+                        $this->settings->password,
+                        strtoupper($this->settings->charset)
                     );
             if ($this->lnk === false) {
                 throw new DatabaseException('Connect error: '.\ibase_errmsg());

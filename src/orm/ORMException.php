@@ -1,4 +1,5 @@
 <?php
+
 namespace vakata\database\orm;
 
 use vakata\database\DatabaseException;

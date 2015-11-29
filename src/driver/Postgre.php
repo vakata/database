@@ -21,20 +21,20 @@ class Postgre extends AbstractDriver
         if ($this->lnk === null) {
             $this->lnk = ($this->settings->persist) ?
                     @pg_pconnect(
-                                    'host='.$this->settings->servername.' '.
-                                    'port='.$this->settings->serverport.' '.
-                                    'user='.$this->settings->username.' '.
-                                    'password='.$this->settings->password.' '.
-                                    'dbname='.$this->settings->database.' '.
-                                    "options='--client_encoding=".strtoupper($this->settings->charset)."' "
+                        'host='.$this->settings->servername.' '.
+                        'port='.$this->settings->serverport.' '.
+                        'user='.$this->settings->username.' '.
+                        'password='.$this->settings->password.' '.
+                        'dbname='.$this->settings->database.' '.
+                        "options='--client_encoding=".strtoupper($this->settings->charset)."' "
                     ) :
                     @pg_connect(
-                                    'host='.$this->settings->servername.' '.
-                                    'port='.$this->settings->serverport.' '.
-                                    'user='.$this->settings->username.' '.
-                                    'password='.$this->settings->password.' '.
-                                    'dbname='.$this->settings->database.' '.
-                                    "options='--client_encoding=".strtoupper($this->settings->charset)."' "
+                        'host='.$this->settings->servername.' '.
+                        'port='.$this->settings->serverport.' '.
+                        'user='.$this->settings->username.' '.
+                        'password='.$this->settings->password.' '.
+                        'dbname='.$this->settings->database.' '.
+                        "options='--client_encoding=".strtoupper($this->settings->charset)."' "
                     );
             if ($this->lnk === false) {
                 throw new DatabaseException('Connect error');
@@ -77,7 +77,9 @@ class Postgre extends AbstractDriver
         if (!is_array($data)) {
             $data = array();
         }
-        $temp = (is_array($data) && count($data)) ? pg_query_params($this->lnk, $sql, $data) : pg_query_params($this->lnk, $sql, array());
+        $temp = (is_array($data) && count($data)) ?
+            pg_query_params($this->lnk, $sql, $data) :
+            pg_query_params($this->lnk, $sql, array());
         if (!$temp) {
             throw new DatabaseException('Could not execute query : '.pg_last_error($this->lnk).' <'.$sql.'>');
         }

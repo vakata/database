@@ -30,11 +30,11 @@ class Sphinx extends AbstractDriver
     {
         if ($this->lnk === null) {
             $this->lnk = new \mysqli(
-                            ($this->settings->persist ? 'p:' : '').$this->settings->servername,
-                            $this->settings->username,
-                            $this->settings->password,
-                            $this->settings->database,
-                            $this->settings->serverport
+                ($this->settings->persist ? 'p:' : '').$this->settings->servername,
+                $this->settings->username,
+                $this->settings->password,
+                $this->settings->database,
+                $this->settings->serverport
             );
             if ($this->lnk->connect_errno) {
                 throw new DatabaseException('Connect error: '.$this->lnk->connect_errno);

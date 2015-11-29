@@ -7,6 +7,9 @@ php:
   - 7.0
   - hhvm
 
+services:
+  - mysql
+
 # This triggers builds to run on the new TravisCI infrastructure.
 # See: http://docs.travis-ci.com/user/workers/container-based-infrastructure/
 sudo: false
@@ -21,6 +24,9 @@ matrix:
 before_script:
   - travis_retry composer self-update
   - travis_retry composer update ${COMPOSER_FLAGS} --no-interaction --prefer-source
+
+before_install:
+  - mysql -e "create database IF NOT EXISTS test;" -uroot
 
 script:
   - vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover

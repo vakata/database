@@ -6,7 +6,7 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 	protected static $db = null;
 
 	public static function setUpBeforeClass() {
-		self::$db = new \vakata\database\DB('mysqli://root@127.0.0.1/system');
+		self::$db = new \vakata\database\DB('mysqli://root@127.0.0.1/test');
 		self::$db->query("
 			CREATE TEMPORARY TABLE IF NOT EXISTS test (
 				id int(10) unsigned NOT NULL AUTO_INCREMENT,

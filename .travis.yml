@@ -30,6 +30,9 @@ before_install:
 script:
   - vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover
 
+after_script:
+  - vendor/bin/test-reporter
+
 addons:
   code_climate:
     repo_token: 243bfc6fa64b55321f63437f3723021a84b9e43f0c5dc75a1edec8b466fee955

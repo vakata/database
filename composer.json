@@ -32,6 +32,8 @@
         }
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "psr2": "php-cs-fixer fix ./src",
+        "phpdoc": "phpDocumentor -d ./src -t ./docs"
     }
 }

@@ -30,8 +30,7 @@ class Mysql extends AbstractDriver
                         $this->settings->password
                     );
 
-            if (
-                $this->lnk === false ||
+            if ($this->lnk === false ||
                 !mysql_select_db($this->settings->database, $this->lnk) ||
                 !mysql_query("SET NAMES '".$this->settings->charset."'", $this->lnk)
             ) {

@@ -20,17 +20,21 @@ class Mysql extends AbstractDriver
         if ($this->lnk === null) {
             $this->lnk = ($this->settings->persist) ?
                     @mysql_pconnect(
-                                    $this->settings->servername.':'.$this->settings->serverport,
-                                    $this->settings->username,
-                                    $this->settings->password
+                        $this->settings->servername.':'.$this->settings->serverport,
+                        $this->settings->username,
+                        $this->settings->password
                     ) :
                     @mysql_connect(
-                                    $this->settings->servername.':'.$this->settings->serverport,
-                                    $this->settings->username,
-                                    $this->settings->password
+                        $this->settings->servername.':'.$this->settings->serverport,
+                        $this->settings->username,
+                        $this->settings->password
                     );
 
-            if ($this->lnk === false || !mysql_select_db($this->settings->database, $this->lnk) || !mysql_query("SET NAMES '".$this->settings->charset."'", $this->lnk)) {
+            if (
+                $this->lnk === false ||
+                !mysql_select_db($this->settings->database, $this->lnk) ||
+                !mysql_query("SET NAMES '".$this->settings->charset."'", $this->lnk)
+            ) {
                 throw new DatabaseException('Connect error: '.mysql_error());
             }
             if ($this->settings->timezone) {

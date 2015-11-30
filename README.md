@@ -59,7 +59,8 @@ $db->query("DELETE FROM table WHERE id = ?", [3])->affected();
 
 // queries using the "all" method can also use the "get" method
 // "get" does not create an array in memory, instead it fetches data from the mysql client
-// the resulting object is not an array but can be iterated and supports indexes - basically it can be used as an array
+// the resulting object is not an array but can be iterated and supports indexes
+// basically it can be used as an array as it implements all neccessary interfaces
 foreach($db->get('SELECT id, name FROM table') as $v) {
     echo $v['id'] . ' ';
 }

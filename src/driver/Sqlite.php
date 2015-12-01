@@ -13,7 +13,7 @@ class Sqlite extends AbstractDriver
     public function __construct($settings)
     {
         parent::__construct($settings);
-        $this->settings->database = explode('://', $this->settings->original, 2)[1];
+        $this->settings->database = $this->settings->original;
         if (!is_file($this->settings->database) && is_file('/'.$this->settings->database)) {
             $this->settings->database = '/'.$this->settings->database;
         }

@@ -64,7 +64,7 @@ class Settings
                 list($this->username, $this->password) = array_pad(explode(':', $str[0], 2), 2, '');
                 $str = $str[1];
             }
-            $this->original = $this->type.'://'.$str;
+            $this->original = $str;
         }
     }
 }

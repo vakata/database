@@ -179,6 +179,6 @@ class DB implements DatabaseInterface
      */
     public function isTransaction()
     {
-        $this->drv->isTransaction();
+        return $this->drv->isTransaction();
     }
 }

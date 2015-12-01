@@ -11,7 +11,7 @@ class Pdo extends AbstractDriver
     public function __construct($settings)
     {
         parent::__construct($settings);
-        $this->settings->type = @current(explode(':', $this->settings->original, 2));
+        $this->settings->type = explode(':', $this->settings->original, 2)[0];
     }
 
     protected function connect()

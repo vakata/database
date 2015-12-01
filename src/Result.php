@@ -118,8 +118,12 @@ class Result implements ResultInterface, \JsonSerializable
         if ($this->rdy) {
             return next($this->all);
         }
-        $this->rslt->nextr();
-        ++$this->realKey;
+        if($this->rslt->nextr()) {
+            ++$this->realKey;
+        }
+        else {
+            $this->realKey = null;
+        }
     }
     public function rewind()
     {

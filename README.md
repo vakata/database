@@ -69,6 +69,8 @@ $db->get('SELECT id, name FROM table', null, 'id', true)[2];
 // "name 2"
 ```
 
+Read more in the [API docs](docs/README.md)
+
 ## Testing
 
 ``` bash

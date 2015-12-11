@@ -2,6 +2,11 @@
 
 namespace vakata\database;
 
+/**
+ * A wrapper class for the result of a query.
+ * Do not create manually - the `\vakata\database\DB` class will create instances as needed.
+ * An object of this type is returned by `\vakata\database\DB::query()` used for `UPDATE / INSERT / DELETE` queries
+ */
 class QueryResult
 {
     protected $drv = null;
@@ -34,6 +39,19 @@ class QueryResult
             $this->drv->free($this->rsl);
         }
     }
+    /**
+     * Get an array-like result.
+     * Instead of using this method - call `\vakata\database\DB::get()` and `\vakata\database\DB::all()`
+     *
+     * @method result
+     *
+     * @param string $key      column name to use as the array index
+     * @param bool   $skip     do not include the column used as index in the value (defaults to `false`)
+     * @param string $mode     result mode - `"assoc"` by default, could be `"num"`, `"both"`, `"assoc_ci"`, `"assoc_lc"`, `"assoc_uc"`
+     * @param bool   $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
+     *
+     * @return \vakata\database\Result the result of the execution - use as a normal array
+     */
     public function result($key = null, $skip = false, $mode = 'assoc', $opti = true)
     {
         return new Result($this, $key, $skip, $mode, $opti);
@@ -56,10 +74,21 @@ class QueryResult
     {
         return $this->num;
     }
+    /**
+     * The number of rows affected by the query
+     * @method affected
+     * @return int   the number of affected rows
+     */
     public function affected()
     {
         return $this->aff;
     }
+    /**
+     * The last inserted ID in the current session.
+     * @method insertId
+     * @param  string   $name optional parameter for drivers which need a sequence name (oracle for example)
+     * @return mixed         the last created ID
+     */
     public function insertId($name = null)
     {
         return $this->iid ? $this->iid : $this->drv->insertId($name);

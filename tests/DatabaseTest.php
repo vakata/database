@@ -29,7 +29,7 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 
 	public function testInvalidCreate() {
 		$this->setExpectedException('\vakata\database\DatabaseException');
-		new \vakata\database\DB();
+		new \vakata\database\DB(1);
 	}
 
 	public function testCreate() {

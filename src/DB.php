@@ -2,6 +2,9 @@
 
 namespace vakata\database;
 
+/**
+ * A database abstraction with support for various drivers (mySQL, postgre, oracle, msSQL, sphinx, and even PDO).
+ */
 class DB implements DatabaseInterface
 {
     protected $drv = null;
@@ -11,12 +14,14 @@ class DB implements DatabaseInterface
      *
      * @method __construct
      *
-     * @param mixed $drv Driver instance or connection string (DSN)
+     * @throws \vakata\database\DatabaseException if invalid settings are provided
+     *
+     * @param string $drv a connection string (like `"mysqli://user:pass@host/database?option=value"`)
      */
-    public function __construct($drv = null)
+    public function __construct($drv)
     {
-        if (!$drv) {
-            throw new DatabaseException('Could not create database (no settings)');
+        if (!is_string($drv) && !($drv instanceof Settings)) {
+            throw new DatabaseException('Could not create database (no or invalid settings)');
         }
         if (is_string($drv)) {
             $drv = new Settings($drv);
@@ -36,13 +41,13 @@ class DB implements DatabaseInterface
     }
     /**
      * Prepare a statement.
-     * Use only if you need a single query to be performed multiple times with different parameters
+     * Use only if you need a single query to be performed multiple times with different parameters.
      *
      * @method prepare
      *
-     * @param String $sql The query to prepare - use ? for arguments
+     * @param string $sql the query to prepare - use `?` for arguments
      *
-     * @return Query The prepared statement
+     * @return vakata\database\Query the prepared statement
      */
     public function prepare($sql)
     {
@@ -60,7 +65,7 @@ class DB implements DatabaseInterface
      * @param string $sql  SQL query
      * @param array  $data parameters
      *
-     * @return QueryResult The result of the execution
+     * @return \vakata\database\QueryResult the result of the execution
      */
     public function query($sql, $data = null)
     {
@@ -71,34 +76,35 @@ class DB implements DatabaseInterface
         }
     }
     /**
-     * Run a SELECT query and get an array-like result
+     * Run a SELECT query and get an array-like result.
+     * When using `get` the data is kept in the database client and fetched as needed (not in PHP memory as with `all`)
      *
      * @method get
      *
      * @param string $sql      SQL query
-     * @param array  $data     Parameters
-     * @param string $key      Column name to use as the array index
-     * @param bool   $skip     Do not include the column used as index in the value (defaults to false)
-     * @param string $mode     Result mode - "assoc" by default, but "num" can be used
-     * @param bool   $opti     If a single column is returned - do not use an array wrapper (defaults to true)
+     * @param array  $data     parameters
+     * @param string $key      column name to use as the array index
+     * @param bool   $skip     do not include the column used as index in the value (defaults to `false`)
+     * @param string $mode     result mode - `"assoc"` by default, could be `"num"`, `"both"`, `"assoc_ci"`, `"assoc_lc"`, `"assoc_uc"`
+     * @param bool   $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
      *
-     * @return ArrayLike The result of the execution
+     * @return \vakata\database\Result the result of the execution - use as a normal array
      */
     public function get($sql, $data = null, $key = null, $skip = false, $mode = 'assoc', $opti = true)
     {
         return (new Query($this->drv, $sql))->execute($data)->result($key, $skip, $mode, $opti);
     }
     /**
-     * Run a SELECT query and get an array result
+     * Run a SELECT query and get an array result.
      *
      * @method all
      *
      * @param string $sql      SQL query
-     * @param array  $data     Parameters
-     * @param string $key      Column name to use as the array index
-     * @param bool   $skip     Do not include the column used as index in the value (defaults to false)
-     * @param string $mode     Result mode - "assoc" by default, but "num" can be used
-     * @param bool   $opti     If a single column is returned - do not use an array wrapper (defaults to true)
+     * @param array  $data     parameters
+     * @param string $key      column name to use as the array index
+     * @param bool   $skip     do not include the column used as index in the value (defaults to `false`)
+     * @param string $mode     result mode - `"assoc"` by default, could be `"num"`, `"both"`, `"assoc_ci"`, `"assoc_lc"`, `"assoc_uc"`
+     * @param bool   $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
      *
      * @return array the result of the execution
      */
@@ -107,14 +113,14 @@ class DB implements DatabaseInterface
         return $this->get($sql, $data, $key, $skip, $mode, $opti)->get();
     }
     /**
-     * Run a SELECT query and get the first row
+     * Run a SELECT query and get the first row.
      *
      * @method one
      *
      * @param string $sql      SQL query
-     * @param array  $data     Parameters
-     * @param string $mode     Result mode - "assoc" by default, but "num" can be used
-     * @param bool   $opti     If a single column is returned - do not use an array wrapper (defaults to true)
+     * @param array  $data     parameters
+     * @param string $mode     result mode - `"assoc"` by default, could be `"num"`, `"both"`, `"assoc_ci"`, `"assoc_lc"`, `"assoc_uc"`
+     * @param bool   $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
      *
      * @return mixed the result of the execution
      */
@@ -123,7 +129,7 @@ class DB implements DatabaseInterface
         return $this->get($sql, $data, null, false, $mode, $opti)->one();
     }
     /**
-     * Get the current driver name
+     * Get the current driver name (`"mysqli"`, `"postgre"`, etc).
      *
      * @method driver
      *
@@ -134,11 +140,11 @@ class DB implements DatabaseInterface
         return $this->drv->settings()->type;
     }
     /**
-     * Begin a transaction
+     * Begin a transaction.
      *
      * @method begin
      *
-     * @return bool true if a transaction was opened, false otherwise
+     * @return bool `true` if a transaction was opened, `false` otherwise
      */
     public function begin()
     {
@@ -149,7 +155,7 @@ class DB implements DatabaseInterface
         return $this->drv->begin();
     }
     /**
-     * Commit a transaction
+     * Commit a transaction.
      *
      * @method commit
      *
@@ -160,7 +166,7 @@ class DB implements DatabaseInterface
         return $isTransaction && $this->drv->isTransaction() && $this->drv->commit();
     }
     /**
-     * Rollback a transaction
+     * Rollback a transaction.
      *
      * @method rollback
      *
@@ -171,11 +177,11 @@ class DB implements DatabaseInterface
         return $isTransaction && $this->drv->isTransaction() && $this->drv->rollback();
     }
     /**
-     * Is a transaction open
+     * Check if a transaciton is currently open.
      *
      * @method isTransaction
      *
-     * @return bool open
+     * @return bool is a transaction currently open
      */
     public function isTransaction()
     {

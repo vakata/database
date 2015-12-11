@@ -2,6 +2,11 @@
 
 namespace vakata\database;
 
+/**
+ * A class wrapping a the result of a SELECT query.
+ * This class implements `\Iterator`, `\ArrayAccess` and `\Countable` so you can just use the instance as an array.
+ * If you need an actual array - call the `get()` method.
+ */
 class Result implements ResultInterface, \JsonSerializable
 {
     protected $all = null;
@@ -153,6 +158,11 @@ class Result implements ResultInterface, \JsonSerializable
 
         return $this->current();
     }
+    /**
+     * Get the current result set as an array.
+     * @method get
+     * @return array the result set as an array
+     */
     public function get()
     {
         if (!$this->rdy) {

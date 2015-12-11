@@ -16,6 +16,13 @@ class Settings
     public $options = null;
     public $original = null;
 
+    /**
+     * Create a settings instance
+     *
+     * @method __construct
+     *
+     * @param string  $settings the settings DSN (`"driver://user:pass@host/dbname?options=value"`)
+     */
     public function __construct($settings)
     {
         $this->original = $settings;

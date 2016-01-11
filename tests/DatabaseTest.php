@@ -279,4 +279,12 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 		$this->assertEquals('pass', $temp->password);
 		$this->assertEquals('mysql:dbname=system;host=127.0.0.1;charset=UTF8', $temp->original);
 	}
+	public function testStream() {
+		$handle = fopen('php://memory', 'w');
+		fwrite($handle, 'asdf');
+		rewind($handle);
+		$id = self::$db->query('INSERT INTO test (name) VALUES(?)', [$handle])->insertId();
+		fclose($handle);
+		$this->assertEquals('asdf', self::$db->one('SELECT name FROM test WHERE id = ?', [$id]));
+	}
 }

@@ -93,6 +93,12 @@ class Mysqli extends AbstractDriver
                         $ref[$i + 1] = &$data[$i];
                         break;
                     default:
+                        if (is_resource($data[$i]) && get_resource_type($data[$i]) === 'stream') {
+                            $ref[0] .= 'b';
+                            $ref[$i + 1] = &$nul;
+                            $lng[] = $i;
+                            continue;
+                        }
                         if (!is_string($data[$i])) {
                             $data[$i] = serialize($data[$i]);
                         }
@@ -109,9 +115,15 @@ class Mysqli extends AbstractDriver
             }
             call_user_func_array(array($sql, 'bind_param'), $ref);
             foreach ($lng as $index) {
-                $data[$index] = str_split($data[$index], $lds);
-                foreach ($data[$index] as $chunk) {
-                    $sql->send_long_data($index, $chunk);
+                if (is_resource($data[$index]) && get_resource_type($data[$index]) === 'stream') {
+                    while (!feof($data[$index])) {
+                        $sql->send_long_data($index, fread($data[$index], $lds));
+                    }
+                } else {
+                    $data[$index] = str_split($data[$index], $lds);
+                    foreach ($data[$index] as $chunk) {
+                        $sql->send_long_data($index, $chunk);
+                    }
                 }
             }
         }

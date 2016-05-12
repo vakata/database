@@ -39,7 +39,7 @@ class Oracle extends AbstractDriver
             oci_close($this->lnk);
         }
     }
-    protected function real($sql)
+    public function real($sql)
     {
         $this->connect();
         $temp = oci_parse($this->lnk, $sql);

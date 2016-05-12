@@ -50,7 +50,7 @@ class Postgre extends AbstractDriver
             pg_close($this->lnk);
         }
     }
-    protected function real($sql)
+    public function real($sql)
     {
         return $this->query($sql);
     }

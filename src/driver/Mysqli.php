@@ -142,7 +142,7 @@ class Mysqli extends AbstractDriver
 
         return $sql->field_count ? $sql->get_result() : $rtrn;
     }
-    protected function real($sql)
+    public function real($sql)
     {
         $this->connect();
         $temp = $this->lnk->query($sql);

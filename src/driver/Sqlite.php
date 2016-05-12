@@ -106,7 +106,7 @@ class Sqlite extends AbstractDriver
 
         return $rtrn;
     }
-    protected function real($sql)
+    public function real($sql)
     {
         $this->connect();
         $temp = $this->lnk->query($sql);

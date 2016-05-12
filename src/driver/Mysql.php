@@ -48,7 +48,7 @@ class Mysql extends AbstractDriver
         }
     }
 
-    protected function real($sql)
+    public function real($sql)
     {
         $this->connect();
         $temp = mysql_query($sql, $this->lnk);

@@ -129,6 +129,6 @@ abstract class AbstractDriver implements DriverInterface
         return;
     }
 
-    abstract protected function real($sql);
+    abstract public function real($sql);
     abstract public function nextr($result);
 }

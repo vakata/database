@@ -129,6 +129,19 @@ class DB implements DatabaseInterface
         return $this->get($sql, $data, null, false, $mode, $opti)->one();
     }
     /**
+     * Run a raw SQL query
+     *
+     * @method raw
+     *
+     * @param string $sql      SQL query
+     *
+     * @return mixed the result of the execution
+     */
+    public function raw($sql, $data = null, $mode = 'assoc', $opti = true)
+    {
+        return $this->drv->real($sql);
+    }
+    /**
      * Get the current driver name (`"mysqli"`, `"postgre"`, etc).
      *
      * @method driver

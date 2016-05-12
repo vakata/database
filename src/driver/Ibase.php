@@ -48,7 +48,7 @@ class Ibase extends AbstractDriver
         }
     }
 
-    protected function real($sql)
+    public function real($sql)
     {
         $this->connect();
         $temp = \ibase_query($this->transaction !== null ? $this->transaction : $this->lnk, $sql);

@@ -36,7 +36,7 @@ class Pdo extends AbstractDriver
             $this->lnk = null;
         }
     }
-    protected function real($sql)
+    public function real($sql)
     {
         $this->connect();
         $temp = $this->lnk->query($sql);

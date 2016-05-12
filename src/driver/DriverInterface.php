@@ -8,6 +8,7 @@ interface DriverInterface
     public function execute($sql, array $data = null);
     public function query($sql, array $data = null);
     public function escape($input);
+    public function real($sql);
 
     public function nextr($result);
     public function seek($result, $row);

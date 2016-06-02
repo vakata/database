@@ -59,6 +59,16 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 	public function testInsertId() {
 		$this->assertEquals(3, self::$db->query('INSERT INTO test VALUES(NULL, ?)', ['user3'])->insertId());
 	}
+	/**
+	 * @depends testInsertId
+	 */
+	public function testExpand() {
+		$this->assertEquals(3, count(self::$db->all('SELECT * FROM test WHERE id IN (??)', [[1,2,3]])));
+		$this->assertEquals(3, count(self::$db->all('SELECT * FROM test WHERE id IN (??)', [1,2,3])));
+		$this->assertEquals(3, count(self::$db->all('SELECT * FROM test WHERE id > ? AND id IN (??) AND id < ?', [0, [1,2,3], 4])));
+		$this->assertEquals(3, count(self::$db->all('SELECT * FROM test WHERE id > ? AND (id IN (??) OR id IN (??)) AND id < ?', [0, [1,2,3], [1,2,3], 4])));
+		$this->assertEquals(2, count(self::$db->all('SELECT * FROM test WHERE id > ? AND (id IN (??) OR id IN (??)) AND id < ?', [0, 1, 2, 4])));
+	}
 
 	/**
 	 * @depends testQuery

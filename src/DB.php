@@ -39,6 +39,36 @@ class DB implements DatabaseInterface
         }
         $this->drv = $drv;
     }
+
+    protected function expand($sql, $data)
+    {
+        $new = '';
+        if (!is_array($data)) {
+            $data = [ $data ];
+        }
+        $data = array_values($data);
+        if (substr_count($sql, '?') === 2 && !is_array($data[0])) {
+            $data = [ $data ];
+        }
+        $parts = explode('??', $sql);
+        $index = 0;
+        foreach ($parts as $part) {
+            $tmp = explode('?', $part);
+            $new .= $part;
+            $index += count($tmp) - 1;
+            if (isset($data[$index])) {
+                if (!is_array($data[$index])) {
+                    $data[$index] = [ $data[$index] ];
+                }
+                $params = $data[$index];
+                array_splice($data, $index, 1, $params);
+                $index += count($params);
+                $new .= implode(',', array_fill(0, count($params), '?'));
+            }
+        }
+        return [ $new, $data ];
+    }
+
     /**
      * Prepare a statement.
      * Use only if you need a single query to be performed multiple times with different parameters.
@@ -70,6 +100,9 @@ class DB implements DatabaseInterface
     public function query($sql, $data = null)
     {
         try {
+            if (strpos($sql, '??') && $data !== null) {
+                list($sql, $data) = $this->expand($sql, $data);
+            }
             return $this->prepare($sql)->execute($data);
         } catch (\Exception $e) {
             throw new DatabaseException($e->getMessage(), 4);
@@ -92,6 +125,9 @@ class DB implements DatabaseInterface
      */
     public function get($sql, $data = null, $key = null, $skip = false, $mode = 'assoc', $opti = true)
     {
+        if (strpos($sql, '??') && $data !== null) {
+            list($sql, $data) = $this->expand($sql, $data);
+        }
         return (new Query($this->drv, $sql))->execute($data)->result($key, $skip, $mode, $opti);
     }
     /**

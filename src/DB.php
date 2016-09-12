@@ -189,6 +189,17 @@ class DB implements DatabaseInterface
         return $this->drv->settings()->type;
     }
     /**
+     * Get the current database name.
+     *
+     * @method name
+     *
+     * @return string the current database name
+     */
+    public function name()
+    {
+        return $this->drv->settings()->database;
+    }
+    /**
      * Begin a transaction.
      *
      * @method begin

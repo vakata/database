@@ -72,7 +72,7 @@ class Mysqli extends AbstractDriver
             if (count($data) < $sql->param_count) {
                 throw new DatabaseException('Prepared execute - not enough parameters.');
             }
-            $lds = 1024 * 1024;
+            $lds = 32 * 1024;
             $ref = array('');
             $lng = array();
             $nul = null;

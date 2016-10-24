@@ -17,7 +17,7 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 	}
 	public static function tearDownAfterClass() {
 		self::$db->query("
-			DROP TEMPORARY TABLE test;
+			DROP TEMPORARY TABLE IF EXISTS test;
 		");
 	}
 	protected function setUp() {
@@ -34,6 +34,7 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 
 	public function testCreate() {
 		self::$db = new \vakata\database\DB('mysqli://root@127.0.0.1/test?charset=utf8');
+		//self::$db = new \vakata\database\DB('pdo://root@mysql:dbname=test;host=127.0.0.1');
 		$this->assertEquals(true, self::$db instanceof \vakata\database\DatabaseInterface);
 		$this->assertEquals('mysqli', self::$db->driver());
 		self::$db->query("
@@ -194,7 +195,7 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 		$this->assertEquals(4, count($data));
 		$this->assertEquals(true, isset($data[1]));
 		$this->assertEquals(false, isset($data[10]));
-		$this->assertEquals(null, $data[10]);
+		$this->assertEquals(null, @$data[10]);
 		$this->assertEquals(['id'=>1,'name'=>'user1'], $data[0]);
 
 		$cnt = 0;
@@ -238,7 +239,7 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 		$data = self::$db->get('SELECT * FROM test WHERE id = ?', 11);
 		$this->assertEquals(0, count($data));
 		$this->assertEquals(false, isset($data[1]));
-		$this->assertEquals(null, $data[1]);
+		$this->assertEquals(null, @$data[1]);
 	}
 	public function testResultFakeKey() {
 		$data = self::$db->get('SELECT * FROM test WHERE id = ?', 1, 'id', true);

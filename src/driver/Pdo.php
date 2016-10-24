@@ -71,6 +71,7 @@ class Pdo extends AbstractDriver
 
         return $temp;
     }
+
     public function execute($sql, array $data = null)
     {
         $this->connect();
@@ -80,14 +81,43 @@ class Pdo extends AbstractDriver
         if (is_string($sql)) {
             $sql = $this->prepare($sql);
         }
-        $rtrn = $sql->execute(array_values($data));
+        $data = array_values($data);
+        foreach ($data as $i => $v) {
+            switch (gettype($v)) {
+                case 'boolean':
+                    $sql->bindValue($i+1, $v, \PDO::PARAM_BOOL);
+                    break;
+                case 'integer':
+                    $sql->bindValue($i+1, $v, \PDO::PARAM_INT);
+                    break;
+                case 'NULL':
+                    $sql->bindValue($i+1, $v, \PDO::PARAM_NULL);
+                    break;
+                case 'double':
+                    $sql->bindValue($i+1, $v);
+                    break;
+                default:
+                    // keep in mind oracle needs a transaction when inserting LOBs, aside from the specific syntax:
+                    // INSERT INTO table (column, lobcolumn) VALUES (?, ?, EMPTY_BLOB()) RETURNING lobcolumn INTO ?
+                    if (is_resource($v) && get_resource_type($v) === 'stream') {
+                        $sql->bindParam($i+1, $v, \PDO::PARAM_LOB);
+                        continue;
+                    }
+                    if (!is_string($data[$i])) {
+                        $data[$i] = serialize($data[$i]);
+                    }
+                    $sql->bindValue($i+1, $v);
+                    break;
+            }
+        }
+        $rtrn = $sql->execute();
         if (!$rtrn) {
-            throw new DatabaseException('Prepared execute error : '.$sql->errorInfo());
+            throw new DatabaseException('Prepared execute error : '. implode(',', $sql->errorInfo()));
         }
         $this->aff = $sql->rowCount();
-
         return $sql->columnCount() ? $sql : $rtrn;
     }
+
     public function escape($input)
     {
         if (is_array($input)) {

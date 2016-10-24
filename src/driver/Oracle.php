@@ -75,6 +75,8 @@ class Oracle extends AbstractDriver
             $data = array();
         }
         $data = array_values($data);
+        $lob = null;
+        $ldt = null;
         foreach ($data as $i => $v) {
             switch (gettype($v)) {
                 case 'boolean':
@@ -82,16 +84,18 @@ class Oracle extends AbstractDriver
                     $data[$i] = (int) $v;
                     oci_bind_by_name($sql, 'f'.$i, $data[$i], -1, SQLT_INT);
                     break;
-                case 'array':
-                    $data[$i] = implode(',', $v);
-                    oci_bind_by_name($sql, 'f'.$i, $data[$i]);
-                    break;
-                case 'object':
-                case 'resource':
-                    $data[$i] = serialize($data[$i]);
-                    oci_bind_by_name($sql, 'f'.$i, $data[$i]);
-                    break;
                 default:
+                    // keep in mind oracle needs a transaction when inserting LOBs, aside from the specific syntax:
+                    // INSERT INTO table (column, lobcolumn) VALUES (?, ?, EMPTY_BLOB()) RETURNING lobcolumn INTO ?
+                    if (is_resource($v) && get_resource_type($v) === 'stream') {
+                        $ldt = $v;
+                        $lob = oci_new_descriptor($this->lnk, OCI_D_LOB);
+                        oci_bind_by_name($sql, 'f'.$i, $lob, -1, OCI_B_CLOB);
+                        continue;
+                    }
+                    if (!is_string($data[$i])) {
+                        $data[$i] = serialize($data[$i]);
+                    }
                     oci_bind_by_name($sql, 'f'.$i, $data[$i]);
                     break;
             }
@@ -99,6 +103,13 @@ class Oracle extends AbstractDriver
         $temp = oci_execute($sql, $this->transaction ? OCI_NO_AUTO_COMMIT : OCI_COMMIT_ON_SUCCESS);
         if (!$temp) {
             throw new DatabaseException('Could not execute query : '.oci_error($sql));
+        }
+        if ($lob) {
+            while (!feof($ldt) && ($ltmp = fread($handle, 8192)) !== false) {
+                $lob->write($ltmp);
+                $lob->flush();
+            }
+            $lob->free();
         }
         $this->aff = oci_num_rows($sql);
 

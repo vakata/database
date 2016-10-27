@@ -22,7 +22,6 @@ class Query
     }
     /**
      * Execute the query, which was prepared using `\vakata\database\DB::prepare()`.
-     * @method execute
      * @param  array  $data optional parameter - the data needed for the query if it has placeholders
      * @return \vakata\database\QueryResult  the result of the query
      */

@@ -12,7 +12,6 @@ class DB implements DatabaseInterface
     /**
      * Create an instance.
      *
-     * @method __construct
      *
      * @throws \vakata\database\DatabaseException if invalid settings are provided
      *
@@ -73,7 +72,6 @@ class DB implements DatabaseInterface
      * Prepare a statement.
      * Use only if you need a single query to be performed multiple times with different parameters.
      *
-     * @method prepare
      *
      * @param string $sql the query to prepare - use `?` for arguments
      *
@@ -90,7 +88,6 @@ class DB implements DatabaseInterface
     /**
      * Run a query (prepare & execute).
      *
-     * @method query
      *
      * @param string $sql  SQL query
      * @param array  $data parameters
@@ -112,7 +109,6 @@ class DB implements DatabaseInterface
      * Run a SELECT query and get an array-like result.
      * When using `get` the data is kept in the database client and fetched as needed (not in PHP memory as with `all`)
      *
-     * @method get
      *
      * @param string $sql      SQL query
      * @param array  $data     parameters
@@ -133,7 +129,6 @@ class DB implements DatabaseInterface
     /**
      * Run a SELECT query and get an array result.
      *
-     * @method all
      *
      * @param string $sql      SQL query
      * @param array  $data     parameters
@@ -151,7 +146,6 @@ class DB implements DatabaseInterface
     /**
      * Run a SELECT query and get the first row.
      *
-     * @method one
      *
      * @param string $sql      SQL query
      * @param array  $data     parameters
@@ -167,7 +161,6 @@ class DB implements DatabaseInterface
     /**
      * Run a raw SQL query
      *
-     * @method raw
      *
      * @param string $sql      SQL query
      *
@@ -180,7 +173,6 @@ class DB implements DatabaseInterface
     /**
      * Get the current driver name (`"mysqli"`, `"postgre"`, etc).
      *
-     * @method driver
      *
      * @return string the current driver name
      */
@@ -191,7 +183,6 @@ class DB implements DatabaseInterface
     /**
      * Get the current database name.
      *
-     * @method name
      *
      * @return string the current database name
      */
@@ -202,7 +193,6 @@ class DB implements DatabaseInterface
     /**
      * Begin a transaction.
      *
-     * @method begin
      *
      * @return bool `true` if a transaction was opened, `false` otherwise
      */
@@ -217,7 +207,6 @@ class DB implements DatabaseInterface
     /**
      * Commit a transaction.
      *
-     * @method commit
      *
      * @return bool was the commit successful
      */
@@ -228,7 +217,6 @@ class DB implements DatabaseInterface
     /**
      * Rollback a transaction.
      *
-     * @method rollback
      *
      * @return bool was the rollback successful
      */
@@ -239,7 +227,6 @@ class DB implements DatabaseInterface
     /**
      * Check if a transaciton is currently open.
      *
-     * @method isTransaction
      *
      * @return bool is a transaction currently open
      */

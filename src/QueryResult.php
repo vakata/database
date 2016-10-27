@@ -43,7 +43,6 @@ class QueryResult
      * Get an array-like result.
      * Instead of using this method - call `\vakata\database\DB::get()` and `\vakata\database\DB::all()`
      *
-     * @method result
      *
      * @param string $key      column name to use as the array index
      * @param bool   $skip     do not include the column used as index in the value (defaults to `false`)
@@ -76,7 +75,6 @@ class QueryResult
     }
     /**
      * The number of rows affected by the query
-     * @method affected
      * @return int   the number of affected rows
      */
     public function affected()
@@ -85,7 +83,6 @@ class QueryResult
     }
     /**
      * The last inserted ID in the current session.
-     * @method insertId
      * @param  string   $name optional parameter for drivers which need a sequence name (oracle for example)
      * @return mixed         the last created ID
      */

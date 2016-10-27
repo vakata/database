@@ -19,7 +19,6 @@ class Settings
     /**
      * Create a settings instance
      *
-     * @method __construct
      *
      * @param string  $settings the settings DSN (`"driver://user:pass@host/dbname?options=value"`)
      */

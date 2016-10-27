@@ -160,7 +160,6 @@ class Result implements ResultInterface, \JsonSerializable
     }
     /**
      * Get the current result set as an array.
-     * @method get
      * @return array the result set as an array
      */
     public function get()

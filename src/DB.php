@@ -15,23 +15,21 @@ class DB implements DatabaseInterface
      *
      * @throws \vakata\database\DatabaseException if invalid settings are provided
      *
-     * @param string $drv a connection string (like `"mysqli://user:pass@host/database?option=value"`)
+     * @param string|\vakata\database\Settings $options a connection string (like `"mysqli://user:pass@host/database?option=value"`)
      */
-    public function __construct($drv)
+    public function __construct($options)
     {
-        if (!is_string($drv) && !($drv instanceof Settings)) {
+        if (!is_string($options) && !($options instanceof Settings)) {
             throw new DatabaseException('Could not create database (no or invalid settings)');
         }
-        if (is_string($drv)) {
-            $drv = new Settings($drv);
+        if (is_string($options)) {
+            $settings = new Settings($options);
         }
-        if ($drv instanceof Settings) {
-            try {
-                $tmp = '\\vakata\\database\\driver\\'.ucfirst($drv->type);
-                $drv = new $tmp($drv);
-            } catch (\Exception $e) {
-                throw new DatabaseException('Could not create database driver - '.$e);
-            }
+        try {
+            $tmp = '\\vakata\\database\\driver\\'.ucfirst($settings->type);
+            $drv = new $tmp($settings);
+        } catch (\Exception $e) {
+            throw new DatabaseException('Could not create database driver - '.$e);
         }
         if (!($drv instanceof driver\DriverInterface)) {
             throw new DatabaseException('Invalid database driver');
@@ -75,7 +73,7 @@ class DB implements DatabaseInterface
      *
      * @param string $sql the query to prepare - use `?` for arguments
      *
-     * @return vakata\database\Query the prepared statement
+     * @return \vakata\database\Query the prepared statement
      */
     public function prepare($sql)
     {

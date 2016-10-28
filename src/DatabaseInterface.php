@@ -15,4 +15,5 @@ interface DatabaseInterface
     public function rollback($isTransaction = true);
     public function isTransaction();
     public function driver();
+    public function name();
 }

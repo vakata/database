@@ -98,7 +98,7 @@ class Ibase extends AbstractDriver
     }
     public function nextr($result)
     {
-        return \ibase_fetch_assoc($result, \ibase_TEXT);
+        return \ibase_fetch_assoc($result, \IBASE_TEXT);
     }
     public function affected()
     {

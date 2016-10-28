@@ -29,7 +29,7 @@ class Oracle extends AbstractDriver
                 throw new DatabaseException('Connect error');
             }
             if ($this->settings->timezone) {
-                $this->real_query("ALTER session SET time_zone = '".addslashes($this->settings->timezone)."'");
+                $this->real("ALTER session SET time_zone = '".addslashes($this->settings->timezone)."'");
             }
         }
     }
@@ -105,7 +105,7 @@ class Oracle extends AbstractDriver
             throw new DatabaseException('Could not execute query : '.oci_error($sql));
         }
         if ($lob) {
-            while (!feof($ldt) && ($ltmp = fread($handle, 8192)) !== false) {
+            while (!feof($ldt) && ($ltmp = fread($ldt, 8192)) !== false) {
                 $lob->write($ltmp);
                 $lob->flush();
             }

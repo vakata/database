@@ -64,7 +64,7 @@ class Mssql extends AbstractDriver
         if (preg_match('@^\s*(INSERT|REPLACE)\s+INTO@i', $sql)) {
             $this->iid = sqlsrv_query($this->lnk, 'SELECT SCOPE_IDENTITY()');
             if ($this->iid) {
-                $this->iid = sqlsrv_fetch_array($this->iid, SQLSRV_FETCH_NUMERIC);
+                $this->iid = sqlsrv_fetch_array($this->iid, \SQLSRV_FETCH_NUMERIC);
                 $this->iid = $this->iid[0];
             }
             $this->aff = sqlsrv_rows_affected($temp);
@@ -75,7 +75,7 @@ class Mssql extends AbstractDriver
 
     public function nextr($result)
     {
-        return sqlsrv_fetch_array($result, SQLSRV_FETCH_BOTH);
+        return sqlsrv_fetch_array($result, \SQLSRV_FETCH_BOTH);
     }
     /*
     public function seek($result, $row) {

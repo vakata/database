@@ -62,7 +62,7 @@ class Mysql extends AbstractDriver
     }
     public function nextr($result)
     {
-        return mysql_fetch_array($result, MYSQL_BOTH);
+        return mysql_fetch_array($result, \MYSQL_BOTH);
     }
     public function seek($result, $row)
     {

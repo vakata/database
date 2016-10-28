@@ -84,10 +84,10 @@ class Postgre extends AbstractDriver
             throw new DatabaseException('Could not execute query : '.pg_last_error($this->lnk).' <'.$sql.'>');
         }
         if (preg_match('@^\s*(INSERT|REPLACE)\s+INTO@i', $sql)) {
-            $this->iid = pg_query($this->lnk, 'SELECT lastval()');
-            if ($this->iid) {
-                $this->iid = pg_fetch_row($this->iid);
-                $this->iid = $this->iid[0];
+            $iid = pg_query($this->lnk, 'SELECT lastval()');
+            if ($iid) {
+                $res = pg_fetch_row($iid);
+                $this->iid = $res[0];
             }
             $this->aff = pg_affected_rows($temp);
         }

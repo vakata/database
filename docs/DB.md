@@ -11,7 +11,10 @@ A database abstraction with support for various drivers (mySQL, postgre, oracle,
 |[get](#vakata\database\dbget)|Run a SELECT query and get an array-like result.|
 |[all](#vakata\database\dball)|Run a SELECT query and get an array result.|
 |[one](#vakata\database\dbone)|Run a SELECT query and get the first row.|
+|[raw](#vakata\database\dbraw)|Run a raw SQL query|
 |[driver](#vakata\database\dbdriver)|Get the current driver name (`"mysqli"`, `"postgre"`, etc).|
+|[name](#vakata\database\dbname)|Get the current database name.|
+|[settings](#vakata\database\dbsettings)|Get the current settings object|
 |[begin](#vakata\database\dbbegin)|Begin a transaction.|
 |[commit](#vakata\database\dbcommit)|Commit a transaction.|
 |[rollback](#vakata\database\dbrollback)|Rollback a transaction.|
@@ -27,13 +30,13 @@ Create an instance.
 
 ```php
 public function __construct (  
-    string $drv  
+    string $options  
 )   
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
-| `$drv` | `string` | a connection string (like `"mysqli://user:pass@host/database?option=value"`) |
+| `$options` | `string` | a connection string (like `"mysqli://user:pass@host/database?option=value"`) |
 
 ---
 
@@ -161,6 +164,25 @@ public function one (
 ---
 
 
+### vakata\database\DB::raw
+Run a raw SQL query  
+
+
+```php
+public function raw (  
+    string $sql  
+) : mixed    
+```
+
+|  | Type | Description |
+|-----|-----|-----|
+| `$sql` | `string` | SQL query |
+|  |  |  |
+| `return` | `mixed` | the result of the execution |
+
+---
+
+
 ### vakata\database\DB::driver
 Get the current driver name (`"mysqli"`, `"postgre"`, etc).  
 
@@ -173,6 +195,38 @@ public function driver () : string
 |-----|-----|-----|
 |  |  |  |
 | `return` | `string` | the current driver name |
+
+---
+
+
+### vakata\database\DB::name
+Get the current database name.  
+
+
+```php
+public function name () : string    
+```
+
+|  | Type | Description |
+|-----|-----|-----|
+|  |  |  |
+| `return` | `string` | the current database name |
+
+---
+
+
+### vakata\database\DB::settings
+Get the current settings object  
+
+
+```php
+public function settings () : \vakata\database\Settings    
+```
+
+|  | Type | Description |
+|-----|-----|-----|
+|  |  |  |
+| `return` | `\vakata\database\Settings` | the current settings |
 
 ---
 

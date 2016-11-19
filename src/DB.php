@@ -7,7 +7,8 @@ namespace vakata\database;
  */
 class DB implements DatabaseInterface
 {
-    protected $drv = null;
+    protected $drv;
+    protected $settings;
 
     /**
      * Create an instance.
@@ -15,21 +16,16 @@ class DB implements DatabaseInterface
      *
      * @throws \vakata\database\DatabaseException if invalid settings are provided
      *
-     * @param string|\vakata\database\Settings $options a connection string (like `"mysqli://user:pass@host/database?option=value"`)
+     * @param string $options a connection string (like `"mysqli://user:pass@host/database?option=value"`)
      */
     public function __construct($options)
     {
-        if (!is_string($options) && !($options instanceof Settings)) {
-            throw new DatabaseException('Could not create database (no or invalid settings)');
-        }
-        if (is_string($options)) {
-            $settings = new Settings($options);
-        }
+        $this->settings = new Settings((string)$options);
         try {
-            $tmp = '\\vakata\\database\\driver\\'.ucfirst($settings->type);
-            $drv = new $tmp($settings);
+            $tmp = '\\vakata\\database\\driver\\'.ucfirst($this->settings->type);
+            $drv = new $tmp($this->settings);
         } catch (\Exception $e) {
-            throw new DatabaseException('Could not create database driver - '.$e);
+            throw new DatabaseException('Could not create database driver');
         }
         if (!($drv instanceof driver\DriverInterface)) {
             throw new DatabaseException('Invalid database driver');
@@ -176,7 +172,7 @@ class DB implements DatabaseInterface
      */
     public function driver()
     {
-        return $this->drv->settings()->type;
+        return $this->settings->type;
     }
     /**
      * Get the current database name.
@@ -186,7 +182,17 @@ class DB implements DatabaseInterface
      */
     public function name()
     {
-        return $this->drv->settings()->database;
+        return $this->settings->database;
+    }
+    /**
+     * Get the current settings object
+     *
+     *
+     * @return \vakata\database\Settings the current settings
+     */
+    public function settings()
+    {
+        return $this->settings;
     }
     /**
      * Begin a transaction.

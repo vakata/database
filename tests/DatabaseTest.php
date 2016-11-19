@@ -27,11 +27,6 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 		// self::$db->query("TRUNCATE TABLE test;");
 	}
 
-	public function testInvalidCreate() {
-		$this->setExpectedException('\vakata\database\DatabaseException');
-		new \vakata\database\DB(1);
-	}
-
 	public function testCreate() {
 		self::$db = new \vakata\database\DB('mysqli://root@127.0.0.1/test?charset=utf8');
 		//self::$db = new \vakata\database\DB('pdo://root@mysql:dbname=test;host=127.0.0.1');

@@ -82,8 +82,14 @@ class Ibase extends AbstractDriver
                     $data[$i] = implode(',', $v);
                     break;
                 case 'object':
-                case 'resource':
                     $data[$i] = serialize($data[$i]);
+                    break;
+                case 'resource':
+                    if (is_resource($v) && get_resource_type($v) === 'stream') {
+                        $data[$i] = stream_get_contents($data[$i]);
+                    } else {
+                        $data[$i] = serialize($data[$i]);
+                    }
                     break;
             }
         }

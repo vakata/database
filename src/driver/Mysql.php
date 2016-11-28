@@ -92,16 +92,17 @@ class Mysql extends AbstractDriver
 
     public function escape($input)
     {
+        if (is_resource($input) && get_resource_type($input) === 'stream') {
+            $input = stream_get_contents($input);
+        }
         if (is_array($input)) {
             foreach ($input as $k => $v) {
                 $input[$k] = $this->escape($v);
             }
-
             return implode(',', $input);
         }
         if (is_string($input)) {
             $input = mysql_real_escape_string($input, $this->lnk);
-
             return "'".$input."'";
         }
         if (is_bool($input)) {
@@ -110,8 +111,11 @@ class Mysql extends AbstractDriver
         if (is_null($input)) {
             return 'NULL';
         }
-
-        return $input;
+        if (is_int($input) || is_float($input)) {
+            return $input;
+        }
+        $input = mysql_real_escape_string(serialize($input), $this->lnk);
+        return "'".$input."'";
     }
     public function free($result)
     {

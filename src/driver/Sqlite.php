@@ -85,8 +85,14 @@ class Sqlite extends AbstractDriver
                         $sql->bindValue(':i'.$i, implode(',', $v), SQLITE3_TEXT);
                         break;
                     case 'object':
-                    case 'resource':
                         $sql->bindValue(':i'.$i, serialize($v), SQLITE3_TEXT);
+                        break;
+                    case 'resource':
+                        if (is_resource($v) && get_resource_type($v) === 'stream') {
+                            $sql->bindValue(':i'.$i, stream_get_contents($v), SQLITE3_TEXT);
+                        } else {
+                            $sql->bindValue(':i'.$i, serialize($v), SQLITE3_TEXT);
+                        }
                         break;
                     case 'NULL':
                         $sql->bindValue(':i'.$i, null, SQLITE3_NULL);

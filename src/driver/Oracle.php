@@ -28,6 +28,7 @@ class Oracle extends AbstractDriver
             if ($this->lnk === false) {
                 throw new DatabaseException('Connect error');
             }
+            $this->real("ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY-MM-DD HH24:MI:SS'");
             if ($this->settings->timezone) {
                 $this->real("ALTER session SET time_zone = '".addslashes($this->settings->timezone)."'");
             }

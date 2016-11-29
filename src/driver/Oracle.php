@@ -91,10 +91,10 @@ class Oracle extends AbstractDriver
                     if (is_resource($v) && get_resource_type($v) === 'stream') {
                         $ldt = $v;
                         $lob = oci_new_descriptor($this->lnk, OCI_D_LOB);
-                        oci_bind_by_name($sql, 'f'.$i, $lob, -1, OCI_B_CLOB);
+                        oci_bind_by_name($sql, 'f'.$i, $lob, -1, OCI_B_BLOB);
                         continue;
                     }
-                    if (!is_string($data[$i])) {
+                    if (!is_string($data[$i]) && !is_null($data[$i])) {
                         $data[$i] = serialize($data[$i]);
                     }
                     oci_bind_by_name($sql, 'f'.$i, $data[$i]);

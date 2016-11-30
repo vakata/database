@@ -16,13 +16,24 @@ class QueryResult
     protected $num = null;
     protected $aff = null;
     protected $iid = null;
+    protected $dat = null;
 
     public function __construct(driver\DriverInterface $drv, $prp, $data = null)
     {
-        $data = !is_null($data) && !is_array($data) ? [$data] : $data;
+        $this->dat = !is_null($data) && !is_array($data) ? [$data] : $data;
         $this->drv = $drv;
         $this->prp = $prp;
-        $this->rsl = $this->drv->execute($this->prp, $data);
+        $this->reset();
+    }
+    public function __destruct()
+    {
+        if (is_object($this->rsl) || is_resource($this->rsl)) {
+            $this->drv->free($this->rsl);
+        }
+    }
+    public function reset()
+    {
+        $this->rsl = $this->drv->execute($this->prp, $this->dat);
         $this->num = (is_object($this->rsl) || is_resource($this->rsl)) && $this->drv->countable() ?
             (int) @$this->drv->count($this->rsl) :
             0;
@@ -31,12 +42,6 @@ class QueryResult
             $this->iid = $this->drv->insertId();
         } catch (\Exception $e) {
             $this->iid = null;
-        }
-    }
-    public function __destruct()
-    {
-        if (is_object($this->rsl) || is_resource($this->rsl)) {
-            $this->drv->free($this->rsl);
         }
     }
     /**

@@ -133,7 +133,7 @@ class Result implements ResultInterface, \JsonSerializable
     public function rewind()
     {
         if ($this->realKey !== 0 && !$this->rdy && !$this->rslt->seekable()) {
-            $this->get();
+            $this->rslt->reset();
         }
         if ($this->rdy) {
             return reset($this->all);

@@ -92,14 +92,6 @@ class Result implements ResultInterface, \JsonSerializable
                 break;
         }
         if ($this->fake) {
-            if (!isset($row[$this->fake])) {
-                foreach ($row as $k => $v) {
-                    if (strtolower($k) === strtolower($this->fake)) {
-                        $this->fake = $k;
-                        break;
-                    }
-                }
-            }
             $this->fakeKey = $row[$this->fake];
         }
         if ($this->skip) {

@@ -293,4 +293,11 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 		fclose($handle);
 		$this->assertEquals('asdf', self::$db->one('SELECT name FROM test WHERE id = ?', [$id]));
 	}
+
+	public function testMode() {
+		$dbc = new \vakata\database\DB('mysqli://root@127.0.0.1/test?charset=utf8&mode=assoc_uc');
+		$this->assertEquals(['A'=>1,'B'=>2], $dbc->one('SELECT 1 AS a, 2 AS b FROM test'));
+		$dbc = new \vakata\database\DB('mysqli://root@127.0.0.1/test?charset=utf8&mode=assoc_lc');
+		$this->assertEquals(['a'=>1,'b'=>2], $dbc->one('SELECT 1 AS a, 2 AS b FROM test'));
+	}
 }

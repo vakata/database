@@ -113,8 +113,11 @@ class DB implements DatabaseInterface
      *
      * @return \vakata\database\Result the result of the execution - use as a normal array
      */
-    public function get($sql, $data = null, $key = null, $skip = false, $mode = 'assoc', $opti = true)
+    public function get($sql, $data = null, $key = null, $skip = false, $mode = null, $opti = true)
     {
+        if ($mode === null) {
+            $mode = isset($this->settings->options['mode']) ? $this->settings->options['mode'] : 'assoc';
+        }
         if (strpos($sql, '??') && $data !== null) {
             list($sql, $data) = $this->expand($sql, $data);
         }
@@ -133,7 +136,7 @@ class DB implements DatabaseInterface
      *
      * @return array the result of the execution
      */
-    public function all($sql, $data = null, $key = null, $skip = false, $mode = 'assoc', $opti = true)
+    public function all($sql, $data = null, $key = null, $skip = false, $mode = null, $opti = true)
     {
         return $this->get($sql, $data, $key, $skip, $mode, $opti)->get();
     }
@@ -148,7 +151,7 @@ class DB implements DatabaseInterface
      *
      * @return mixed the result of the execution
      */
-    public function one($sql, $data = null, $mode = 'assoc', $opti = true)
+    public function one($sql, $data = null, $mode = null, $opti = true)
     {
         return $this->get($sql, $data, null, false, $mode, $opti)->one();
     }

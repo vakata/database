@@ -67,6 +67,60 @@ foreach($db->get('SELECT id, name FROM table') as $v) {
 // 1 2
 $db->get('SELECT id, name FROM table', null, 'id', true)[2];
 // "name 2"
+
+// SHORTCUT METHODS
+// assuming there is a book table with a name column
+foreach ($schema->book() as $book) {
+    echo $book['name'] . "\n";
+}
+// you could of course filter and order
+foreach ($schema->book()->filter('year', 2016)->sort('name') as $book) {
+    // iterate over the books from 2016
+}
+// the same as above
+foreach ($schema->book()->filterByYear(2016)->sortByName() as $book) {
+    // iterate over the books from 2016
+}
+
+// if using mySQL or Oracle (others to come soon) foreign keys are automatically detected and can be fetched
+// for example if there is an author table and the book table references it
+foreach ($schema->book()->with('author') as $book) {
+    echo $book['author']['name'] . "\n";
+}
+
+// provided there is a linking table book_tag and a tag table and each book has many tags you can do this
+foreach ($schema->book()->with('tag') as $book) {
+    echo $book['tag'][0]['name'] . "\n"; // the name of the first tag which the current book has
+}
+
+// filtering and ordering works on relations too
+$schema->book()->filter('author.name', 'A. Name');
+
+// you can also specify what fields to select
+$schema->book()->select(['name', 'author.name']);
+
+// there are "low-level" where / order and limit methods
+$schema->book()
+    ->with('author')
+    ->where('created = CURDATE() OR promoted = ?', [1])
+    ->order("author.name ASC")
+    ->limit(5)
+    ->select();
+
+// when not dealing with foreign keys you can also join tables (and use group by / having)
+$schema->categories()
+    ->join('questions', [ 'category_id' => 'id' ])
+    ->group(['id'])
+    ->having('cnt > ?', [300])
+    ->order('cnt DESC')
+    ->limit(2)
+    ->select(['id', 'cnt' => 'COUNT(questions.id)'])
+
+
+// you can also insert / update or delete records
+$schema->book()->insert(['name' => 'Book title']);
+$schema->book()->where('id = 5')->update(['name' => 'New title']);
+$schema->book()->where('id = 5')->delete();
 ```
 
 Read more in the [API docs](docs/README.md)

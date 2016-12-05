@@ -19,6 +19,10 @@ A database abstraction with support for various drivers (mySQL, postgre, oracle,
 |[commit](#vakata\database\dbcommit)|Commit a transaction.|
 |[rollback](#vakata\database\dbrollback)|Rollback a transaction.|
 |[isTransaction](#vakata\database\dbistransaction)|Check if a transaciton is currently open.|
+|[definition](#vakata\database\dbdefinition)|Get a table definition|
+|[parseSchema](#vakata\database\dbparseschema)|Parse all tables from the database.|
+|[getSchema](#vakata\database\dbgetschema)|Get the full schema as an array that you can serialize and store|
+|[setSchema](#vakata\database\dbsetschema)|Load the schema data from a schema definition array (obtained from getSchema)|
 
 ---
 
@@ -291,6 +295,80 @@ public function isTransaction () : bool
 |-----|-----|-----|
 |  |  |  |
 | `return` | `bool` | is a transaction currently open |
+
+---
+
+
+### vakata\database\DB::definition
+Get a table definition  
+
+
+```php
+public function definition (  
+    string $table,  
+    bool $detectRelations,  
+    bool $lowerCase  
+) : \the    
+```
+
+|  | Type | Description |
+|-----|-----|-----|
+| `$table` | `string` | the table to analyze |
+| `$detectRelations` | `bool` | should relations be extracted - defaults to `true` |
+| `$lowerCase` | `bool` | should the table fields be converted to lowercase - defaults to `true` |
+|  |  |  |
+| `return` | `\the` | newly added definition |
+
+---
+
+
+### vakata\database\DB::parseSchema
+Parse all tables from the database.  
+
+
+```php
+public function parseSchema () : self    
+```
+
+|  | Type | Description |
+|-----|-----|-----|
+|  |  |  |
+| `return` | `self` |  |
+
+---
+
+
+### vakata\database\DB::getSchema
+Get the full schema as an array that you can serialize and store  
+
+
+```php
+public function getSchema () : array    
+```
+
+|  | Type | Description |
+|-----|-----|-----|
+|  |  |  |
+| `return` | `array` |  |
+
+---
+
+
+### vakata\database\DB::setSchema
+Load the schema data from a schema definition array (obtained from getSchema)  
+
+
+```php
+public function setSchema (  
+    array $data  
+) : self    
+```
+
+|  | Type | Description |
+|-----|-----|-----|
+| `$data` | `array` | the schema definition |
+|  |  |  |
+| `return` | `self` |  |
 
 ---
 

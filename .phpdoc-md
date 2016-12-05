@@ -7,6 +7,10 @@ return (object)[
         '\\vakata\\database\\DB',
         '\\vakata\\database\\Query',
         '\\vakata\\database\\QueryResult',
-        '\\vakata\\database\\Result'
+        '\\vakata\\database\\Result',
+        '\\vakata\\database\\Table',
+        '\\vakata\\database\\TableColumn',
+        '\\vakata\\database\\TableQuery',
+        '\\vakata\\database\\TableQueryIterator'
     ],
 ];

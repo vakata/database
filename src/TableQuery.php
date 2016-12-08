@@ -73,6 +73,9 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
     }
     protected function normalizeValue(TableColumn $col, $value)
     {
+        if ($value === null && $col->isNullable()) {
+            return null;
+        }
         switch ($col->getBasicType()) {
             case 'date':
                 if (is_string($value)) {

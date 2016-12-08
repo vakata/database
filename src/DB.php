@@ -397,7 +397,7 @@ class DB implements DatabaseInterface
                             $foreign = current($foreign);
                             $relname = $foreign['table'];
                             $cntr = 1;
-                            while ($definition->hasRelation($relname)) {
+                            while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
                                 $relname = $foreign['table'] . '_' . (++ $cntr);
                             }
                             $definition->addRelation(
@@ -416,7 +416,7 @@ class DB implements DatabaseInterface
                         } else {
                             $relname = $data['table'];
                             $cntr = 1;
-                            while ($definition->hasRelation($relname)) {
+                            while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
                                 $relname = $data['table'] . '_' . (++ $cntr);
                             }
                             $definition->addRelation(
@@ -453,7 +453,7 @@ class DB implements DatabaseInterface
                     foreach ($relations as $name => $data) {
                         $relname = $data['table'];
                         $cntr = 1;
-                        while ($definition->hasRelation($relname)) {
+                        while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
                             $relname = $data['table'] . '_' . (++ $cntr);
                         }
                         $definition->addRelation(
@@ -533,7 +533,7 @@ class DB implements DatabaseInterface
                             }
                             $relname = $foreign['table'];
                             $cntr = 1;
-                            while ($definition->hasRelation($relname)) {
+                            while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
                                 $relname = $foreign['table'] . '_' . (++ $cntr);
                             }
                             $definition->addRelation(
@@ -552,7 +552,7 @@ class DB implements DatabaseInterface
                         } else {
                             $relname = $data['table'];
                             $cntr = 1;
-                            while ($definition->hasRelation($relname)) {
+                            while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
                                 $relname = $data['table'] . '_' . (++ $cntr);
                             }
                             $definition->addRelation(
@@ -598,7 +598,7 @@ class DB implements DatabaseInterface
                         }
                         $relname = $data['table'];
                         $cntr = 1;
-                        while ($definition->hasRelation($relname)) {
+                        while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
                             $relname = $data['table'] . '_' . (++ $cntr);
                         }
                         $definition->addRelation(

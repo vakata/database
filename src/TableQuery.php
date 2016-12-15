@@ -15,6 +15,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
     protected $group = [];
     protected $having = [];
     protected $li_of = [0,0];
+    protected $fields = [];
 
     protected $withr = [];
     protected $joins = [];
@@ -28,6 +29,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
     {
         $this->db = $db;
         $this->definition = $table instanceof Table ? $table : $this->db->definition((string)$table);
+        $this->columns($this->definition->getColumns());
     }
     public function __clone()
     {
@@ -67,7 +69,6 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
             } else {
                 throw new DatabaseException('Invalid foreign table name');
             }
-
         }
         return [ 'name' => implode('.', $column), 'data' => $col ];
     }
@@ -379,20 +380,35 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
         return $this->db->one($sql, $par);
     }
     /**
-     * Perform the actual fetch
-     * @param  array|null $fields optional array of columns to select (related columns can be used too)
-     * @return TableQueryIterator               the query result as an iterator
+     * Specify which columns to fetch (be default all table columns are fetched)
+     * @param  array $fields optional array of columns to select (related columns can be used too)
+     * @return self
      */
-    public function iterator(array $fields = null) : TableQueryIterator
+    public function columns(array $fields) : TableQuery
     {
-        if ($this->qiterator) {
-            return $this->qiterator;
+        foreach ($fields as $k => $v) {
+            if (strpos($v, '*') !== false) {
+                $temp = explode('.', $v);
+                if (count($temp) == 1) {
+                    $table = $this->definition->getName();
+                } else {
+                    $table = $temp[0];
+                }
+                $cols = [];
+                if ($this->definition->hasRelation($table)) {
+                    $cols = $this->definition->getRelation($table)['table']->getColumns();
+                } else if (isset($this->joins[$table])) {
+                    $cols = $this->joins[$table]['table']->getColumns();
+                } else {
+                    throw new DatabaseException('Invalid foreign table name');
+                }
+                foreach ($cols as $col) {
+                    $fields[] = $table . '.' . $col;
+                }
+                unset($fields[$k]);
+            }
         }
-        $table = $this->definition->getName();
         $primary = $this->definition->getPrimaryKey();
-        if ($fields === null) {
-            $fields = $this->definition->getColumns();
-        }
         foreach ($fields as $k => $v) {
             try {
                 $fields[$k] = $this->getColumn($v)['name'];
@@ -406,9 +422,27 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
                 $fields[] = $field;
             }
         }
+        $this->fields = $fields;
+        return $this;
+    }
+    /**
+     * Perform the actual fetch
+     * @param  array|null $fields optional array of columns to select (related columns can be used too)
+     * @return TableQueryIterator               the query result as an iterator
+     */
+    public function iterator(array $fields = null) : TableQueryIterator
+    {
+        if ($this->qiterator) {
+            return $this->qiterator;
+        }
+        $table = $this->definition->getName();
+        $primary = $this->definition->getPrimaryKey();
+        if ($fields !== null) {
+            $this->columns($fields);
+        }
         $relations = $this->withr;
         foreach ($this->definition->getRelations() as $k => $v) {
-            foreach ($fields as $field) {
+            foreach ($this->fields as $field) {
                 if (strpos($field, $k . '.') === 0) {
                     $relations[] = $k;
                 }
@@ -423,7 +457,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
             }
         }
         $select = [];
-        foreach ($fields as $k => $field) {
+        foreach ($this->fields as $k => $field) {
             $select[] = $field . (!is_numeric($k) ? ' ' . $k : '');
         }
         foreach ($this->withr as $relation) {
@@ -509,13 +543,13 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
                 if ((int)($this->db->settings()->options['version'] ?? 0) >= 12) {
                     $sql .= 'OFFSET ' . $this->li_of[1] . ' ROWS FETCH NEXT ' . $this->li_of[0] . ' ROWS ONLY';
                 } else {
-                    $fields = array_map(function ($v) {
+                    $f = array_map(function ($v) {
                         $v = explode(' ', trim($v), 2);
                         if (count($v) === 2) { return $v[1]; }
                         $v = explode('.', $v[0], 2);
                         return count($v) === 2 ? $v[1] : $v[0];
                     }, $select);
-                    $sql = "SELECT " . implode(', ', $fields) . " 
+                    $sql = "SELECT " . implode(', ', $f) . " 
                             FROM (
                                 SELECT tbl__.*, rownum rnum__ FROM (
                                     " . $sql . "
@@ -527,7 +561,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
                 $sql .= 'LIMIT ' . $this->li_of[0] . ' OFFSET ' . $this->li_of[1];
             }
         }
-        //echo $sql; die();
+        // echo $sql; die();
         return $this->qiterator = new TableQueryIterator($this, $this->db->get($sql, $par), $this->withr);
     }
     /**

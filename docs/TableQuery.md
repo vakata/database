@@ -19,6 +19,7 @@ A database query class
 |[order](#vakata\database\tablequeryorder)|Apply advanced sorting|
 |[limit](#vakata\database\tablequerylimit)|Apply an advanced limit|
 |[count](#vakata\database\tablequerycount)|Get the number of records|
+|[columns](#vakata\database\tablequerycolumns)|Specify which columns to fetch (be default all table columns are fetched)|
 |[iterator](#vakata\database\tablequeryiterator)|Perform the actual fetch|
 |[select](#vakata\database\tablequeryselect)|Perform the actual fetch|
 |[insert](#vakata\database\tablequeryinsert)|Insert a new row in the table|
@@ -305,6 +306,25 @@ public function count () : int
 |-----|-----|-----|
 |  |  |  |
 | `return` | `int` | the total number of records (does not respect pagination) |
+
+---
+
+
+### vakata\database\TableQuery::columns
+Specify which columns to fetch (be default all table columns are fetched)  
+
+
+```php
+public function columns (  
+    array $fields  
+) : self    
+```
+
+|  | Type | Description |
+|-----|-----|-----|
+| `$fields` | `array` | optional array of columns to select (related columns can be used too) |
+|  |  |  |
+| `return` | `self` |  |
 
 ---
 

@@ -7,8 +7,17 @@ namespace vakata\database;
  */
 class DB implements DatabaseInterface
 {
+    /**
+     * @var driver\DriverInterface
+     */
     protected $drv;
-    protected $tables;
+    /**
+     * @var Table[]
+     */
+    protected $tables = [];
+    /**
+     * @var Settings
+     */
     protected $settings;
 
     /**
@@ -377,7 +386,7 @@ class DB implements DatabaseInterface
                         if (count($columns)) {
                             foreach ($this->all(
                                 "SELECT
-                                    TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, 
+                                    TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME,
                                     REFERENCED_COLUMN_NAME, REFERENCED_TABLE_NAME
                                 FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
                                 WHERE
@@ -508,7 +517,7 @@ class DB implements DatabaseInterface
                                 JOIN all_constraints rc ON rc.CONSTRAINT_NAME = ac.R_CONSTRAINT_NAME AND rc.OWNER = ac.OWNER
                                 LEFT JOIN all_cons_columns cc ON cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
                                 WHERE
-                                    ac.OWNER = ? AND ac.R_OWNER = ? AND ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ? AND 
+                                    ac.OWNER = ? AND ac.R_OWNER = ? AND ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ? AND
                                     cc.COLUMN_NAME IN (??)
                                 ORDER BY POSITION",
                                 [ $owner, $owner, $data['table'], 'R', $columns ],
@@ -626,6 +635,11 @@ class DB implements DatabaseInterface
         }
         return $definition;
     }
+    /**
+     * Initialize a table query
+     * @param string $table the table to query
+     * @return TableQuery
+     */
     public function table($table)
     {
         return new TableQuery($this, $this->definition($table));
@@ -657,14 +671,14 @@ class DB implements DatabaseInterface
                 break;
             case 'ibase':
                 $tables = $this->all(
-                    'SELECT RDB$RELATION_NAME FROM RDB$RELATIONS 
+                    'SELECT RDB$RELATION_NAME FROM RDB$RELATIONS
                      WHERE RDB$SYSTEM_FLAG = 0 AND RDB$VIEW_BLR IS NULL
                      ORDER BY RDB$RELATION_NAME'
                 );
                 break;
             case 'mssql':
                 $tables = $this->all(
-                    "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES 
+                    "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
                      WHERE TABLE_TYPE='BASE TABLE' AND TABLE_CATALOG = ?",
                     $this->name()
                 );

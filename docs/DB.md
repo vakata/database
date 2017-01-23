@@ -20,6 +20,7 @@ A database abstraction with support for various drivers (mySQL, postgre, oracle,
 |[rollback](#vakata\database\dbrollback)|Rollback a transaction.|
 |[isTransaction](#vakata\database\dbistransaction)|Check if a transaciton is currently open.|
 |[definition](#vakata\database\dbdefinition)|Get a table definition|
+|[table](#vakata\database\dbtable)|Initialize a table query|
 |[parseSchema](#vakata\database\dbparseschema)|Parse all tables from the database.|
 |[getSchema](#vakata\database\dbgetschema)|Get the full schema as an array that you can serialize and store|
 |[setSchema](#vakata\database\dbsetschema)|Load the schema data from a schema definition array (obtained from getSchema)|
@@ -318,6 +319,25 @@ public function definition (
 | `$lowerCase` | `bool` | should the table fields be converted to lowercase - defaults to `true` |
 |  |  |  |
 | `return` | `\the` | newly added definition |
+
+---
+
+
+### vakata\database\DB::table
+Initialize a table query  
+
+
+```php
+public function table (  
+    string $table  
+) : \TableQuery    
+```
+
+|  | Type | Description |
+|-----|-----|-----|
+| `$table` | `string` | the table to query |
+|  |  |  |
+| `return` | `\TableQuery` |  |
 
 ---
 

@@ -45,6 +45,13 @@ class SchemaTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(count($books[0]['tag']), 2);
     }
 
+    public function testSerialize() {
+        self::$db->getSchema(self::$db->getSchema());
+        $books = self::$db->book()->with('author')->with('tag');
+        $this->assertEquals($books[0]['author']['name'], 'Terry Pratchett');
+        $this->assertEquals(count($books[0]['tag']), 2);
+    }
+
     public function testFilter() {
         $this->assertEquals(count(self::$db->book()->filter('name', 'Equal rites')), 1);
         $this->assertEquals(count(self::$db->book()->filter('name', 'Not found')), 0);

@@ -691,7 +691,8 @@ class DB implements DatabaseInterface
                         'nullable' => $column->isNullable()
                     ];
                 }, $table->getFullColumns()),
-                'relations' => array_map(function ($relation) {
+                'relations' => array_map(function ($rel) {
+                    $relation = clone $rel;
                     $relation->table = $relation->table->getName();
                     if ($relation->pivot) {
                         $relation->pivot = $relation->pivot->getName();

@@ -6,18 +6,47 @@ namespace vakata\database;
  */
 class TableQuery implements \Iterator, \ArrayAccess, \Countable
 {
+    /**
+     * @var DatabaseInterface
+     */
     protected $db;
+    /**
+     * @var Table
+     */
     protected $definition;
+    /**
+     * @var TableQueryIterator|null
+     */
     protected $qiterator;
 
+    /**
+     * @var array
+     */
     protected $where = [];
+    /**
+     * @var array
+     */
     protected $order = [];
+    /**
+     * @var array
+     */
     protected $group = [];
+    /**
+     * @var array
+     */
     protected $having = [];
+    /**
+     * @var int[]
+     */
     protected $li_of = [0,0];
     protected $fields = [];
-
+    /**
+     * @var array
+     */
     protected $withr = [];
+    /**
+     * @var array
+     */
     protected $joins = [];
 
     /**
@@ -57,17 +86,17 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
             }
         } else {
             if ($this->definition->hasRelation($column[0])) {
-                $col = $this->definition->getRelation($column[0])['table']->getColumn($column[1]);
+                $col = $this->definition->getRelation($column[0])->table->getColumn($column[1]);
                 if (!$col) {
                     throw new DatabaseException('Invalid column name in related table');
                 }
             } else if (isset($this->joins[$column[0]])) {
-                $col = $this->joins[$column[0]]['table']->getColumn($column[1]);
+                $col = $this->joins[$column[0]]->table->getColumn($column[1]);
                 if (!$col) {
                     throw new DatabaseException('Invalid column name in related table');
                 }
             } else {
-                throw new DatabaseException('Invalid foreign table name');
+                throw new DatabaseException('Invalid foreign table name: ' . implode(',', $column));
             }
         }
         return [ 'name' => implode('.', $column), 'data' => $col ];
@@ -118,7 +147,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
      * Filter the results by a column and a value
      * @param  string $column the column name to filter by (related columns can be used - for example: author.name)
      * @param  mixed  $value  a required value, array of values or range of values (range example: ['beg'=>1,'end'=>3])
-     * @return self
+     * @return $this
      */
     public function filter(string $column, $value) : TableQuery
     {
@@ -150,7 +179,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
      * Sort by a column
      * @param  string       $column the column name to sort by (related columns can be used - for example: author.name)
      * @param  bool|boolean $desc   should the sorting be in descending order, defaults to `false`
-     * @return self
+     * @return $this
      */
     public function sort(string $column, bool $desc = false) : TableQuery
     {
@@ -159,7 +188,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
     /**
      * Group by a column (or columns)
      * @param  string|array        $column the column name (or names) to group by
-     * @return self
+     * @return $this
      */
     public function group($column) : TableQuery
     {
@@ -175,7 +204,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
      * Get a part of the data
      * @param  int|integer $page    the page number to get (1-based), defaults to 1
      * @param  int|integer $perPage the number of records per page - defaults to 25
-     * @return self
+     * @return $this
      */
     public function paginate(int $page = 1, int $perPage = 25) : TableQuery
     {
@@ -195,7 +224,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
     }
     /**
      * Remove all filters, sorting, etc
-     * @return self
+     * @return $this
      */
     public function reset() : TableQuery
     {
@@ -213,7 +242,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
      * Apply advanced grouping
      * @param  string $sql    SQL statement to use in the GROUP BY clause
      * @param  array  $params optional params for the statement (defaults to an empty array)
-     * @return self
+     * @return $this
      */
     public function groupBy(string $sql, array $params = []) : TableQuery
     {
@@ -227,24 +256,20 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
      * @param  array        $fields    what to join on (joined_table_field => other_field) 
      * @param  string|null  $name      alias for the join, defaults to the table name 
      * @param  bool         $multiple  are multiple rows joined (results in a LEFT JOIN), default to true 
-     * @return self
+     * @return $this
      */
-    public function join($table, array $fields, string $name = null, $multiple = true)
+    public function join($table, array $fields, string $name = null, bool $multiple = true)
     {
         $table = $table instanceof Table ? $table : $this->db->definition((string)$table);
         $name = $name ?? $table->getName();
         if (isset($this->joins[$name]) || $this->definition->hasRelation($name)) {
             throw new DatabaseException('Alias / table name already in use');
         }
-        $this->joins[$name] = [
-            'table' => $table,
-            'fields' => [],
-            'multiple' => $multiple
-        ];
+        $this->joins[$name] = new TableRelation($name, $table, [], $multiple);
         foreach ($fields as $k => $v) {
             $k = explode('.', $k, 2);
             $k = count($k) == 2 ? $k[1] : $k[0];
-            $this->joins[$name]['fields'][$this->getColumn($name . '.' . $k)['name']] = $this->getColumn($v)['name'];
+            $this->joins[$name]->keymap[$this->getColumn($name . '.' . $k)['name']] = $this->getColumn($v)['name'];
         }
         return $this;
     }
@@ -252,7 +277,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
      * Apply an advanced filter (can be called multiple times)
      * @param  string $sql    SQL statement to be used in the where clause
      * @param  array  $params parameters for the SQL statement (defaults to an empty array)
-     * @return self
+     * @return $this
      */
     public function where(string $sql, array $params = []) : TableQuery
     {
@@ -264,7 +289,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
      * Apply an advanced HAVING filter (can be called multiple times)
      * @param  string $sql    SQL statement to be used in the HAING clause
      * @param  array  $params parameters for the SQL statement (defaults to an empty array)
-     * @return self
+     * @return $this
      */
     public function having(string $sql, array $params = []) : TableQuery
     {
@@ -276,7 +301,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
      * Apply advanced sorting
      * @param  string $sql    SQL statement to use in the ORDER clause
      * @param  array  $params optional params for the statement (defaults to an empty array)
-     * @return self
+     * @return $this
      */
     public function order(string $sql, array $params = []) : TableQuery
     {
@@ -288,7 +313,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
      * Apply an advanced limit
      * @param  int         $limit  number of rows to return
      * @param  int         $offset number of rows to skip from the beginning (defaults to 0)
-     * @return self
+     * @return $this
      */
     public function limit(int $limit, int $offset = 0) : TableQuery
     {
@@ -320,37 +345,37 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
         }
 
         foreach ($this->joins as $k => $v) {
-            $sql .= ($v['multiple'] ? 'LEFT ' : '' ) . 'JOIN '.$v['table']->getName().' '.$k.' ON ';
+            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getName().' '.$k.' ON ';
             $tmp = [];
-            foreach ($v['fields'] as $kk => $vv) {
+            foreach ($v->keymap as $kk => $vv) {
                 $tmp[] = $kk.' = '.$vv;
             }
             $sql .= implode(' AND ', $tmp) . ' ';
         }
         foreach (array_unique($relations) as $k) {
             $v = $this->definition->getRelation($k);
-            if ($v['pivot']) {
-                $sql .= 'LEFT JOIN '.$v['pivot']->getName().' '.$k.'_pivot ON ';
+            if ($v->pivot) {
+                $sql .= 'LEFT JOIN '.$v->pivot->getName().' '.$k.'_pivot ON ';
                 $tmp = [];
-                foreach ($v['keymap'] as $kk => $vv) {
+                foreach ($v->keymap as $kk => $vv) {
                     $tmp[] = $table.'.'.$kk.' = '.$k.'_pivot.'.$vv.' ';
                 }
                 $sql .= implode(' AND ', $tmp) . ' ';
-                $sql .= 'LEFT JOIN '.$v['table']->getName().' '.$k.' ON ';
+                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$k.' ON ';
                 $tmp = [];
-                foreach ($v['pivot_keymap'] as $kk => $vv) {
+                foreach ($v->pivot_keymap as $kk => $vv) {
                     $tmp[] = $k.'.'.$vv.' = '.$k.'_pivot.'.$kk.' ';
                 }
                 $sql .= implode(' AND ', $tmp) . ' ';
             } else {
-                $sql .= 'LEFT JOIN '.$v['table']->getName().' '.$k.' ON ';
+                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$k.' ON ';
                 $tmp = [];
-                foreach ($v['keymap'] as $kk => $vv) {
+                foreach ($v->keymap as $kk => $vv) {
                     $tmp[] = $table.'.'.$kk.' = '.$k.'.'.$vv.' ';
                 }
-                if ($v['sql']) {
-                    $tmp[] = $v['sql'] . ' ';
-                    $par = array_merge($par, $v['par']);
+                if ($v->sql) {
+                    $tmp[] = $v->sql . ' ';
+                    $par = array_merge($par, $v->par ?? []);
                 }
                 $sql .= implode(' AND ', $tmp) . ' ';
             }
@@ -382,7 +407,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
     /**
      * Specify which columns to fetch (be default all table columns are fetched)
      * @param  array $fields optional array of columns to select (related columns can be used too)
-     * @return self
+     * @return $this
      */
     public function columns(array $fields) : TableQuery
     {
@@ -396,9 +421,9 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
                 }
                 $cols = [];
                 if ($this->definition->hasRelation($table)) {
-                    $cols = $this->definition->getRelation($table)['table']->getColumns();
+                    $cols = $this->definition->getRelation($table)->table->getColumns();
                 } else if (isset($this->joins[$table])) {
-                    $cols = $this->joins[$table]['table']->getColumns();
+                    $cols = $this->joins[$table]->table->getColumns();
                 } else {
                     throw new DatabaseException('Invalid foreign table name');
                 }
@@ -461,44 +486,44 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
             $select[] = $field . (!is_numeric($k) ? ' ' . $k : '');
         }
         foreach ($this->withr as $relation) {
-            foreach ($this->definition->getRelation($relation)['table']->getColumns() as $column) {
+            foreach ($this->definition->getRelation($relation)->table->getColumns() as $column) {
                 $select[] = $relation . '.' . $column . ' ' . $relation . '___' . $column;
             }
         }
         $sql = 'SELECT '.implode(', ', $select).' FROM '.$table.' ';
         $par = [];
         foreach ($this->joins as $k => $v) {
-            $sql .= ($v['multiple'] ? 'LEFT ' : '' ) . 'JOIN '.$v['table']->getName().' '.$k.' ON ';
+            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getName().' '.$k.' ON ';
             $tmp = [];
-            foreach ($v['fields'] as $kk => $vv) {
+            foreach ($v->keymap as $kk => $vv) {
                 $tmp[] = $kk.' = '.$vv;
             }
             $sql .= implode(' AND ', $tmp) . ' ';
         }
         foreach (array_unique($relations) as $relation) {
             $v = $this->definition->getRelation($relation);
-            if ($v['pivot']) {
-                $sql .= 'LEFT JOIN '.$v['pivot']->getName().' '.$relation.'_pivot ON ';
+            if ($v->pivot) {
+                $sql .= 'LEFT JOIN '.$v->pivot->getName().' '.$relation.'_pivot ON ';
                 $tmp = [];
-                foreach ($v['keymap'] as $kk => $vv) {
+                foreach ($v->keymap as $kk => $vv) {
                     $tmp[] = $table.'.'.$kk.' = '.$relation.'_pivot.'.$vv.' ';
                 }
                 $sql .= implode(' AND ', $tmp) . ' ';
-                $sql .= 'LEFT JOIN '.$v['table']->getName().' '.$relation.' ON ';
+                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$relation.' ON ';
                 $tmp = [];
-                foreach ($v['pivot_keymap'] as $kk => $vv) {
+                foreach ($v->pivot_keymap as $kk => $vv) {
                     $tmp[] = $relation.'.'.$vv.' = '.$relation.'_pivot.'.$kk.' ';
                 }
                 $sql .= implode(' AND ', $tmp) . ' ';
             } else {
-                $sql .= 'LEFT JOIN '.$v['table']->getName().' '.$relation.' ON ';
+                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$relation.' ON ';
                 $tmp = [];
-                foreach ($v['keymap'] as $kk => $vv) {
+                foreach ($v->keymap as $kk => $vv) {
                     $tmp[] = $table.'.'.$kk.' = '.$relation.'.'.$vv.' ';
                 }
-                if ($v['sql']) {
-                    $tmp[] = $v['sql'] . ' ';
-                    $par = array_merge($par, $v['par']);
+                if ($v->sql) {
+                    $tmp[] = $v->sql . ' ';
+                    $par = array_merge($par, $v->par ?? []);
                 }
                 $sql .= implode(' AND ', $tmp) . ' ';
             }
@@ -562,7 +587,16 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
             }
         }
         // echo $sql; die();
-        return $this->qiterator = new TableQueryIterator($this, $this->db->get($sql, $par), $this->withr);
+        return $this->qiterator = new TableQueryIterator(
+            $this->db->get($sql, $par), 
+            $this->definition->getPrimaryKey(),
+            array_combine(
+                $this->withr,
+                array_map(function ($relation) {
+                    return $this->definition->getRelation($relation);
+                }, $this->withr)
+            )
+        );
     }
     /**
      * Perform the actual fetch
@@ -681,7 +715,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
     /**
      * Solve the n+1 queries problem by prefetching a relation by name
      * @param  string $relation the relation name to fetch along with the data
-     * @return self
+     * @return $this
      */
     public function with(string $relation) : TableQuery
     {

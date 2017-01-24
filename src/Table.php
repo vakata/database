@@ -7,6 +7,9 @@ namespace vakata\database;
 class Table
 {
     protected $data = [];
+    /**
+     * @var TableRelation[]
+     */
     protected $relations = [];
 
     /**
@@ -21,7 +24,6 @@ class Table
             'primary' => [],
             'comment' => ''
         ];
-        $this->relations = [];
     }
     /**
      * Get the table comment
@@ -34,7 +36,7 @@ class Table
     /**
      * Set the table comment
      * @param  string    $comment     the table comment
-     * @return self
+     * @return $this
      */
     public function setComment(string $comment)
     {
@@ -124,12 +126,12 @@ class Table
     }
     /**
      * Create a relation where each record has zero or one related rows in another table
-     * @param  Table   $toTable       the related table definition
+     * @param  Table             $toTable       the related table definition
      * @param  string|null       $name          the name of the relation (defaults to the related table name)
      * @param  string|array|null $toTableColumn the remote columns pointing to the PK in the current table
      * @param  string|null       $sql           additional where clauses to use, default to null
-     * @param  array             $par           parameters for the above statement, defaults to an empty array
-     * @return self
+     * @param  array|null        $par           parameters for the above statement, defaults to null
+     * @return $this
      */
     public function hasOne(
         Table $toTable,
@@ -165,16 +167,16 @@ class Table
         if (!isset($name)) {
             $name = $toTable->getName() . '_' . implode('_', array_keys($keymap));
         }
-        $this->relations[$name] = [
-            'name' => $name,
-            'table' => $toTable,
-            'keymap' => $keymap,
-            'many' => false,
-            'pivot' => null,
-            'pivot_keymap' => [],
-            'sql' => $sql,
-            'par' => $par
-        ];
+        $this->addRelation(new TableRelation(
+            $name,
+            $toTable,
+            $keymap,
+            false,
+            null,
+            null,
+            $sql,
+            $par
+        ));
         return $this;
     }
     /**
@@ -183,8 +185,8 @@ class Table
      * @param  string|null       $name          the name of the relation (defaults to the related table name)
      * @param  string|array|null $toTableColumn the remote columns pointing to the PK in the current table
      * @param  string|null       $sql           additional where clauses to use, default to null
-     * @param  array             $par           parameters for the above statement, defaults to an empty array
-     * @return self
+     * @param  array|null        $par           parameters for the above statement, defaults to null
+     * @return $this
      */
     public function hasMany(
         Table $toTable,
@@ -220,16 +222,16 @@ class Table
         if (!isset($name)) {
             $name = $toTable->getName().'_'.implode('_', array_keys($keymap));
         }
-        $this->relations[$name] = [
-            'name' => $name,
-            'table' => $toTable,
-            'keymap' => $keymap,
-            'many' => true,
-            'pivot' => null,
-            'pivot_keymap' => [],
-            'sql' => $sql,
-            'par' => $par
-        ];
+        $this->addRelation(new TableRelation(
+            $name,
+            $toTable,
+            $keymap,
+            true,
+            null,
+            null,
+            $sql,
+            $par
+        ));
         return $this;
     }
     /**
@@ -238,8 +240,8 @@ class Table
      * @param  string|null       $name          the name of the relation (defaults to the related table name)
      * @param  string|array|null $localColumn   the local columns pointing to the PK of the related table
      * @param  string|null       $sql           additional where clauses to use, default to null
-     * @param  array             $par           parameters for the above statement, defaults to an empty array
-     * @return self
+     * @param  array|null        $par           parameters for the above statement, defaults to null
+     * @return $this
      */
     public function belongsTo(
         Table $toTable,
@@ -275,16 +277,16 @@ class Table
         if (!isset($name)) {
             $name = $toTable->getName().'_'.implode('_', array_keys($keymap));
         }
-        $this->relations[$name] = [
-            'name' => $name,
-            'table' => $toTable,
-            'keymap' => $keymap,
-            'many' => false,
-            'pivot' => null,
-            'pivot_keymap' => [],
-            'sql' => $sql,
-            'par' => $par
-        ];
+        $this->addRelation(new TableRelation(
+            $name,
+            $toTable,
+            $keymap,
+            false,
+            null,
+            null,
+            $sql,
+            $par
+        ));
         return $this;
     }
     /**
@@ -294,7 +296,7 @@ class Table
      * @param  string|null       $name          the name of the relation (defaults to the related table name)
      * @param  string|array|null $toTableColumn the local columns pointing to the pivot table
      * @param  string|array|null $localColumn   the pivot columns pointing to the related table PK
-     * @return self
+     * @return $this
      */
     public function manyToMany(
         Table $toTable,
@@ -352,27 +354,26 @@ class Table
         if (!isset($name)) {
             $name = $toTable->getName().'_'.implode('_', array_keys($keymap));
         }
-        $this->relations[$name] = [
-            'name' => $name,
-            'table' => $toTable,
-            'keymap' => $keymap,
-            'many' => true,
-            'pivot' => $pivot,
-            'pivot_keymap' => $pivotKeymap,
-            'sql' => null,
-            'par' => []
-        ];
+        $this->addRelation(new TableRelation(
+            $name,
+            $toTable,
+            $keymap,
+            true,
+            $pivot,
+            $pivotKeymap
+        ));
         return $this;
     }
     /**
      * Create an advanced relation using the internal array format
-     * @param  string            $name          the name of the relation (defaults to the related table name)
-     * @param  array             $relation      the relation definition
-     * @return self
+     * @param  TableRelation     $relation      the relation definition
+     * @param  string|null       $name          optional name of the relation (defaults to the related table name)
+     * @return $this
      */
-    public function addRelation(string $name, array $relation)
+    public function addRelation(TableRelation $relation, string $name = null)
     {
-        $relation['name'] = $name;
+        $name = $name ?? $relation->name;
+        $relation->name = $name;
         $this->relations[$name] = $relation;
         return $this;
     }
@@ -386,7 +387,7 @@ class Table
     }
     /**
      * Get all relation definitions
-     * @return array       the relation definitions
+     * @return TableRelation[]       the relation definitions
      */
     public function getRelations() : array
     {
@@ -403,10 +404,10 @@ class Table
     }
     /**
      * Get a relation by name
-     * @param  string      $name the name to search for
-     * @return array             the relation definition
+     * @param  string      $name      the name to search for
+     * @return TableRelation|null     the relation definition
      */
-    public function getRelation(string $name) : array
+    public function getRelation(string $name)
     {
         return $this->relations[$name] ?? null;
     }
@@ -414,7 +415,7 @@ class Table
      * Rename a relation
      * @param  string      $name the name to search for
      * @param  string      $new  the new name for the relation
-     * @return array             the relation definition
+     * @return TableRelation     the relation definition
      */
     public function renameRelation(string $name, string $new) : array
     {
@@ -425,7 +426,7 @@ class Table
             throw new DatabaseException("A relation with that name already exists");
         }
         $temp = $this->relations[$name];
-        $temp['name'] = $new;
+        $temp->name = $new;
         $this->relations[$new] = $temp;
         unset($this->relations[$name]);
         return $this->relations[$new] ?? null;
@@ -442,16 +443,16 @@ class Table
         $temp = [];
         foreach ($this->relations as $k => $v) {
             $t = [];
-            foreach ($v['keymap'] as $kk => $vv) {
+            foreach ($v->keymap as $kk => $vv) {
                 $t[strtolower($kk)] = strtolower($vv);
             }
-            $v['keymap'] = $t;
-            if ($v['pivot_keymap']) {
+            $v->keymap = $t;
+            if ($v->pivot_keymap) {
                 $t = [];
-                foreach ($v['pivot_keymap'] as $kk => $vv) {
+                foreach ($v->pivot_keymap as $kk => $vv) {
                     $t[strtolower($kk)] = strtolower($vv);
                 }
-                $v['pivot_keymap'] = $t;
+                $v->pivot_keymap = $t;
             }
             $temp[strtolower($k)] = $v;
         }

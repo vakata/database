@@ -410,17 +410,14 @@ class DB implements DatabaseInterface
                                 $relname = $foreign['table'] . '_' . (++ $cntr);
                             }
                             $definition->addRelation(
-                                $relname,
-                                [
-                                    'name' => $relname,
-                                    'table' => $this->definition($foreign['table'], true, $lowerCase),
-                                    'keymap' => $data['keymap'],
-                                    'many' => true,
-                                    'pivot' => $rtable,
-                                    'pivot_keymap' => $foreign['keymap'],
-                                    'sql' => null,
-                                    'par' => []
-                                ]
+                                new TableRelation(
+                                    $relname,
+                                    $this->definition($foreign['table'], true, $lowerCase),
+                                    $data['keymap'],
+                                    true,
+                                    $rtable,
+                                    $foreign['keymap']
+                                )
                             );
                         } else {
                             $relname = $data['table'];
@@ -429,17 +426,12 @@ class DB implements DatabaseInterface
                                 $relname = $data['table'] . '_' . (++ $cntr);
                             }
                             $definition->addRelation(
-                                $relname,
-                                [
-                                    'name' => $relname,
-                                    'table' => $this->definition($data['table'], true, $lowerCase),
-                                    'keymap' => $data['keymap'],
-                                    'many' => true,
-                                    'pivot' => null,
-                                    'pivot_keymap' => [],
-                                    'sql' => null,
-                                    'par' => []
-                                ]
+                                new TableRelation(
+                                    $relname,
+                                    $this->definition($data['table'], true, $lowerCase),
+                                    $data['keymap'],
+                                    true
+                                )
                             );
                         }
                     }
@@ -466,17 +458,12 @@ class DB implements DatabaseInterface
                             $relname = $data['table'] . '_' . (++ $cntr);
                         }
                         $definition->addRelation(
-                            $relname,
-                            [
-                                'name' => $relname,
-                                'table' => $this->definition($data['table'], true, $lowerCase),
-                                'keymap' => $data['keymap'],
-                                'many' => false,
-                                'pivot' => null,
-                                'pivot_keymap' => [],
-                                'sql' => null,
-                                'par' => []
-                            ]
+                            new TableRelation(
+                                $relname,
+                                $this->definition($data['table'], true, $lowerCase),
+                                $data['keymap'],
+                                false
+                            )
                         );
                     }
                     break;
@@ -546,17 +533,14 @@ class DB implements DatabaseInterface
                                 $relname = $foreign['table'] . '_' . (++ $cntr);
                             }
                             $definition->addRelation(
-                                $relname,
-                                [
-                                    'name' => $relname,
-                                    'table' => $this->definition($foreign['table'], true, $lowerCase),
-                                    'keymap' => $data['keymap'],
-                                    'many' => true,
-                                    'pivot' => $rtable,
-                                    'pivot_keymap' => $foreign['keymap'],
-                                    'sql' => null,
-                                    'par' => []
-                                ]
+                                new TableRelation(
+                                    $relname,
+                                    $this->definition($foreign['table'], true, $lowerCase),
+                                    $data['keymap'],
+                                    true,
+                                    $rtable,
+                                    $foreign['keymap']
+                                )
                             );
                         } else {
                             $relname = $data['table'];
@@ -565,17 +549,12 @@ class DB implements DatabaseInterface
                                 $relname = $data['table'] . '_' . (++ $cntr);
                             }
                             $definition->addRelation(
-                                $relname,
-                                [
-                                    'name' => $relname,
-                                    'table' => $this->definition($data['table'], true, $lowerCase),
-                                    'keymap' => $data['keymap'],
-                                    'many' => true,
-                                    'pivot' => null,
-                                    'pivot_keymap' => [],
-                                    'sql' => null,
-                                    'par' => []
-                                ]
+                                new TableRelation(
+                                    $relname,
+                                    $this->definition($data['table'], true, $lowerCase),
+                                    $data['keymap'],
+                                    true
+                                )
                             );
                         }
                     }
@@ -611,17 +590,12 @@ class DB implements DatabaseInterface
                             $relname = $data['table'] . '_' . (++ $cntr);
                         }
                         $definition->addRelation(
-                            $relname,
-                            [
-                                'name' => $relname,
-                                'table' => $this->definition($data['table'], true, $lowerCase),
-                                'keymap' => $data['keymap'],
-                                'many' => false,
-                                'pivot' => null,
-                                'pivot_keymap' => [],
-                                'sql' => null,
-                                'par' => []
-                            ]
+                            new TableRelation(
+                                $relname,
+                                $this->definition($data['table'], true, $lowerCase),
+                                $data['keymap'],
+                                false
+                            )
                         );
                     }
                     break;
@@ -646,7 +620,7 @@ class DB implements DatabaseInterface
     }
     /**
      * Parse all tables from the database.
-     * @return self
+     * @return $this
      */
     public function parseSchema()
     {
@@ -718,11 +692,11 @@ class DB implements DatabaseInterface
                     ];
                 }, $table->getFullColumns()),
                 'relations' => array_map(function ($relation) {
-                    $relation['table'] = $relation['table']->getName();
-                    if ($relation['pivot']) {
-                        $relation['pivot'] = $relation['pivot']->getName();
+                    $relation->table = $relation->table->getName();
+                    if ($relation->pivot) {
+                        $relation->pivot = $relation->pivot->getName();
                     }
-                    return $relation;
+                    return (array)$relation;
                 }, $table->getRelations())
             ];
         }, $this->tables);
@@ -730,7 +704,7 @@ class DB implements DatabaseInterface
     /**
      * Load the schema data from a schema definition array (obtained from getSchema)
      * @param  array        $data the schema definition
-     * @return self
+     * @return $this
      */
     public function setSchema(array $data)
     {
@@ -747,7 +721,16 @@ class DB implements DatabaseInterface
                 if ($relationData['pivot']) {
                     $relationData['pivot'] = $this->definition($relationData['pivot']);
                 }
-                $table->addRelation($relationName, $relationData);
+                $table->addRelation(new TableRelation(
+                    $relationData['name'],
+                    $this->definition($relationData['table']),
+                    $relationData['keymap'],
+                    $relationData['many'],
+                    $relationData['pivot'] ? $this->definition($relationData['pivot']) : null,
+                    $relationData['pivot_keymap'],
+                    $relationData['sql'],
+                    $relationData['par']
+                ));
             }
         }
         return $this;

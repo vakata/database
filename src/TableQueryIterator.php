@@ -2,23 +2,36 @@
 namespace vakata\database;
 
 /**
- * A database query class
+ * A table query iterator
  */
-class TableQueryIterator implements \Iterator, \ArrayAccess, \Countable
+class TableQueryIterator implements \Iterator, \ArrayAccess
 {
-    protected $query;
+    /**
+     * @var array
+     */
+    protected $pkey;
+    /**
+     * @var Result
+     */
     protected $result;
-    protected $definition;
+    /**
+     * @var array[]
+     */
     protected $relations;
+    /**
+     * @var string|null
+     */
     protected $primary = null;
+    /**
+     * @var int
+     */
     protected $fetched = 0;
 
-    public function __construct(TableQuery $query, Result $result, array $relations = [])
+    public function __construct(Result $result, array $pkey, array $relations = [])
     {
-        $this->query = $query;
+        $this->pkey = $pkey;
         $this->result = $result;
         $this->relations = $relations;
-        $this->definition = $query->getDefinition();
     }
 
     public function key()
@@ -31,7 +44,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess, \Countable
         while ($this->result->valid()) {
             $row = $this->result->current();
             $pk = [];
-            foreach ($this->definition->getPrimaryKey() as $field) {
+            foreach ($this->pkey as $field) {
                 $pk[$field] = $row[$field];
             }
             $pk = json_encode($pk);
@@ -42,29 +55,28 @@ class TableQueryIterator implements \Iterator, \ArrayAccess, \Countable
             if (!$result) {
                 $result = $row;
             }
-            foreach ($this->relations as $relation) {
-                $temp = $this->definition->getRelation($relation);
-                if (!isset($result[$relation])) {
-                    $result[$relation] = $temp['many'] ? [] : null;
+            foreach ($this->relations as $name => $relation) {
+                if (!isset($result[$name])) {
+                    $result[$name] = $relation->many ? [] : null;
                 }
                 $fields = [];
                 $exists = false;
-                foreach ($temp['table']->getColumns() as $column) {
-                    $fields[$column] = $row[$relation . '___' . $column];
-                    if (!$exists && $row[$relation . '___' . $column] !== null) {
+                foreach ($relation->table->getColumns() as $column) {
+                    $fields[$column] = $row[$name . '___' . $column];
+                    if (!$exists && $row[$name . '___' . $column] !== null) {
                         $exists = true;
                     }
-                    unset($result[$relation . '___' . $column]);
+                    unset($result[$name . '___' . $column]);
                 }
                 if ($exists) {
-                    if ($temp['many']) {
+                    if ($relation->many) {
                         $rpk = [];
-                        foreach ($temp['table']->getPrimaryKey() as $field) {
+                        foreach ($relation->table->getPrimaryKey() as $field) {
                             $rpk[$field] = $fields[$field];
                         }
-                        $result[$relation][json_encode($rpk)] = $fields;
+                        $result[$name][json_encode($rpk)] = $fields;
                     } else {
-                        $result[$relation] = $fields;
+                        $result[$name] = $fields;
                     }
                 }
             }
@@ -72,10 +84,9 @@ class TableQueryIterator implements \Iterator, \ArrayAccess, \Countable
         }
 
         if ($result) {
-            foreach ($this->relations as $relation) {
-                $temp = $this->definition->getRelation($relation);
-                if ($temp['many']) {
-                    $result[$relation] = array_values($result[$relation]);
+            foreach ($this->relations as $name => $relation) {
+                if ($relation->many) {
+                    $result[$name] = array_values($result[$name]);
                 }
             }
         }
@@ -95,7 +106,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess, \Countable
             if ($this->result->valid()) {
                 $row = $this->result->current();
                 $temp = [];
-                foreach ($this->definition->getPrimaryKey() as $field) {
+                foreach ($this->pkey as $field) {
                     $temp[$field] = $row[$field];
                 }
                 $this->primary = json_encode($temp);
@@ -106,7 +117,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess, \Countable
         while ($this->result->valid()) {
             $row = $this->result->current();
             $pk = [];
-            foreach ($this->definition->getPrimaryKey() as $field) {
+            foreach ($this->pkey as $field) {
                 $pk[$field] = $row[$field];
             }
             $pk = json_encode($pk);
@@ -140,11 +151,19 @@ class TableQueryIterator implements \Iterator, \ArrayAccess, \Countable
     }
     public function offsetExists($offset)
     {
-        return $offset < $this->count();
-    }
-    public function count()
-    {
-        return $this->query->count();
+        $index = $this->fetched;
+        $exists = false;
+        foreach ($this as $k => $v) {
+            if ($k === $offset) {
+                $exists = true;
+            }
+        }
+        foreach ($this as $k => $v) {
+            if ($k === $index) {
+                break;
+            }
+        }
+        return $exists;
     }
     public function offsetSet($offset, $value)
     {

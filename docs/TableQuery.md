@@ -74,7 +74,7 @@ Filter the results by a column and a value
 public function filter (  
     string $column,  
     mixed $value  
-) : self    
+) : $this    
 ```
 
 |  | Type | Description |
@@ -82,7 +82,7 @@ public function filter (
 | `$column` | `string` | the column name to filter by (related columns can be used - for example: author.name) |
 | `$value` | `mixed` | a required value, array of values or range of values (range example: ['beg'=>1,'end'=>3]) |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -95,7 +95,7 @@ Sort by a column
 public function sort (  
     string $column,  
     bool|boolean $desc  
-) : self    
+) : $this    
 ```
 
 |  | Type | Description |
@@ -103,7 +103,7 @@ public function sort (
 | `$column` | `string` | the column name to sort by (related columns can be used - for example: author.name) |
 | `$desc` | `bool`, `boolean` | should the sorting be in descending order, defaults to `false` |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -115,14 +115,14 @@ Group by a column (or columns)
 ```php
 public function group (  
     string|array $column  
-) : self    
+) : $this    
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
 | `$column` | `string`, `array` | the column name (or names) to group by |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -135,7 +135,7 @@ Get a part of the data
 public function paginate (  
     int|integer $page,  
     int|integer $perPage  
-) : self    
+) : $this    
 ```
 
 |  | Type | Description |
@@ -143,7 +143,7 @@ public function paginate (
 | `$page` | `int`, `integer` | the page number to get (1-based), defaults to 1 |
 | `$perPage` | `int`, `integer` | the number of records per page - defaults to 25 |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -153,13 +153,13 @@ Remove all filters, sorting, etc
 
 
 ```php
-public function reset () : self    
+public function reset () : $this    
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -172,7 +172,7 @@ Apply advanced grouping
 public function groupBy (  
     string $sql,  
     array $params  
-) : self    
+) : $this    
 ```
 
 |  | Type | Description |
@@ -180,7 +180,7 @@ public function groupBy (
 | `$sql` | `string` | SQL statement to use in the GROUP BY clause |
 | `$params` | `array` | optional params for the statement (defaults to an empty array) |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -195,7 +195,7 @@ public function join (
     array $fields,  
     string|null $name,  
     bool $multiple  
-) : self    
+) : $this    
 ```
 
 |  | Type | Description |
@@ -205,7 +205,7 @@ public function join (
 | `$name` | `string`, `null` | alias for the join, defaults to the table name |
 | `$multiple` | `bool` | are multiple rows joined (results in a LEFT JOIN), default to true |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -218,7 +218,7 @@ Apply an advanced filter (can be called multiple times)
 public function where (  
     string $sql,  
     array $params  
-) : self    
+) : $this    
 ```
 
 |  | Type | Description |
@@ -226,7 +226,7 @@ public function where (
 | `$sql` | `string` | SQL statement to be used in the where clause |
 | `$params` | `array` | parameters for the SQL statement (defaults to an empty array) |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -239,7 +239,7 @@ Apply an advanced HAVING filter (can be called multiple times)
 public function having (  
     string $sql,  
     array $params  
-) : self    
+) : $this    
 ```
 
 |  | Type | Description |
@@ -247,7 +247,7 @@ public function having (
 | `$sql` | `string` | SQL statement to be used in the HAING clause |
 | `$params` | `array` | parameters for the SQL statement (defaults to an empty array) |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -260,7 +260,7 @@ Apply advanced sorting
 public function order (  
     string $sql,  
     array $params  
-) : self    
+) : $this    
 ```
 
 |  | Type | Description |
@@ -268,7 +268,7 @@ public function order (
 | `$sql` | `string` | SQL statement to use in the ORDER clause |
 | `$params` | `array` | optional params for the statement (defaults to an empty array) |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -281,7 +281,7 @@ Apply an advanced limit
 public function limit (  
     int $limit,  
     int $offset  
-) : self    
+) : $this    
 ```
 
 |  | Type | Description |
@@ -289,7 +289,7 @@ public function limit (
 | `$limit` | `int` | number of rows to return |
 | `$offset` | `int` | number of rows to skip from the beginning (defaults to 0) |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -317,14 +317,14 @@ Specify which columns to fetch (be default all table columns are fetched)
 ```php
 public function columns (  
     array $fields  
-) : self    
+) : $this    
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
 | `$fields` | `array` | optional array of columns to select (related columns can be used too) |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -428,14 +428,14 @@ Solve the n+1 queries problem by prefetching a relation by name
 ```php
 public function with (  
     string $relation  
-) : self    
+) : $this    
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
 | `$relation` | `string` | the relation name to fetch along with the data |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 

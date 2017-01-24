@@ -347,13 +347,13 @@ Parse all tables from the database.
 
 
 ```php
-public function parseSchema () : self    
+public function parseSchema () : $this    
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -381,14 +381,14 @@ Load the schema data from a schema definition array (obtained from getSchema)
 ```php
 public function setSchema (  
     array $data  
-) : self    
+) : $this    
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
 | `$data` | `array` | the schema definition |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 

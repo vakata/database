@@ -1,5 +1,5 @@
 # vakata\database\TableQueryIterator
-A database query class
+A table query iterator
 
 ## Methods
 

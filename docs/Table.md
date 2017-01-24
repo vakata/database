@@ -71,14 +71,14 @@ Set the table comment
 ```php
 public function setComment (  
     string $comment  
-) : self    
+) : $this    
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
 | `$comment` | `string` | the table comment |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -235,8 +235,8 @@ public function hasOne (
     string|null $name,  
     string|array|null $toTableColumn,  
     string|null $sql,  
-    array $par  
-) : self    
+    array|null $par  
+) : $this    
 ```
 
 |  | Type | Description |
@@ -245,9 +245,9 @@ public function hasOne (
 | `$name` | `string`, `null` | the name of the relation (defaults to the related table name) |
 | `$toTableColumn` | `string`, `array`, `null` | the remote columns pointing to the PK in the current table |
 | `$sql` | `string`, `null` | additional where clauses to use, default to null |
-| `$par` | `array` | parameters for the above statement, defaults to an empty array |
+| `$par` | `array`, `null` | parameters for the above statement, defaults to null |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -262,8 +262,8 @@ public function hasMany (
     string|null $name,  
     string|array|null $toTableColumn,  
     string|null $sql,  
-    array $par  
-) : self    
+    array|null $par  
+) : $this    
 ```
 
 |  | Type | Description |
@@ -272,9 +272,9 @@ public function hasMany (
 | `$name` | `string`, `null` | the name of the relation (defaults to the related table name) |
 | `$toTableColumn` | `string`, `array`, `null` | the remote columns pointing to the PK in the current table |
 | `$sql` | `string`, `null` | additional where clauses to use, default to null |
-| `$par` | `array` | parameters for the above statement, defaults to an empty array |
+| `$par` | `array`, `null` | parameters for the above statement, defaults to null |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -289,8 +289,8 @@ public function belongsTo (
     string|null $name,  
     string|array|null $localColumn,  
     string|null $sql,  
-    array $par  
-) : self    
+    array|null $par  
+) : $this    
 ```
 
 |  | Type | Description |
@@ -299,9 +299,9 @@ public function belongsTo (
 | `$name` | `string`, `null` | the name of the relation (defaults to the related table name) |
 | `$localColumn` | `string`, `array`, `null` | the local columns pointing to the PK of the related table |
 | `$sql` | `string`, `null` | additional where clauses to use, default to null |
-| `$par` | `array` | parameters for the above statement, defaults to an empty array |
+| `$par` | `array`, `null` | parameters for the above statement, defaults to null |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -317,7 +317,7 @@ public function manyToMany (
     string|null $name,  
     string|array|null $toTableColumn,  
     string|array|null $localColumn  
-) : self    
+) : $this    
 ```
 
 |  | Type | Description |
@@ -328,7 +328,7 @@ public function manyToMany (
 | `$toTableColumn` | `string`, `array`, `null` | the local columns pointing to the pivot table |
 | `$localColumn` | `string`, `array`, `null` | the pivot columns pointing to the related table PK |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -339,17 +339,17 @@ Create an advanced relation using the internal array format
 
 ```php
 public function addRelation (  
-    string $name,  
-    array $relation  
-) : self    
+    \TableRelation $relation,  
+    string|null $name  
+) : $this    
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
-| `$name` | `string` | the name of the relation (defaults to the related table name) |
-| `$relation` | `array` | the relation definition |
+| `$relation` | `\TableRelation` | the relation definition |
+| `$name` | `string`, `null` | optional name of the relation (defaults to the related table name) |
 |  |  |  |
-| `return` | `self` |  |
+| `return` | `$this` |  |
 
 ---
 
@@ -375,13 +375,13 @@ Get all relation definitions
 
 
 ```php
-public function getRelations () : array    
+public function getRelations () : \TableRelation[]    
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
 |  |  |  |
-| `return` | `array` | the relation definitions |
+| `return` | `\TableRelation[]` | the relation definitions |
 
 ---
 
@@ -412,14 +412,14 @@ Get a relation by name
 ```php
 public function getRelation (  
     string $name  
-) : array    
+) : \TableRelation, null    
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
 | `$name` | `string` | the name to search for |
 |  |  |  |
-| `return` | `array` | the relation definition |
+| `return` | `\TableRelation`, `null` | the relation definition |
 
 ---
 
@@ -432,7 +432,7 @@ Rename a relation
 public function renameRelation (  
     string $name,  
     string $new  
-) : array    
+) : \TableRelation    
 ```
 
 |  | Type | Description |
@@ -440,7 +440,7 @@ public function renameRelation (
 | `$name` | `string` | the name to search for |
 | `$new` | `string` | the new name for the relation |
 |  |  |  |
-| `return` | `array` | the relation definition |
+| `return` | `\TableRelation` | the relation definition |
 
 ---
 

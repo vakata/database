@@ -724,10 +724,10 @@ class DB implements DatabaseInterface
                 }
                 $table->addRelation(new TableRelation(
                     $relationData['name'],
-                    $this->definition($relationData['table']),
+                    $relationData['table'],
                     $relationData['keymap'],
                     $relationData['many'],
-                    $relationData['pivot'] ? $this->definition($relationData['pivot']) : null,
+                    $relationData['pivot'] ?? null,
                     $relationData['pivot_keymap'],
                     $relationData['sql'],
                     $relationData['par']

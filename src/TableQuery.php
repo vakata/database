@@ -51,10 +51,10 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
 
     /**
      * Create an instance
-     * @param  DatabaseInterface        $db         the database connection
+     * @param  DBInterface        $db         the database connection
      * @param  Table|string  $definition     the name or definition of the main table in the query
      */
-    public function __construct(DatabaseInterface $db, $table)
+    public function __construct(DBInterface $db, $table)
     {
         $this->db = $db;
         $this->definition = $table instanceof Table ? $table : $this->db->definition((string)$table);
@@ -82,21 +82,21 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
         if ($column[0] === $this->definition->getName()) {
             $col = $this->definition->getColumn($column[1]);
             if (!$col) {
-                throw new DatabaseException('Invalid column name in own table');
+                throw new DBException('Invalid column name in own table');
             }
         } else {
             if ($this->definition->hasRelation($column[0])) {
                 $col = $this->definition->getRelation($column[0])->table->getColumn($column[1]);
                 if (!$col) {
-                    throw new DatabaseException('Invalid column name in related table');
+                    throw new DBException('Invalid column name in related table');
                 }
             } else if (isset($this->joins[$column[0]])) {
                 $col = $this->joins[$column[0]]->table->getColumn($column[1]);
                 if (!$col) {
-                    throw new DatabaseException('Invalid column name in related table');
+                    throw new DBException('Invalid column name in related table');
                 }
             } else {
-                throw new DatabaseException('Invalid foreign table name: ' . implode(',', $column));
+                throw new DBException('Invalid foreign table name: ' . implode(',', $column));
             }
         }
         return [ 'name' => implode('.', $column), 'data' => $col ];
@@ -263,7 +263,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
         $table = $table instanceof Table ? $table : $this->db->definition((string)$table);
         $name = $name ?? $table->getName();
         if (isset($this->joins[$name]) || $this->definition->hasRelation($name)) {
-            throw new DatabaseException('Alias / table name already in use');
+            throw new DBException('Alias / table name already in use');
         }
         $this->joins[$name] = new TableRelation($name, $table, [], $multiple);
         foreach ($fields as $k => $v) {
@@ -425,7 +425,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
                 } else if (isset($this->joins[$table])) {
                     $cols = $this->joins[$table]->table->getColumns();
                 } else {
-                    throw new DatabaseException('Invalid foreign table name');
+                    throw new DBException('Invalid foreign table name');
                 }
                 foreach ($cols as $col) {
                     $fields[] = $table . '.' . $col;
@@ -437,7 +437,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
         foreach ($fields as $k => $v) {
             try {
                 $fields[$k] = $this->getColumn($v)['name'];
-            } catch (DatabaseException $e) {
+            } catch (DBException $e) {
                 $fields[$k] = $v;
             }
         }
@@ -586,9 +586,8 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
                 $sql .= 'LIMIT ' . $this->li_of[0] . ' OFFSET ' . $this->li_of[1];
             }
         }
-        // echo $sql; die();
         return $this->qiterator = new TableQueryIterator(
-            $this->db->get($sql, $par), 
+            $this->db->query($sql, $par), 
             $this->definition->getPrimaryKey(),
             array_combine(
                 $this->withr,
@@ -623,7 +622,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
             }
         }
         if (!count($insert)) {
-            throw new DatabaseException('No valid columns to insert');
+            throw new DBException('No valid columns to insert');
         }
         $sql = 'INSERT INTO '.$table.' ('.implode(', ', array_keys($insert)).') VALUES (??)';
         $par = [$insert];
@@ -667,7 +666,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
             }
         }
         if (!count($update)) {
-            throw new DatabaseException('No valid columns to update');
+            throw new DBException('No valid columns to update');
         }
         $sql = 'UPDATE '.$table.' SET ';
         $par = [];
@@ -720,7 +719,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
     public function with(string $relation) : TableQuery
     {
         if (!$this->definition->hasRelation($relation)) {
-            throw new DatabaseException('Invalid relation name');
+            throw new DBException('Invalid relation name');
         }
         $this->qiterator = null;
         $this->withr[$relation] = $relation;

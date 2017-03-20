@@ -27,7 +27,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
      */
     protected $fetched = 0;
 
-    public function __construct(Result $result, array $pkey, array $relations = [])
+    public function __construct(ResultInterface $result, array $pkey, array $relations = [])
     {
         $this->pkey = $pkey;
         $this->result = $result;
@@ -82,7 +82,6 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
             }
             $this->result->next();
         }
-
         if ($result) {
             foreach ($this->relations as $name => $relation) {
                 if ($relation->many) {

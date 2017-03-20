@@ -10,19 +10,16 @@ services:
 # See: http://docs.travis-ci.com/user/workers/container-based-infrastructure/
 sudo: false
 
+before_install:
+  - mysql -e "create database IF NOT EXISTS test;" -uroot
+
 before_script:
   - travis_retry composer self-update
   - travis_retry composer update ${COMPOSER_FLAGS} --no-interaction --prefer-source
 
-before_install:
-  - mysql -e "create database IF NOT EXISTS test;" -uroot
-
 script:
-  - vendor/bin/phpunit
+  - vendor/bin/phpunit --coverage-clover=coverage.clover
 
 after_script:
-  - vendor/bin/test-reporter
-
-addons:
-  code_climate:
-    repo_token: 243bfc6fa64b55321f63437f3723021a84b9e43f0c5dc75a1edec8b466fee955
+    - bash -c 'wget https://scrutinizer-ci.com/ocular.phar'
+    - bash -c 'php ocular.phar code-coverage:upload --format=php-clover coverage.clover'

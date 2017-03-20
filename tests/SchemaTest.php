@@ -8,7 +8,7 @@ class SchemaTest extends \PHPUnit_Framework_TestCase
     public static function setUpBeforeClass() {
         $sql = file_get_contents(__DIR__ . '/dump.sql');
         $sql = explode(';', $sql);
-        self::$db = new \vakata\database\DB('mysqli://root@127.0.0.1/test');
+        self::$db = new \vakata\database\DB('mysql://root@127.0.0.1/test');
         self::$db->query("SET FOREIGN_KEY_CHECKS = 0");
         self::$db->query("DROP TABLE IF EXISTS author");
         self::$db->query("DROP TABLE IF EXISTS book");

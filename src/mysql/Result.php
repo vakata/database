@@ -60,7 +60,7 @@ class Result implements ResultInterface
 
     public function key()
     {
-        return ++ $this->fetched;
+        return $this->fetched;
     }
     public function current()
     {
@@ -77,6 +77,7 @@ class Result implements ResultInterface
     }
     public function next()
     {
+        $this->fetched ++;
         $this->last = $this->statement->fetch();
     }
     public function valid()

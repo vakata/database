@@ -1,264 +1,127 @@
 <?php
 
-namespace vakata\database;
+namespace vakata\database\oracle;
 
-/**
- * A database abstraction with support for various drivers (mySQL, postgre, oracle, msSQL, sphinx, and even PDO).
- */
-class DB implements DatabaseInterface
+use \vakata\database\DBException;
+use \vakata\database\DriverInterface;
+use \vakata\database\StatementInterface;
+
+class Driver implements DriverInterface
 {
-    /**
-     * @var driver\DriverInterface
-     */
-    protected $drv;
-    /**
-     * @var Table[]
-     */
-    protected $tables = [];
-    /**
-     * @var Settings
-     */
-    protected $settings;
+    protected $connection;
+    protected $lnk = null;
 
-    /**
-     * Create an instance.
-     *
-     *
-     * @throws \vakata\database\DatabaseException if invalid settings are provided
-     *
-     * @param string $options a connection string (like `"mysqli://user:pass@host/database?option=value"`)
-     */
-    public function __construct($options)
+    public function __construct(array $connection)
     {
-        $this->settings = new Settings((string)$options);
-        try {
-            $tmp = '\\vakata\\database\\driver\\'.ucfirst($this->settings->type);
-            $drv = new $tmp($this->settings);
-        } catch (\Exception $e) {
-            throw new DatabaseException('Could not create database driver');
-        }
-        if (!($drv instanceof driver\DriverInterface)) {
-            throw new DatabaseException('Invalid database driver');
-        }
-        $this->drv = $drv;
+        $this->connection = $connection;
     }
-
-    protected function expand($sql, $data)
+    public function __destruct()
     {
-        $new = '';
-        if (!is_array($data)) {
-            $data = [ $data ];
+        $this->disconnect();
+    }
+    protected function connect()
+    {
+        if ($this->lnk === null) {
+            $this->lnk = call_user_func(
+                $this->option('persist') ? 'oci_pconnect' : 'oci_connect',
+                $this->connection['user'],
+                $this->connection['pass'],
+                $this->connection['name'],
+                $this->option('charset')
+            );
+            if ($this->lnk === false) {
+                throw new DBException('Connect error');
+            }
+            $this->real("ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY-MM-DD HH24:MI:SS'");
+            if ($this->option('timezone')) {
+                $this->real("ALTER session SET time_zone = '".addslashes($this->option('timezone'))."'");
+            }
         }
-        $data = array_values($data);
-        if (substr_count($sql, '?') === 2 && !is_array($data[0])) {
-            $data = [ $data ];
+    }
+    protected function real($sql)
+    {
+        $this->connect();
+        $temp = oci_parse($this->lnk, $sql);
+        if (!$temp || !oci_execute($temp, $this->transaction ? OCI_NO_AUTO_COMMIT : OCI_COMMIT_ON_SUCCESS)) {
+            throw new DatabaseException('Could not execute real query : '.oci_error($temp));
         }
-        $parts = explode('??', $sql);
-        $index = 0;
-        foreach ($parts as $part) {
-            $tmp = explode('?', $part);
-            $new .= $part;
-            $index += count($tmp) - 1;
-            if (isset($data[$index])) {
-                if (!is_array($data[$index])) {
-                    $data[$index] = [ $data[$index] ];
+        return $temp;
+    }
+    protected function disconnect()
+    {
+        if ($this->lnk !== null) {
+            @$this->lnk->close();
+        }
+    }
+    public function prepare(string $sql) : StatementInterface
+    {
+        $this->connect();
+        $binder = '?';
+        if (strpos($sql, $binder) !== false) {
+            $tmp = explode($binder, $sql);
+            $sql = '';
+            foreach ($tmp as $i => $v) {
+                $sql .= $v;
+                if (isset($tmp[($i + 1)])) {
+                    $sql .= ':f'.$i;
                 }
-                $params = $data[$index];
-                array_splice($data, $index, 1, $params);
-                $index += count($params);
-                $new .= implode(',', array_fill(0, count($params), '?'));
             }
         }
-        return [ $new, $data ];
+        $temp = oci_parse($this->lnk, $sql);
+        if (!$temp) {
+            $err = oci_error();
+            if (!$err) {
+                $err = [];
+            }
+            throw new DBException('Could not prepare : '.implode(', ', $err).' <'.$sql.'>');
+        }
+        return new Statement($temp);
     }
 
-    /**
-     * Prepare a statement.
-     * Use only if you need a single query to be performed multiple times with different parameters.
-     *
-     *
-     * @param string $sql the query to prepare - use `?` for arguments
-     *
-     * @return \vakata\database\Query the prepared statement
-     */
-    public function prepare($sql)
+    public function begin() : bool
     {
-        try {
-            return new Query($this->drv, $sql);
-        } catch (\Exception $e) {
-            throw new DatabaseException($e->getMessage(), 2);
-        }
+         return $this->transaction = true;
     }
-    /**
-     * Run a query (prepare & execute).
-     *
-     *
-     * @param string $sql  SQL query
-     * @param array  $data parameters
-     *
-     * @return \vakata\database\QueryResult the result of the execution
-     */
-    public function query($sql, $data = null)
+    public function commit() : bool
     {
-        try {
-            if (strpos($sql, '??') && $data !== null) {
-                list($sql, $data) = $this->expand($sql, $data);
-            }
-            return $this->prepare($sql)->execute($data);
-        } catch (\Exception $e) {
-            throw new DatabaseException($e->getMessage(), 4);
-        }
-    }
-    /**
-     * Run a SELECT query and get an array-like result.
-     * When using `get` the data is kept in the database client and fetched as needed (not in PHP memory as with `all`)
-     *
-     *
-     * @param string $sql      SQL query
-     * @param array  $data     parameters
-     * @param string $key      column name to use as the array index
-     * @param bool   $skip     do not include the column used as index in the value (defaults to `false`)
-     * @param string $mode     result mode - `"assoc"` by default, could be `"num"`, `"both"`, `"assoc_ci"`, `"assoc_lc"`, `"assoc_uc"`
-     * @param bool   $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
-     *
-     * @return \vakata\database\Result the result of the execution - use as a normal array
-     */
-    public function get($sql, $data = null, $key = null, $skip = false, $mode = null, $opti = true)
-    {
-        if ($mode === null) {
-            $mode = isset($this->settings->options['mode']) ? $this->settings->options['mode'] : 'assoc';
-        }
-        if (strpos($sql, '??') && $data !== null) {
-            list($sql, $data) = $this->expand($sql, $data);
-        }
-        return (new Query($this->drv, $sql))->execute($data)->result($key, $skip, $mode, $opti);
-    }
-    /**
-     * Run a SELECT query and get an array result.
-     *
-     *
-     * @param string $sql      SQL query
-     * @param array  $data     parameters
-     * @param string $key      column name to use as the array index
-     * @param bool   $skip     do not include the column used as index in the value (defaults to `false`)
-     * @param string $mode     result mode - `"assoc"` by default, could be `"num"`, `"both"`, `"assoc_ci"`, `"assoc_lc"`, `"assoc_uc"`
-     * @param bool   $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
-     *
-     * @return array the result of the execution
-     */
-    public function all($sql, $data = null, $key = null, $skip = false, $mode = null, $opti = true)
-    {
-        return $this->get($sql, $data, $key, $skip, $mode, $opti)->get();
-    }
-    /**
-     * Run a SELECT query and get the first row.
-     *
-     *
-     * @param string $sql      SQL query
-     * @param array  $data     parameters
-     * @param string $mode     result mode - `"assoc"` by default, could be `"num"`, `"both"`, `"assoc_ci"`, `"assoc_lc"`, `"assoc_uc"`
-     * @param bool   $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
-     *
-     * @return mixed the result of the execution
-     */
-    public function one($sql, $data = null, $mode = null, $opti = true)
-    {
-        return $this->get($sql, $data, null, false, $mode, $opti)->one();
-    }
-    /**
-     * Run a raw SQL query
-     *
-     *
-     * @param string $sql      SQL query
-     *
-     * @return mixed the result of the execution
-     */
-    public function raw($sql, $data = null, $mode = 'assoc', $opti = true)
-    {
-        return $this->drv->real($sql);
-    }
-    /**
-     * Get the current driver name (`"mysqli"`, `"postgre"`, etc).
-     *
-     *
-     * @return string the current driver name
-     */
-    public function driver()
-    {
-        return $this->settings->type;
-    }
-    /**
-     * Get the current database name.
-     *
-     *
-     * @return string the current database name
-     */
-    public function name()
-    {
-        return $this->settings->database;
-    }
-    /**
-     * Get the current settings object
-     *
-     *
-     * @return \vakata\database\Settings the current settings
-     */
-    public function settings()
-    {
-        return $this->settings;
-    }
-    /**
-     * Begin a transaction.
-     *
-     *
-     * @return bool `true` if a transaction was opened, `false` otherwise
-     */
-    public function begin()
-    {
-        if ($this->drv->isTransaction()) {
+        $this->connect();
+        if (!$this->transaction) {
             return false;
         }
+        if (!oci_commit($this->lnk)) {
+            return false;
+        }
+        $this->transaction = false;
+        return true;
+    }
+    public function rollback() : bool
+    {
+        $this->connect();
+        if (!$this->transaction) {
+            return false;
+        }
+        if (!oci_rollback($this->lnk)) {
+            return false;
+        }
+        $this->transaction = false;
+        return true;
+    }
 
-        return $this->drv->begin();
-    }
-    /**
-     * Commit a transaction.
-     *
-     *
-     * @return bool was the commit successful
-     */
-    public function commit($isTransaction = true)
+    public function name() : string
     {
-        return $isTransaction && $this->drv->isTransaction() && $this->drv->commit();
+        return $this->connection['name'];
     }
-    /**
-     * Rollback a transaction.
-     *
-     *
-     * @return bool was the rollback successful
-     */
-    public function rollback($isTransaction = true)
+    public function option($key, $default = null)
     {
-        return $isTransaction && $this->drv->isTransaction() && $this->drv->rollback();
+        return isset($this->connection['opts'][$key]) ? $this->connection['opts'][$key] : $default;
     }
-    /**
-     * Check if a transaciton is currently open.
-     *
-     *
-     * @return bool is a transaction currently open
-     */
+
     public function isTransaction()
     {
-        return $this->drv->isTransaction();
+        return $this->transaction;
     }
-    /**
-     * Get a table definition
-     * @param  string            $table the table to analyze
-     * @param  bool      $detectRelations should relations be extracted - defaults to `true`
-     * @param  bool      $lowerCase should the table fields be converted to lowercase - defaults to `true`
-     * @return  the newly added definition
-     */
-    public function definition(
+
+        public function definition(
         string $table,
         bool $detectRelations = true,
         bool $lowerCase = true
@@ -274,7 +137,7 @@ class DB implements DatabaseInterface
         switch ($this->driver()) {
             case 'mysql':
             case 'mysqli':
-                foreach ($this->all("SHOW FULL COLUMNS FROM {$table}", null, null, false, 'assoc') as $data) {
+                foreach ($this->all("SHOW FULL COLUMNS FROM {$table}", null, null, false, null) as $data) {
                     $columns[$data['Field']] = $data;
                     if ($data['Key'] == 'PRI') {
                         $primary[] = $data['Field'];
@@ -291,7 +154,7 @@ class DB implements DatabaseInterface
                     [ $this->name(), $table ],
                     'column_name',
                     false,
-                    'assoc_lc'
+                    'strtolower'
                 );
                 $pkname = $this->one(
                     "SELECT constraint_name FROM information_schema.table_constraints
@@ -312,7 +175,7 @@ class DB implements DatabaseInterface
                     [ strtoupper($table), $this->name() ],
                     'COLUMN_NAME',
                     false,
-                    'assoc_uc'
+                    'strtoupper'
                 );
                 $owner = $this->name(); // current($columns)['OWNER'];
                 $pkname = $this->one(
@@ -334,7 +197,7 @@ class DB implements DatabaseInterface
             //        [ strtoupper($table) ],
             //        'FIELD_NAME',
             //        false,
-            //        'assoc_uc'
+            //        'strtoupper'
             //    );
             //    break;
             //case 'mssql':
@@ -368,7 +231,7 @@ class DB implements DatabaseInterface
                         [ $this->name(), $this->name(), $table ],
                         null,
                         false,
-                        'assoc_uc'
+                        'strtoupper'
                     ) as $relation) {
                         $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_NAME'];
                         $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['REFERENCED_COLUMN_NAME']] = $relation['COLUMN_NAME'];
@@ -395,7 +258,7 @@ class DB implements DatabaseInterface
                                 [ $this->name(), $data['table'], $columns ],
                                 null,
                                 false,
-                                'assoc_uc'
+                                'strtoupper'
                             ) as $relation) {
                                 $foreign[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
                                 $foreign[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['REFERENCED_COLUMN_NAME'];
@@ -446,7 +309,7 @@ class DB implements DatabaseInterface
                         [ $this->name(), $table ],
                         null,
                         false,
-                        'assoc_uc'
+                        'strtoupper'
                     ) as $relation) {
                         $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
                         $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['REFERENCED_COLUMN_NAME'];
@@ -481,7 +344,7 @@ class DB implements DatabaseInterface
                         [ $owner, $owner, $pkname, 'R' ],
                         null,
                         false,
-                        'assoc_uc'
+                        'strtoupper'
                     ) as $k => $relation) {
                         $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_NAME'];
                         $relations[$relation['CONSTRAINT_NAME']]['keymap'][$primary[(int)$relation['POSITION']-1]] = $relation['COLUMN_NAME'];
@@ -510,7 +373,7 @@ class DB implements DatabaseInterface
                                 [ $owner, $owner, $data['table'], 'R', $columns ],
                                 null,
                                 false,
-                                'assoc_uc'
+                                'strtoupper'
                             ) as $k => $relation) {
                                 $foreign[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
                                 $foreign[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['R_CONSTRAINT_NAME'];
@@ -522,7 +385,7 @@ class DB implements DatabaseInterface
                             $rcolumns = $this->all(
                                 "SELECT COLUMN_NAME FROM all_cons_columns WHERE OWNER = ? AND CONSTRAINT_NAME = ? ORDER BY POSITION",
                                 [ $owner, current($foreign['keymap']) ],
-                                null, false, 'assoc_uc'
+                                null, false, 'strtoupper'
                             );
                             foreach ($foreign['keymap'] as $column => $related) {
                                 $foreign['keymap'][$column] = array_shift($rcolumns);
@@ -570,7 +433,7 @@ class DB implements DatabaseInterface
                         WHERE ac.OWNER = ? AND ac.R_OWNER = ? AND ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ?
                         ORDER BY cc.POSITION",
                         [ $owner, $owner, strtoupper($table), 'R' ],
-                        null, false, 'assoc_uc'
+                        null, false, 'strtoupper'
                     ) as $relation) {
                         $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
                         $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['R_CONSTRAINT_NAME'];
@@ -579,7 +442,7 @@ class DB implements DatabaseInterface
                         $rcolumns = $this->all(
                             "SELECT COLUMN_NAME FROM all_cons_columns WHERE OWNER = ? AND CONSTRAINT_NAME = ? ORDER BY POSITION",
                             [ $owner, current($data['keymap']) ],
-                            null, false, 'assoc_uc'
+                            null, false, 'strtoupper'
                         );
                         foreach ($data['keymap'] as $column => $related) {
                             $data['keymap'][$column] = array_shift($rcolumns);
@@ -608,132 +471,5 @@ class DB implements DatabaseInterface
             $definition->toLowerCase();
         }
         return $definition;
-    }
-    /**
-     * Initialize a table query
-     * @param string $table the table to query
-     * @return TableQuery
-     */
-    public function table($table)
-    {
-        return new TableQuery($this, $this->definition($table));
-    }
-    /**
-     * Parse all tables from the database.
-     * @return $this
-     */
-    public function parseSchema()
-    {
-        $tables = [];
-        switch ($this->driver()) {
-            case 'mysql':
-            case 'mysqli':
-            case 'postgre':
-                $tables = $this->all(
-                    "SELECT table_name FROM information_schema.tables where table_schema = ?",
-                    $this->name()
-                );
-                break;
-            case 'oracle':
-                $tables = $this->all(
-                    "SELECT TABLE_NAME FROM ALL_TABLES where OWNER = ?",
-                    $this->name()
-                );
-                break;
-            case 'sqlite':
-                $tables = $this->all("SELECT name FROM sqlite_master WHERE type='table'");
-                break;
-            case 'ibase':
-                $tables = $this->all(
-                    'SELECT RDB$RELATION_NAME FROM RDB$RELATIONS
-                     WHERE RDB$SYSTEM_FLAG = 0 AND RDB$VIEW_BLR IS NULL
-                     ORDER BY RDB$RELATION_NAME'
-                );
-                break;
-            case 'mssql':
-                $tables = $this->all(
-                    "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
-                     WHERE TABLE_TYPE='BASE TABLE' AND TABLE_CATALOG = ?",
-                    $this->name()
-                );
-                break;
-            default:
-                //throw new DatabaseException('Unsupported driver');
-                break;
-        }
-        foreach ($tables as $table) {
-            $this->definition($table);
-        }
-        return $this;
-    }
-    public function __call($method, $args)
-    {
-        return $this->table($method);
-    }
-    /**
-     * Get the full schema as an array that you can serialize and store
-     * @return array
-     */
-    public function getSchema()
-    {
-        return array_map(function ($table) {
-            return [
-                'name' => $table->getName(),
-                'pkey' => $table->getPrimaryKey(),
-                'comment' => $table->getComment(),
-                'columns' => array_map(function ($column) {
-                    return [
-                        'name' => $column->getName(),
-                        'type' => $column->getType(),
-                        'comment' => $column->getComment(),
-                        'values' => $column->getValues(),
-                        'default' => $column->getDefault(),
-                        'nullable' => $column->isNullable()
-                    ];
-                }, $table->getFullColumns()),
-                'relations' => array_map(function ($rel) {
-                    $relation = clone $rel;
-                    $relation->table = $relation->table->getName();
-                    if ($relation->pivot) {
-                        $relation->pivot = $relation->pivot->getName();
-                    }
-                    return (array)$relation;
-                }, $table->getRelations())
-            ];
-        }, $this->tables);
-    }
-    /**
-     * Load the schema data from a schema definition array (obtained from getSchema)
-     * @param  array        $data the schema definition
-     * @return $this
-     */
-    public function setSchema(array $data)
-    {
-        foreach ($data as $tableData) {
-            $this->tables[$tableData['name']] = (new Table($tableData['name']))
-                        ->setPrimaryKey($tableData['pkey'])
-                        ->setComment($tableData['comment'])
-                        ->addColumns($tableData['columns']);
-        }
-        foreach ($data as $tableData) {
-            $table = $this->definition($tableData['name']);
-            foreach ($tableData['relations'] as $relationName => $relationData) {
-                $relationData['table'] = $this->definition($relationData['table']);
-                if ($relationData['pivot']) {
-                    $relationData['pivot'] = $this->definition($relationData['pivot']);
-                }
-                $table->addRelation(new TableRelation(
-                    $relationData['name'],
-                    $relationData['table'],
-                    $relationData['keymap'],
-                    $relationData['many'],
-                    $relationData['pivot'] ?? null,
-                    $relationData['pivot_keymap'],
-                    $relationData['sql'],
-                    $relationData['par']
-                ));
-            }
-        }
-        return $this;
     }
 }

@@ -4,14 +4,33 @@ namespace vakata\database;
 
 use \vakata\collection\Collection;
 
+/**
+ * A database abstraction with support for various drivers (mySQL, postgre, oracle, msSQL, sphinx, and even PDO).
+ */
 class DB implements DBInterface
 {
+    /**
+     * @var DriverInterface
+     */
     protected $driver;
+    /**
+     * @var Table[]
+     */
     protected $tables = [];
 
+    /**
+     * Create an instance.
+     *
+     * @param DriverInterface|string $driver a driver instance or a connection string
+     */
     public function __construct($driver) {
         $this->driver = $driver instanceof DriverInterface ? $driver : static::getDriver($driver);
     }
+    /**
+     * Create a driver instance from a connection string
+     * @param string $connectionString the connection string
+     * @return DriverInterface
+     */
     public static function getDriver(string $connectionString)
     {
         $connection = [
@@ -41,7 +60,13 @@ class DB implements DBInterface
         $tmp = '\\vakata\\database\\'.$connection['type'].'\\Driver';
         return new $tmp($connection);
     }
-
+    /**
+     * Prepare a statement.
+     * Use only if you need a single query to be performed multiple times with different parameters.
+     *
+     * @param string $sql the query to prepare - use `?` for arguments
+     * @return StatementInterface the prepared statement
+     */
     public function prepare(string $sql) : StatementInterface
     {
         return $this->driver->prepare($sql);
@@ -71,6 +96,12 @@ class DB implements DBInterface
         }
         return [ $new, $par ];
     }
+    /**
+     * Run a query (prepare & execute).
+     * @param string $sql  SQL query
+     * @param array  $data parameters (optional)
+     * @return ResultInterface the result of the execution
+     */
     public function query(string $sql, $par = null) : ResultInterface
     {
         $par = isset($par) ? (is_array($par) ? $par : [$par]) : [];
@@ -79,6 +110,19 @@ class DB implements DBInterface
         }
         return $this->driver->prepare($sql)->execute($par);
     }
+    /**
+     * Run a SELECT query and get an array-like result.
+     * When using `get` the data is kept in the database client and fetched as needed (not in PHP memory as with `all`)
+     *
+     * @param string   $sql      SQL query
+     * @param array    $par      parameters
+     * @param string   $key      column name to use as the array index
+     * @param bool     $skip     do not include the column used as index in the value (defaults to `false`)
+     * @param callable $keys     an optional mutator to pass each row's keys through (the column names)
+     * @param bool     $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
+     *
+     * @return Collection the result of the execution
+     */
     public function get(string $sql, $par = null, string $key = null, bool $skip = false, callable $keys = null, bool $opti = true) : Collection
     {
         $keys = isset($keys) ? $keys : $this->driver->option('mode');
@@ -106,15 +150,36 @@ class DB implements DBInterface
         }
         return $coll;
     }
+    /**
+     * Run a SELECT query and get a single row
+     * @param string   $sql      SQL query
+     * @param array    $par      parameters
+     * @param callable $keys     an optional mutator to pass each row's keys through (the column names)
+     * @param bool     $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
+     * @return Collection the result of the execution
+     */
     public function one(string $sql, $par = null, callable $keys = null, bool $opti = true)
     {
         return $this->get($sql, $par, null, false, $keys, $opti)->value();
     }
+    /**
+     * Run a SELECT query and get an array
+     * @param string   $sql      SQL query
+     * @param array    $par      parameters
+     * @param string   $key      column name to use as the array index
+     * @param bool     $skip     do not include the column used as index in the value (defaults to `false`)
+     * @param callable $keys     an optional mutator to pass each row's keys through (the column names)
+     * @param bool     $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
+     * @return Collection the result of the execution
+     */
     public function all(string $sql, $par = null, string $key = null, bool $skip = false, callable $keys = null, bool $opti = true) : array
     {
         return $this->get($sql, $par, $key, $skip, $keys, $opti)->toArray();
     }
-
+    /**
+     * Begin a transaction.
+     * @return $this
+     */
     public function begin() : DBInterface
     {
         if (!$this->driver->begin()) {
@@ -122,6 +187,10 @@ class DB implements DBInterface
         }
         return $this;
     }
+    /**
+     * Commit a transaction.
+     * @return $this
+     */
     public function commit() : DBInterface
     {
         if (!$this->driver->commit()) {
@@ -129,6 +198,10 @@ class DB implements DBInterface
         }
         return $this;
     }
+    /**
+     * Rollback a transaction.
+     * @return $this
+     */
     public function rollback() : DBInterface
     {
         if (!$this->driver->rollback()) {
@@ -136,11 +209,18 @@ class DB implements DBInterface
         }
         return $this;
     }
-
+    /**
+     * Get the current driver name (`"mysql"`, `"postgre"`, etc).
+     * @return string the current driver name
+     */
     public function driver() : string
     {
         return array_reverse(explode('\\', get_class($this->driver)))[1];
     }
+    /**
+     * Get the current database name.
+     * @return string the current database name
+     */
     public function name() : string
     {
         return $this->driver->name();

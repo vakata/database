@@ -127,7 +127,7 @@ class DB implements DBInterface
     public function get(string $sql, $par = null, string $key = null, bool $skip = false, bool $opti = true) : Collection
     {
         $coll = $this->query($sql, $par)->collection();
-        if ($keys = $this->driver->option('mode')) {
+        if ($keys = $this->driver->option('mode') && in_array($keys, ['strtoupper', 'strtolower'])) {
             $coll->map(function ($v) use ($keys) {
                 $new = [];
                 foreach ($v as $k => $vv) {

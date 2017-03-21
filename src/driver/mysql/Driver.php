@@ -94,7 +94,7 @@ class Driver extends DriverAbstract implements DriverInterface
         
         $columns = $this->query("SHOW FULL COLUMNS FROM {$table}")->collection();
         if (!count($columns)) {
-            throw new DatabaseException('Table not found by name');
+            throw new DBException('Table not found by name');
         }
         $tables[$table] = $definition = (new Table($table))
             ->addColumns(

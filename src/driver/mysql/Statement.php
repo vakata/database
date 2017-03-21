@@ -81,7 +81,6 @@ class Statement implements StatementInterface
         if (!$this->statement->execute()) {
             throw new DBException('Prepared execute error : '.$this->lnk->error);
         }
-        $this->statement->store_result();
         return new Result($this->statement);
     }
 }

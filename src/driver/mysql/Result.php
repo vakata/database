@@ -12,26 +12,34 @@ class Result implements ResultInterface
     protected $row = [];
     protected $last = null;
     protected $fetched = -1;
+    protected $result = null;
+    protected $nativeDriver = false;
 
     public function __construct(\mysqli_stmt $statement)
     {
+        $this->nativeDriver = function_exists('mysqli_fetch_all');
         $this->statement = $statement;
         try {
-            $columns = [];
-            $temp = $this->statement->result_metadata();
-            if ($temp) {
-                $temp = $temp->fetch_fields();
+            if ($this->nativeDriver) {
+                $this->result = $this->statement->get_result();
+            } else {
+                $this->statement->store_result();
+                $columns = [];
+                $temp = $this->statement->result_metadata();
                 if ($temp) {
-                    $columns = array_map(function ($v) { return $v->name; }, $temp);
+                    $temp = $temp->fetch_fields();
+                    if ($temp) {
+                        $columns = array_map(function ($v) { return $v->name; }, $temp);
+                    }
                 }
-            }
-            if (count($columns)) {
-                $this->row = array_combine($columns, array_fill(0, count($columns), null));
-                $temp = [];
-                foreach ($this->row as $k => $v) {
-                    $temp[] = &$this->row[$k];
+                if (count($columns)) {
+                    $this->row = array_combine($columns, array_fill(0, count($columns), null));
+                    $temp = [];
+                    foreach ($this->row as $k => $v) {
+                        $temp[] = &$this->row[$k];
+                    }
+                    call_user_func_array(array($this->statement, 'bind_result'), $temp);
                 }
-                call_user_func_array(array($this->statement, 'bind_result'), $temp);
             }
         } catch (\Exception $e) { }
     }
@@ -54,7 +62,7 @@ class Result implements ResultInterface
 
     public function count()
     {
-        return $this->statement->num_rows;
+        return $this->nativeDriver && $this->result ? $this->result->num_rows : $this->statement->num_rows;
     }
 
     public function key()
@@ -63,12 +71,16 @@ class Result implements ResultInterface
     }
     public function current()
     {
-        return array_map(function ($v) { return $v; }, $this->row);
+        return $this->nativeDriver ? $this->last : array_map(function ($v) { return $v; }, $this->row);
     }
     public function rewind()
     {
         if ($this->fetched >= 0) {
-            $this->statement->data_seek(0);
+            if ($this->nativeDriver) {
+                $this->result->data_seek(0);
+            } else {
+                $this->statement->data_seek(0);
+            }
         }
         $this->last = null;
         $this->fetched = -1;
@@ -77,7 +89,7 @@ class Result implements ResultInterface
     public function next()
     {
         $this->fetched ++;
-        $this->last = $this->statement->fetch();
+        $this->last = $this->nativeDriver ? $this->result->fetch_assoc() : $this->statement->fetch();
     }
     public function valid()
     {

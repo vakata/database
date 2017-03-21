@@ -1,5 +1,8 @@
 <?php
+
 namespace vakata\database\schema;
+
+use \vakata\database\DBException;
 
 /**
  * A table definition
@@ -159,7 +162,7 @@ class Table
                 $key = $this->getName().'_'.$pkField;
             }
             if (!in_array($key, $columns)) {
-                throw new DatabaseException('Missing foreign key mapping');
+                throw new DBException('Missing foreign key mapping');
             }
             $keymap[$pkField] = $key;
         }
@@ -214,7 +217,7 @@ class Table
                 $key = $this->getName().'_'.$pkField;
             }
             if (!in_array($key, $columns)) {
-                throw new DatabaseException('Missing foreign key mapping');
+                throw new DBException('Missing foreign key mapping');
             }
             $keymap[$pkField] = $key;
         }
@@ -269,7 +272,7 @@ class Table
                 $key = $toTable->getName().'_'.$pkField;
             }
             if (!in_array($key, $columns)) {
-                throw new DatabaseException('Missing foreign key mapping');
+                throw new DBException('Missing foreign key mapping');
             }
             $keymap[$key] = $pkField;
         }
@@ -324,7 +327,7 @@ class Table
                 $key = $this->getName().'_'.$pkField;
             }
             if (!in_array($key, $pivotColumns)) {
-                throw new DatabaseException('Missing foreign key mapping');
+                throw new DBException('Missing foreign key mapping');
             }
             $keymap[$pkField] = $key;
         }
@@ -346,7 +349,7 @@ class Table
                 $key = $toTable->getName().'_'.$pkField;
             }
             if (!in_array($key, $pivotColumns)) {
-                throw new DatabaseException('Missing foreign key mapping');
+                throw new DBException('Missing foreign key mapping');
             }
             $pivotKeymap[$key] = $pkField;
         }
@@ -420,10 +423,10 @@ class Table
     public function renameRelation(string $name, string $new) : array
     {
         if (!isset($this->relations[$name])) {
-            throw new DatabaseException("Relation not found");
+            throw new DBException("Relation not found");
         }
         if (isset($this->relations[$new])) {
-            throw new DatabaseException("A relation with that name already exists");
+            throw new DBException("A relation with that name already exists");
         }
         $temp = $this->relations[$name];
         $temp->name = $new;

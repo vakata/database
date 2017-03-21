@@ -1,17 +1,18 @@
 <?php
 
-namespace vakata\database\mysql;
+namespace vakata\database\driver\mysql;
 
 use \vakata\database\DBException;
 use \vakata\database\DriverInterface;
+use \vakata\database\DriverAbstract;
 use \vakata\database\StatementInterface;
-use \vakata\database\Table;
+use \vakata\database\schema\Table;
+use \vakata\database\schema\TableRelation;
 
-class Driver implements DriverInterface
+class Driver extends DriverAbstract implements DriverInterface
 {
     protected $connection;
     protected $lnk = null;
-    protected $tables = [];
 
     public function __construct(array $connection)
     {
@@ -84,62 +85,61 @@ class Driver implements DriverInterface
         return $this->lnk->rollback();
     }
 
-    public function name() : string
+    public function table(string $table, bool $detectRelations = true) : Table
     {
-        return $this->connection['name'];
-    }
-    public function option($key, $default = null)
-    {
-        return isset($this->connection['opts'][$key]) ? $this->connection['opts'][$key] : $default;
-    }
-
-    public function table(string $table, bool $detectRelations = true, bool $lowerCase = true) : Table
-    {
-        if (isset($this->tables[$table])) {
-            return $this->tables[$table];
+        static $tables = [];
+        if (isset($tables[$table])) {
+            return $tables[$table];
         }
-        $definition = new Table($table);
-        $columns = [];
-        $primary = [];
-        $comment = '';
-        foreach ($this->all("SHOW FULL COLUMNS FROM {$table}", null, null, false, null) as $data) {
-            $columns[$data['Field']] = $data;
-            if ($data['Key'] == 'PRI') {
-                $primary[] = $data['Field'];
-            }
-        }
-        $comment = (string)$this->one(
-            "SELECT table_comment FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
-            [ $this->name(), $table ]
-        );
+        
+        $columns = $this->query("SHOW FULL COLUMNS FROM {$table}")->collection();
         if (!count($columns)) {
             throw new DatabaseException('Table not found by name');
         }
-        $definition
-            ->addColumns($columns)
-            ->setPrimaryKey($primary)
-            ->setComment($comment);
-        $this->tables[$table] = $definition;
+        $tables[$table] = $definition = (new Table($table))
+            ->addColumns(
+                $columns
+                    ->clone()
+                    ->mapKey(function ($v) { return $v['Field']; })
+                    ->toArray()
+            )
+            ->setPrimaryKey(
+                $columns
+                    ->clone()
+                    ->filter(function ($v) { return $v['Key'] === 'PRI'; })
+                    ->pluck('Field')
+                    ->toArray()
+            )
+            ->setComment(
+                (string)$this
+                    ->query(
+                        "SELECT table_comment FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
+                        [ $this->connection['name'], $table ]
+                    )
+                    ->collection()
+                    ->pluck('table_comment')
+                    ->value()
+            );
 
         if ($detectRelations) {
             // relations where the current table is referenced
             // assuming current table is on the "one" end having "many" records in the referencing table
             // resulting in a "hasMany" or "manyToMany" relationship (if a pivot table is detected)
             $relations = [];
-            foreach ($this->all(
-                "SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_COLUMN_NAME
-                FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-                WHERE TABLE_SCHEMA = ? AND REFERENCED_TABLE_SCHEMA = ? AND REFERENCED_TABLE_NAME = ?",
-                [ $this->name(), $this->name(), $table ],
-                null,
-                false,
-                'strtoupper'
-            ) as $relation) {
+            foreach (
+                $this
+                    ->query(
+                        "SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_COLUMN_NAME
+                         FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+                         WHERE TABLE_SCHEMA = ? AND REFERENCED_TABLE_SCHEMA = ? AND REFERENCED_TABLE_NAME = ?",
+                        [ $this->connection['name'], $this->connection['name'], $table ]
+                    ) as $relation
+            ) {
                 $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_NAME'];
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['REFERENCED_COLUMN_NAME']] = $relation['COLUMN_NAME'];
             }
             foreach ($relations as $data) {
-                $rtable = $this->table($data['table'], true, $lowerCase); // ?? $this->addTableByName($data['table'], false);
+                $rtable = $this->table($data['table'], true);
                 $columns = [];
                 foreach ($rtable->getColumns() as $column) {
                     if (!in_array($column, $data['keymap'])) {
@@ -149,19 +149,26 @@ class Driver implements DriverInterface
                 $foreign = [];
                 $usedcol = [];
                 if (count($columns)) {
-                    foreach ($this->all(
-                        "SELECT
-                            TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME,
-                            REFERENCED_COLUMN_NAME, REFERENCED_TABLE_NAME
-                        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-                        WHERE
-                            TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME IN (??) AND
-                            REFERENCED_TABLE_NAME IS NOT NULL",
-                        [ $this->name(), $data['table'], $columns ],
-                        null,
-                        false,
-                        'strtoupper'
-                    ) as $relation) {
+                    foreach ($this
+                        ->query(
+                            "SELECT
+                                 TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME,
+                                 REFERENCED_COLUMN_NAME, REFERENCED_TABLE_NAME
+                             FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+                             WHERE
+                                 TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME IN (??) AND
+                                 REFERENCED_TABLE_NAME IS NOT NULL",
+                            [ $this->connection['name'], $data['table'], $columns ]
+                        )
+                        ->collection()
+                        ->map(function ($v) {
+                            $new = [];
+                            foreach ($v as $kk => $vv) {
+                                $new[strtoupper($kk)] = $vv;
+                            }
+                            return $new;
+                        }) as $relation
+                    ) {
                         $foreign[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
                         $foreign[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['REFERENCED_COLUMN_NAME'];
                         $usedcol[] = $relation['COLUMN_NAME'];
@@ -177,7 +184,7 @@ class Driver implements DriverInterface
                     $definition->addRelation(
                         new TableRelation(
                             $relname,
-                            $this->table($foreign['table'], true, $lowerCase),
+                            $this->table($foreign['table'], true),
                             $data['keymap'],
                             true,
                             $rtable,
@@ -193,7 +200,7 @@ class Driver implements DriverInterface
                     $definition->addRelation(
                         new TableRelation(
                             $relname,
-                            $this->table($data['table'], true, $lowerCase),
+                            $this->table($data['table'], true),
                             $data['keymap'],
                             true
                         )
@@ -204,15 +211,22 @@ class Driver implements DriverInterface
             // assuming current table is linked to "one" record in the referenced table
             // resulting in a "belongsTo" relationship
             $relations = [];
-            foreach ($this->all(
-                "SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
-                FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-                WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL",
-                [ $this->name(), $table ],
-                null,
-                false,
-                'strtoupper'
-            ) as $relation) {
+            foreach ($this
+                ->query(
+                    "SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
+                     FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+                     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL",
+                    [ $this->connection['name'], $table ]
+                )
+                ->collection()
+                ->map(function ($v) {
+                    $new = [];
+                    foreach ($v as $kk => $vv) {
+                        $new[strtoupper($kk)] = $vv;
+                    }
+                    return $new;
+                }) as $relation
+            ) {
                 $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['REFERENCED_COLUMN_NAME'];
             }
@@ -225,16 +239,34 @@ class Driver implements DriverInterface
                 $definition->addRelation(
                     new TableRelation(
                         $relname,
-                        $this->table($data['table'], true, $lowerCase),
+                        $this->table($data['table'], true),
                         $data['keymap'],
                         false
                     )
                 );
             }
         }
-        if ($lowerCase) {
-            $definition->toLowerCase();
-        }
-        return $definition;
+        return $definition->toLowerCase();
+    }
+    public function tables() : array
+    {
+        return $this
+            ->query(
+                "SELECT table_name FROM information_schema.tables where table_schema = ?",
+                [$this->connection['name']]
+            )
+            ->collection()
+            ->map(function ($v) {
+                $new = [];
+                foreach ($v as $kk => $vv) {
+                    $new[strtoupper($kk)] = $vv;
+                }
+                return $new;
+            })
+            ->pluck('TABLE_NAME')
+            ->map(function ($v) {
+                return $this->table($v);
+            })
+            ->toArray();
     }
 }

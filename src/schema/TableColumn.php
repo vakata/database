@@ -1,5 +1,5 @@
 <?php
-namespace vakata\database;
+namespace vakata\database\schema;
 
 /**
  * A column definition

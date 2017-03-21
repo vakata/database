@@ -1,5 +1,8 @@
 <?php
-namespace vakata\database;
+namespace vakata\database\schema;
+
+use vakata\collection\Collection;
+use vakata\database\DBException;
 
 /**
  * A table query iterator
@@ -27,7 +30,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
      */
     protected $fetched = 0;
 
-    public function __construct(ResultInterface $result, array $pkey, array $relations = [])
+    public function __construct(Collection $result, array $pkey, array $relations = [])
     {
         $this->pkey = $pkey;
         $this->result = $result;
@@ -166,10 +169,10 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
     }
     public function offsetSet($offset, $value)
     {
-        throw new DatabaseException('Invalid call to offsetSet');
+        throw new DBException('Invalid call to offsetSet');
     }
     public function offsetUnset($offset)
     {
-        throw new DatabaseException('Invalid call to offsetUnset');
+        throw new DBException('Invalid call to offsetUnset');
     }
 }

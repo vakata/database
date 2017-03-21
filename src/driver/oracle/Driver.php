@@ -1,15 +1,19 @@
 <?php
 
-namespace vakata\database\oracle;
+namespace vakata\database\driver\oracle;
 
 use \vakata\database\DBException;
 use \vakata\database\DriverInterface;
+use \vakata\database\DriverAbstract;
 use \vakata\database\StatementInterface;
+use \vakata\database\schema\Table;
+use \vakata\database\schema\TableRelation;
 
-class Driver implements DriverInterface
+class Driver extends DriverAbstract implements DriverInterface
 {
     protected $connection;
     protected $lnk = null;
+    protected $transaction = false;
 
     public function __construct(array $connection)
     {
@@ -26,31 +30,22 @@ class Driver implements DriverInterface
                 $this->option('persist') ? 'oci_pconnect' : 'oci_connect',
                 $this->connection['user'],
                 $this->connection['pass'],
-                $this->connection['name'],
-                $this->option('charset')
+                $this->connection['host'],
+                $this->option('charset', 'utf8')
             );
             if ($this->lnk === false) {
                 throw new DBException('Connect error');
             }
-            $this->real("ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY-MM-DD HH24:MI:SS'");
-            if ($this->option('timezone')) {
-                $this->real("ALTER session SET time_zone = '".addslashes($this->option('timezone'))."'");
+            $this->query("ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY-MM-DD HH24:MI:SS'");
+            if ($timezone = $this->option('timezone')) {
+                $this->query("ALTER session SET time_zone = '".addslashes($timezone)."'");
             }
         }
-    }
-    protected function real($sql)
-    {
-        $this->connect();
-        $temp = oci_parse($this->lnk, $sql);
-        if (!$temp || !oci_execute($temp, $this->transaction ? OCI_NO_AUTO_COMMIT : OCI_COMMIT_ON_SUCCESS)) {
-            throw new DatabaseException('Could not execute real query : '.oci_error($temp));
-        }
-        return $temp;
     }
     protected function disconnect()
     {
         if ($this->lnk !== null) {
-            @$this->lnk->close();
+            @oci_close($this->lnk);
         }
     }
     public function prepare(string $sql) : StatementInterface
@@ -75,7 +70,7 @@ class Driver implements DriverInterface
             }
             throw new DBException('Could not prepare : '.implode(', ', $err).' <'.$sql.'>');
         }
-        return new Statement($temp);
+        return new Statement($temp, $this);
     }
 
     public function begin() : bool
@@ -121,355 +116,273 @@ class Driver implements DriverInterface
         return $this->transaction;
     }
 
-        public function definition(
+    public function table(
         string $table,
-        bool $detectRelations = true,
-        bool $lowerCase = true
+        bool $detectRelations = true
     ) : Table
     {
-        if (isset($this->tables[$table])) {
-            return $this->tables[$table];
+        static $tables = [];
+        if (isset($tables[$table])) {
+            return $tables[$table];
         }
-        $definition = new Table($table);
-        $columns = [];
-        $primary = [];
-        $comment = '';
-        switch ($this->driver()) {
-            case 'mysql':
-            case 'mysqli':
-                foreach ($this->all("SHOW FULL COLUMNS FROM {$table}", null, null, false, null) as $data) {
-                    $columns[$data['Field']] = $data;
-                    if ($data['Key'] == 'PRI') {
-                        $primary[] = $data['Field'];
-                    }
+
+        $columns = $this
+            ->query(
+                "SELECT * FROM all_tab_cols WHERE table_name = ? AND owner = ?",
+                [ strtoupper($table), $this->name() ]
+            )
+            ->collection()
+            ->map(function ($v) {
+                $new = [];
+                foreach ($v as $kk => $vv) {
+                    $new[strtoupper($kk)] = $vv;
                 }
-                $comment = (string)$this->one(
-                    "SELECT table_comment FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
-                    [ $this->name(), $table ]
-                );
-                break;
-            case 'postgre':
-                $columns = $this->all(
-                    "SELECT * FROM information_schema.columns WHERE table_schema = ? AND table_name = ?",
-                    [ $this->name(), $table ],
-                    'column_name',
-                    false,
-                    'strtolower'
-                );
-                $pkname = $this->one(
-                    "SELECT constraint_name FROM information_schema.table_constraints
-                    WHERE table_schema = ? AND table_name = ? AND constraint_type = ?",
-                    [ $this->name(), $table, 'PRIMARY KEY' ]
-                );
-                if ($pkname) {
-                    $primary = $this->all(
-                        "SELECT column_name FROM information_schema.key_column_usage
-                        WHERE table_schema = ? AND table_name = ? AND constraint_name = ?",
-                        [ $this->name(), $table, $pkname ]
-                    );
-                }
-                break;
-            case 'oracle':
-                $columns = $this->all(
-                    "SELECT * FROM all_tab_cols WHERE table_name = ? AND owner = ?",
-                    [ strtoupper($table), $this->name() ],
-                    'COLUMN_NAME',
-                    false,
-                    'strtoupper'
-                );
-                $owner = $this->name(); // current($columns)['OWNER'];
-                $pkname = $this->one(
-                    "SELECT constraint_name FROM all_constraints
-                    WHERE table_name = ? AND constraint_type = ? AND owner = ?",
-                    [ strtoupper($table), 'P', $owner ]
-                );
-                if ($pkname) {
-                    $primary = $this->all(
-                        "SELECT column_name FROM all_cons_columns
-                        WHERE table_name = ? AND constraint_name = ? AND owner = ?",
-                        [ strtoupper($table), $pkname, $owner ]
-                    );
-                }
-                break;
-            //case 'ibase':
-            //    $columns = $this->all(
-            //        "SELECT * FROM rdb$relation_fields WHERE rdb$relation_name = ? ORDER BY rdb$field_position",
-            //        [ strtoupper($table) ],
-            //        'FIELD_NAME',
-            //        false,
-            //        'strtoupper'
-            //    );
-            //    break;
-            //case 'mssql':
-            //    break;
-            //case 'sqlite':
-            //    break;
-            default:
-                throw new DatabaseException('Driver is not supported: '.$this->driver(), 500);
-        }
+                return $new;
+            })
+            ->mapKey(function ($v) { return $v['COLUMN_NAME']; })
+            ->toArray();
         if (!count($columns)) {
-            throw new DatabaseException('Table not found by name');
+            throw new DBException('Table not found by name');
         }
-        $definition
+        $owner = $this->name(); // current($columns)['OWNER'];
+        $pkname = $this
+            ->query(
+                "SELECT constraint_name FROM all_constraints
+                WHERE table_name = ? AND constraint_type = ? AND owner = ?",
+                [ strtoupper($table), 'P', $owner ]
+            )
+            ->collection()
+            ->map(function ($v) {
+                $new = [];
+                foreach ($v as $kk => $vv) {
+                    $new[strtoupper($kk)] = $vv;
+                }
+                return $new;
+            })
+            ->pluck('CONSTRAINT_NAME')
+            ->value();
+        $primary = [];
+        if ($pkname) {
+            $primary = $this
+                ->query(
+                    "SELECT column_name FROM all_cons_columns
+                    WHERE table_name = ? AND constraint_name = ? AND owner = ?",
+                    [ strtoupper($table), $pkname, $owner ]
+                )
+                ->collection()
+                ->map(function ($v) {
+                    $new = [];
+                    foreach ($v as $kk => $vv) {
+                        $new[strtoupper($kk)] = $vv;
+                    }
+                    return $new;
+                })
+                ->pluck('COLUMN_NAME')
+                ->toArray();
+        }
+        $tables[$table] = $definition = (new Table($table))
             ->addColumns($columns)
             ->setPrimaryKey($primary)
-            ->setComment($comment);
-        $this->tables[$table] = $definition;
+            ->setComment('');
 
         if ($detectRelations) {
-            switch ($this->driver()) {
-                case 'mysql':
-                case 'mysqli':
-                    // relations where the current table is referenced
-                    // assuming current table is on the "one" end having "many" records in the referencing table
-                    // resulting in a "hasMany" or "manyToMany" relationship (if a pivot table is detected)
-                    $relations = [];
-                    foreach ($this->all(
-                        "SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_COLUMN_NAME
-                        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-                        WHERE TABLE_SCHEMA = ? AND REFERENCED_TABLE_SCHEMA = ? AND REFERENCED_TABLE_NAME = ?",
-                        [ $this->name(), $this->name(), $table ],
-                        null,
-                        false,
-                        'strtoupper'
-                    ) as $relation) {
-                        $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_NAME'];
-                        $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['REFERENCED_COLUMN_NAME']] = $relation['COLUMN_NAME'];
+            // relations where the current table is referenced
+            // assuming current table is on the "one" end having "many" records in the referencing table
+            // resulting in a "hasMany" or "manyToMany" relationship (if a pivot table is detected)
+            $relations = [];
+            foreach ($this
+                ->query(
+                    "SELECT ac.TABLE_NAME, ac.CONSTRAINT_NAME, cc.COLUMN_NAME, cc.POSITION
+                    FROM all_constraints ac
+                    LEFT JOIN all_cons_columns cc ON cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
+                    WHERE ac.OWNER = ? AND ac.R_OWNER = ? AND ac.R_CONSTRAINT_NAME = ? AND ac.CONSTRAINT_TYPE = ?
+                    ORDER BY cc.POSITION",
+                    [ $owner, $owner, $pkname, 'R' ]
+                )
+                ->collection()
+                ->map(function ($v) {
+                    $new = [];
+                    foreach ($v as $kk => $vv) {
+                        $new[strtoupper($kk)] = $vv;
                     }
-                    foreach ($relations as $data) {
-                        $rtable = $this->definition($data['table'], true, $lowerCase); // ?? $this->addTableByName($data['table'], false);
-                        $columns = [];
-                        foreach ($rtable->getColumns() as $column) {
-                            if (!in_array($column, $data['keymap'])) {
-                                $columns[] = $column;
-                            }
-                        }
-                        $foreign = [];
-                        $usedcol = [];
-                        if (count($columns)) {
-                            foreach ($this->all(
-                                "SELECT
-                                    TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME,
-                                    REFERENCED_COLUMN_NAME, REFERENCED_TABLE_NAME
-                                FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-                                WHERE
-                                    TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME IN (??) AND
-                                    REFERENCED_TABLE_NAME IS NOT NULL",
-                                [ $this->name(), $data['table'], $columns ],
-                                null,
-                                false,
-                                'strtoupper'
-                            ) as $relation) {
-                                $foreign[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
-                                $foreign[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['REFERENCED_COLUMN_NAME'];
-                                $usedcol[] = $relation['COLUMN_NAME'];
-                            }
-                        }
-                        if (count($foreign) === 1 && !count(array_diff($columns, $usedcol))) {
-                            $foreign = current($foreign);
-                            $relname = $foreign['table'];
-                            $cntr = 1;
-                            while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
-                                $relname = $foreign['table'] . '_' . (++ $cntr);
-                            }
-                            $definition->addRelation(
-                                new TableRelation(
-                                    $relname,
-                                    $this->definition($foreign['table'], true, $lowerCase),
-                                    $data['keymap'],
-                                    true,
-                                    $rtable,
-                                    $foreign['keymap']
-                                )
-                            );
-                        } else {
-                            $relname = $data['table'];
-                            $cntr = 1;
-                            while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
-                                $relname = $data['table'] . '_' . (++ $cntr);
-                            }
-                            $definition->addRelation(
-                                new TableRelation(
-                                    $relname,
-                                    $this->definition($data['table'], true, $lowerCase),
-                                    $data['keymap'],
-                                    true
-                                )
-                            );
-                        }
+                    return $new;
+                })
+                 as $relation
+            ) {
+                $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_NAME'];
+                $relations[$relation['CONSTRAINT_NAME']]['keymap'][$primary[(int)$relation['POSITION']-1]] = $relation['COLUMN_NAME'];
+            }
+            foreach ($relations as $data) {
+                $rtable = $this->table($data['table'], true); // ?? $this->addTableByName($data['table'], false);
+                $columns = [];
+                foreach ($rtable->getColumns() as $column) {
+                    if (!in_array($column, $data['keymap'])) {
+                        $columns[] = $column;
                     }
-                    // relations where the current table references another table
-                    // assuming current table is linked to "one" record in the referenced table
-                    // resulting in a "belongsTo" relationship
-                    $relations = [];
-                    foreach ($this->all(
-                        "SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
-                        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-                        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL",
-                        [ $this->name(), $table ],
-                        null,
-                        false,
-                        'strtoupper'
-                    ) as $relation) {
-                        $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
-                        $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['REFERENCED_COLUMN_NAME'];
-                    }
-                    foreach ($relations as $name => $data) {
-                        $relname = $data['table'];
-                        $cntr = 1;
-                        while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
-                            $relname = $data['table'] . '_' . (++ $cntr);
-                        }
-                        $definition->addRelation(
-                            new TableRelation(
-                                $relname,
-                                $this->definition($data['table'], true, $lowerCase),
-                                $data['keymap'],
-                                false
-                            )
-                        );
-                    }
-                    break;
-                case 'oracle':
-                    // relations where the current table is referenced
-                    // assuming current table is on the "one" end having "many" records in the referencing table
-                    // resulting in a "hasMany" or "manyToMany" relationship (if a pivot table is detected)
-                    $relations = [];
-                    foreach ($this->all(
-                        "SELECT ac.TABLE_NAME, ac.CONSTRAINT_NAME, cc.COLUMN_NAME, cc.POSITION
-                        FROM all_constraints ac
-                        LEFT JOIN all_cons_columns cc ON cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
-                        WHERE ac.OWNER = ? AND ac.R_OWNER = ? AND ac.R_CONSTRAINT_NAME = ? AND ac.CONSTRAINT_TYPE = ?
-                        ORDER BY cc.POSITION",
-                        [ $owner, $owner, $pkname, 'R' ],
-                        null,
-                        false,
-                        'strtoupper'
-                    ) as $k => $relation) {
-                        $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_NAME'];
-                        $relations[$relation['CONSTRAINT_NAME']]['keymap'][$primary[(int)$relation['POSITION']-1]] = $relation['COLUMN_NAME'];
-                    }
-                    foreach ($relations as $data) {
-                        $rtable = $this->definition($data['table'], true, $lowerCase); // ?? $this->addTableByName($data['table'], false);
-                        $columns = [];
-                        foreach ($rtable->getColumns() as $column) {
-                            if (!in_array($column, $data['keymap'])) {
-                                $columns[] = $column;
+                }
+                $foreign = [];
+                $usedcol = [];
+                if (count($columns)) {
+                    foreach ($this
+                        ->query(
+                            "SELECT
+                                cc.COLUMN_NAME, ac.CONSTRAINT_NAME, rc.TABLE_NAME AS REFERENCED_TABLE_NAME, ac.R_CONSTRAINT_NAME
+                            FROM all_constraints ac
+                            JOIN all_constraints rc ON rc.CONSTRAINT_NAME = ac.R_CONSTRAINT_NAME AND rc.OWNER = ac.OWNER
+                            LEFT JOIN all_cons_columns cc ON cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
+                            WHERE
+                                ac.OWNER = ? AND ac.R_OWNER = ? AND ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ? AND
+                                cc.COLUMN_NAME IN (??)
+                            ORDER BY POSITION",
+                            [ $owner, $owner, $data['table'], 'R', $columns ]
+                        )
+                        ->collection()
+                        ->map(function ($v) {
+                            $new = [];
+                            foreach ($v as $kk => $vv) {
+                                $new[strtoupper($kk)] = $vv;
                             }
-                        }
-                        $foreign = [];
-                        $usedcol = [];
-                        if (count($columns)) {
-                            foreach ($this->all(
-                                "SELECT
-                                    cc.COLUMN_NAME, ac.CONSTRAINT_NAME, rc.TABLE_NAME AS REFERENCED_TABLE_NAME, ac.R_CONSTRAINT_NAME
-                                FROM all_constraints ac
-                                JOIN all_constraints rc ON rc.CONSTRAINT_NAME = ac.R_CONSTRAINT_NAME AND rc.OWNER = ac.OWNER
-                                LEFT JOIN all_cons_columns cc ON cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
-                                WHERE
-                                    ac.OWNER = ? AND ac.R_OWNER = ? AND ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ? AND
-                                    cc.COLUMN_NAME IN (??)
-                                ORDER BY POSITION",
-                                [ $owner, $owner, $data['table'], 'R', $columns ],
-                                null,
-                                false,
-                                'strtoupper'
-                            ) as $k => $relation) {
-                                $foreign[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
-                                $foreign[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['R_CONSTRAINT_NAME'];
-                                $usedcol[] = $relation['COLUMN_NAME'];
-                            }
-                        }
-                        if (count($foreign) === 1 && !count(array_diff($columns, $usedcol))) {
-                            $foreign = current($foreign);
-                            $rcolumns = $this->all(
-                                "SELECT COLUMN_NAME FROM all_cons_columns WHERE OWNER = ? AND CONSTRAINT_NAME = ? ORDER BY POSITION",
-                                [ $owner, current($foreign['keymap']) ],
-                                null, false, 'strtoupper'
-                            );
-                            foreach ($foreign['keymap'] as $column => $related) {
-                                $foreign['keymap'][$column] = array_shift($rcolumns);
-                            }
-                            $relname = $foreign['table'];
-                            $cntr = 1;
-                            while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
-                                $relname = $foreign['table'] . '_' . (++ $cntr);
-                            }
-                            $definition->addRelation(
-                                new TableRelation(
-                                    $relname,
-                                    $this->definition($foreign['table'], true, $lowerCase),
-                                    $data['keymap'],
-                                    true,
-                                    $rtable,
-                                    $foreign['keymap']
-                                )
-                            );
-                        } else {
-                            $relname = $data['table'];
-                            $cntr = 1;
-                            while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
-                                $relname = $data['table'] . '_' . (++ $cntr);
-                            }
-                            $definition->addRelation(
-                                new TableRelation(
-                                    $relname,
-                                    $this->definition($data['table'], true, $lowerCase),
-                                    $data['keymap'],
-                                    true
-                                )
-                            );
-                        }
+                            return $new;
+                        }) as $relation
+                    ) {
+                        $foreign[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
+                        $foreign[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['R_CONSTRAINT_NAME'];
+                        $usedcol[] = $relation['COLUMN_NAME'];
                     }
-                    // relations where the current table references another table
-                    // assuming current table is linked to "one" record in the referenced table
-                    // resulting in a "belongsTo" relationship
-                    $relations = [];
-                    foreach ($this->all(
-                        "SELECT ac.CONSTRAINT_NAME, cc.COLUMN_NAME, rc.TABLE_NAME AS REFERENCED_TABLE_NAME, ac.R_CONSTRAINT_NAME
-                        FROM all_constraints ac
-                        JOIN all_constraints rc ON rc.CONSTRAINT_NAME = ac.R_CONSTRAINT_NAME AND rc.OWNER = ac.OWNER
-                        LEFT JOIN all_cons_columns cc ON cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
-                        WHERE ac.OWNER = ? AND ac.R_OWNER = ? AND ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ?
-                        ORDER BY cc.POSITION",
-                        [ $owner, $owner, strtoupper($table), 'R' ],
-                        null, false, 'strtoupper'
-                    ) as $relation) {
-                        $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
-                        $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['R_CONSTRAINT_NAME'];
-                    }
-                    foreach ($relations as $name => $data) {
-                        $rcolumns = $this->all(
+                }
+                if (count($foreign) === 1 && !count(array_diff($columns, $usedcol))) {
+                    $foreign = current($foreign);
+                    $rcolumns = $this
+                        ->query(
                             "SELECT COLUMN_NAME FROM all_cons_columns WHERE OWNER = ? AND CONSTRAINT_NAME = ? ORDER BY POSITION",
-                            [ $owner, current($data['keymap']) ],
-                            null, false, 'strtoupper'
-                        );
-                        foreach ($data['keymap'] as $column => $related) {
-                            $data['keymap'][$column] = array_shift($rcolumns);
-                        }
-                        $relname = $data['table'];
-                        $cntr = 1;
-                        while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
-                            $relname = $data['table'] . '_' . (++ $cntr);
-                        }
-                        $definition->addRelation(
-                            new TableRelation(
-                                $relname,
-                                $this->definition($data['table'], true, $lowerCase),
-                                $data['keymap'],
-                                false
-                            )
-                        );
+                            [ $owner, current($foreign['keymap']) ]
+                        )
+                        ->collection()
+                        ->map(function ($v) {
+                            $new = [];
+                            foreach ($v as $kk => $vv) {
+                                $new[strtoupper($kk)] = $vv;
+                            }
+                            return $new;
+                        })
+                        ->pluck('COLUMN_NAME')
+                        ->toArray();
+                    foreach ($foreign['keymap'] as $column => $related) {
+                        $foreign['keymap'][$column] = array_shift($rcolumns);
                     }
-                    break;
-                default:
-                    // throw new DatabaseException('Relations discovery is not supported: '.$this->driver(), 500);
-                    break;
+                    $relname = $foreign['table'];
+                    $cntr = 1;
+                    while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
+                        $relname = $foreign['table'] . '_' . (++ $cntr);
+                    }
+                    $definition->addRelation(
+                        new TableRelation(
+                            $relname,
+                            $this->table($foreign['table'], true),
+                            $data['keymap'],
+                            true,
+                            $rtable,
+                            $foreign['keymap']
+                        )
+                    );
+                } else {
+                    $relname = $data['table'];
+                    $cntr = 1;
+                    while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
+                        $relname = $data['table'] . '_' . (++ $cntr);
+                    }
+                    $definition->addRelation(
+                        new TableRelation(
+                            $relname,
+                            $this->table($data['table'], true),
+                            $data['keymap'],
+                            true
+                        )
+                    );
+                }
+            }
+            // relations where the current table references another table
+            // assuming current table is linked to "one" record in the referenced table
+            // resulting in a "belongsTo" relationship
+            $relations = [];
+            foreach ($this
+                ->query(
+                    "SELECT ac.CONSTRAINT_NAME, cc.COLUMN_NAME, rc.TABLE_NAME AS REFERENCED_TABLE_NAME, ac.R_CONSTRAINT_NAME
+                    FROM all_constraints ac
+                    JOIN all_constraints rc ON rc.CONSTRAINT_NAME = ac.R_CONSTRAINT_NAME AND rc.OWNER = ac.OWNER
+                    LEFT JOIN all_cons_columns cc ON cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
+                    WHERE ac.OWNER = ? AND ac.R_OWNER = ? AND ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ?
+                    ORDER BY cc.POSITION",
+                    [ $owner, $owner, strtoupper($table), 'R' ]
+                )
+                ->collection()
+                ->map(function ($v) {
+                    $new = [];
+                    foreach ($v as $kk => $vv) {
+                        $new[strtoupper($kk)] = $vv;
+                    }
+                    return $new;
+                })
+                as $relation
+            ) {
+                $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
+                $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['R_CONSTRAINT_NAME'];
+            }
+            foreach ($relations as $name => $data) {
+                $rcolumns = $this
+                    ->query(
+                        "SELECT COLUMN_NAME FROM all_cons_columns WHERE OWNER = ? AND CONSTRAINT_NAME = ? ORDER BY POSITION",
+                        [ $owner, current($data['keymap']) ]
+                    )
+                    ->collection()
+                    ->map(function ($v) {
+                        $new = [];
+                        foreach ($v as $kk => $vv) {
+                            $new[strtoupper($kk)] = $vv;
+                        }
+                        return $new;
+                    })
+                    ->pluck('COLUMN_NAME')
+                    ->toArray();
+                foreach ($data['keymap'] as $column => $related) {
+                    $data['keymap'][$column] = array_shift($rcolumns);
+                }
+                $relname = $data['table'];
+                $cntr = 1;
+                while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
+                    $relname = $data['table'] . '_' . (++ $cntr);
+                }
+                $definition->addRelation(
+                    new TableRelation(
+                        $relname,
+                        $this->table($data['table'], true),
+                        $data['keymap'],
+                        false
+                    )
+                );
             }
         }
-        if ($lowerCase) {
-            $definition->toLowerCase();
-        }
-        return $definition;
+        return $definition->toLowerCase();
+    }
+    public function tables() : array
+    {
+        return $this
+            ->query(
+                "SELECT TABLE_NAME FROM ALL_TABLES where OWNER = ?",
+                [$this->connection['name']]
+            )
+            ->collection()
+            ->map(function ($v) {
+                $new = [];
+                foreach ($v as $kk => $vv) {
+                    $new[strtoupper($kk)] = $vv;
+                }
+                return $new;
+            })
+            ->pluck('TABLE_NAME')
+            ->map(function ($v) {
+                return $this->table($v);
+            })
+            ->toArray();
     }
 }

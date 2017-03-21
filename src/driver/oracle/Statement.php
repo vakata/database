@@ -1,6 +1,6 @@
 <?php
 
-namespace vakata\database\oracle;
+namespace vakata\database\driver\oracle;
 
 use \vakata\database\DBException;
 use \vakata\database\DriverInterface;
@@ -12,7 +12,7 @@ class Statement implements StatementInterface
     protected $statement;
     protected $driver;
 
-    public function __construct($statement, Oracle $driver)
+    public function __construct($statement, Driver $driver)
     {
         $this->statement = $statement;
         $this->driver = $driver;

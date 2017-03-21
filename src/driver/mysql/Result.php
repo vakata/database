@@ -1,6 +1,6 @@
 <?php
 
-namespace vakata\database\mysql;
+namespace vakata\database\driver\mysql;
 
 use \vakata\database\DriverInterface;
 use \vakata\database\ResultInterface;
@@ -37,7 +37,6 @@ class Result implements ResultInterface
     }
     public function __destruct()
     {
-        $this->statement->free_result();
         $this->statement->close();
     }
     public function affected() : int

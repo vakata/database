@@ -1,6 +1,6 @@
 <?php
 
-namespace vakata\database\mysql;
+namespace vakata\database\driver\mysql;
 
 use \vakata\database\DBException;
 use \vakata\database\DriverInterface;

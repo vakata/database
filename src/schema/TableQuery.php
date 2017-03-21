@@ -1,10 +1,14 @@
 <?php
-namespace vakata\database;
+namespace vakata\database\schema;
+
+use vakata\database\DBInterface;
+use vakata\database\DBException;
+use vakata\database\ResultInterface;
 
 /**
  * A database query class
  */
-class TableQuery implements \Iterator, \ArrayAccess, \Countable
+class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
 {
     /**
      * @var DatabaseInterface
@@ -587,7 +591,7 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
             }
         }
         return $this->qiterator = new TableQueryIterator(
-            $this->db->query($sql, $par), 
+            $this->db->get($sql, $par), 
             $this->definition->getPrimaryKey(),
             array_combine(
                 $this->withr,
@@ -726,26 +730,11 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
         return $this;
     }
 
-    public function key()
+    public function getIterator()
     {
-        return $this->iterator()->key();
+        return $this->iterator();
     }
-    public function current()
-    {
-        return $this->iterator()->current();
-    }
-    public function rewind()
-    {
-        return $this->iterator()->rewind();
-    }
-    public function next()
-    {
-        return $this->iterator()->next();
-    }
-    public function valid()
-    {
-        return $this->iterator()->valid();
-    }
+
     public function offsetGet($offset)
     {
         return $this->iterator()->offsetGet($offset);
@@ -761,5 +750,10 @@ class TableQuery implements \Iterator, \ArrayAccess, \Countable
     public function offsetSet($offset, $value)
     {
         return $this->iterator()->offsetSet($offset, $value);
+    }
+
+    public function collection(array $fields = null) : Collection
+    {
+        return new Collection($this->iterator($fields));
     }
 }

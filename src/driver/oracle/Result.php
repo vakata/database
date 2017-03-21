@@ -1,6 +1,6 @@
 <?php
 
-namespace vakata\database\oracle;
+namespace vakata\database\driver\oracle;
 
 use \vakata\database\DBException;
 use \vakata\database\DriverInterface;
@@ -65,7 +65,7 @@ class Result implements ResultInterface
     public function next()
     {
         $this->fetched ++;
-        $this->last = oci_fetch_array($result, OCI_BOTH + OCI_RETURN_NULLS + OCI_RETURN_LOBS);
+        $this->last = oci_fetch_array($this->statement, OCI_ASSOC + OCI_RETURN_NULLS + OCI_RETURN_LOBS);
     }
     public function valid()
     {

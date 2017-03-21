@@ -1,5 +1,5 @@
 <?php
-namespace vakata\database;
+namespace vakata\database\schema;
 
 /**
  * A table definition
@@ -457,5 +457,6 @@ class Table
             $temp[strtolower($k)] = $v;
         }
         $this->relations = $temp;
+        return $this;
     }
 }

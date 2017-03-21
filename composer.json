@@ -23,7 +23,7 @@
     ],
     "require": {
         "php" : ">=5.4.0",
-        "vakata/collection" : "1.*"
+        "vakata/collection" : "^1.1.2"
     },
     "require-dev": {
         "phpunit/phpunit" : "4.*",

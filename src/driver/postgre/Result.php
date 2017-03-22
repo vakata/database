@@ -1,6 +1,6 @@
 <?php
 
-namespace vakata\database\driver\oracle;
+namespace vakata\database\driver\postgre;
 
 use \vakata\database\DBException;
 use \vakata\database\DriverInterface;
@@ -12,22 +12,26 @@ class Result implements ResultInterface
     protected $statement;
     protected $last = null;
     protected $fetched = -1;
+    protected $iid = null;
+    protected $aff = 0;
 
-    public function __construct($statement)
+    public function __construct($statement, $iid, $aff)
     {
         $this->statement = $statement;
+        $this->iid = $iid;
+        $this->aff = $aff;
     }
     public function __destruct()
     {
-        @\oci_free_statement($this->statement);
+        @\pg_free_result($this->statement);
     }
     public function affected() : int
     {
-        return \oci_num_rows($this->statement);
+        return $this->aff;
     }
     public function insertID()
     {
-        return null;
+        return $this->iid;
     }
     public function toArray() : array
     {
@@ -36,7 +40,7 @@ class Result implements ResultInterface
 
     public function count()
     {
-        return \oci_num_rows($this->statement);
+        return \pg_num_rows($this->statement);
     }
 
     public function key()
@@ -50,13 +54,7 @@ class Result implements ResultInterface
     public function rewind()
     {
         if ($this->fetched >= 0) {
-            if (!\oci_execute($this->statement)) {
-                $err = \oci_error($this->statement);
-                if (!$err) {
-                    $err = [];
-                }
-                throw new DBException('Could not execute query : '.implode(',', $err));
-            }
+            \pg_result_seek($this->statement, 0);
         }
         $this->last = null;
         $this->fetched = -1;
@@ -65,7 +63,7 @@ class Result implements ResultInterface
     public function next()
     {
         $this->fetched ++;
-        $this->last = \oci_fetch_array($this->statement, \OCI_ASSOC + \OCI_RETURN_NULLS + \OCI_RETURN_LOBS);
+        $this->last = \pg_fetch_array($this->statement, null, \PGSQL_ASSOC);
     }
     public function valid()
     {

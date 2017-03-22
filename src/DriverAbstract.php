@@ -57,6 +57,7 @@ abstract class DriverAbstract implements DriverInterface
     
     public function begin() : bool
     {
+        $this->connect();
         try {
             $this->query("START TRANSACTION");
             return true;
@@ -83,6 +84,12 @@ abstract class DriverAbstract implements DriverInterface
         }
     }
     abstract public function prepare(string $sql) : StatementInterface;
-    abstract public function table(string $table, bool $detectRelations = true) : Table;
-    abstract public function tables() : array;
+    public function table(string $table, bool $detectRelations = true) : Table
+    {
+        throw new DBException('Not supported');
+    }
+    public function tables() : array
+    {
+        throw new DBException('Not supported');
+    }
 }

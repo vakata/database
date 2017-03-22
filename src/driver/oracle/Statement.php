@@ -27,7 +27,7 @@ class Statement implements StatementInterface
                 case 'boolean':
                 case 'integer':
                     $data[$i] = (int) $v;
-                    oci_bind_by_name($this->statement, 'f'.$i, $data[$i], -1, SQLT_INT);
+                    \oci_bind_by_name($this->statement, 'f'.$i, $data[$i], -1, \SQLT_INT);
                     break;
                 default:
                     // keep in mind oracle needs a transaction when inserting LOBs, aside from the specific syntax:
@@ -35,19 +35,19 @@ class Statement implements StatementInterface
                     if (is_resource($v) && get_resource_type($v) === 'stream') {
                         $ldt = $v;
                         $lob = $this->driver->lob();
-                        oci_bind_by_name($this->statement, 'f'.$i, $lob, -1, OCI_B_BLOB);
+                        \oci_bind_by_name($this->statement, 'f'.$i, $lob, -1, \OCI_B_BLOB);
                         continue;
                     }
                     if (!is_string($data[$i]) && !is_null($data[$i])) {
                         $data[$i] = serialize($data[$i]);
                     }
-                    oci_bind_by_name($this->statement, 'f'.$i, $data[$i]);
+                    \oci_bind_by_name($this->statement, 'f'.$i, $data[$i]);
                     break;
             }
         }
-        $temp = oci_execute($this->statement, $this->driver->isTransaction() ? OCI_NO_AUTO_COMMIT : OCI_COMMIT_ON_SUCCESS);
+        $temp = \oci_execute($this->statement, $this->driver->isTransaction() ? \OCI_NO_AUTO_COMMIT : \OCI_COMMIT_ON_SUCCESS);
         if (!$temp) {
-            $err = oci_error($this->statement);
+            $err = \oci_error($this->statement);
             if (!$err) {
                 $err = [];
             }
@@ -60,6 +60,6 @@ class Statement implements StatementInterface
             }
             $lob->free();
         }
-        return new Result($this->statement, $data);
+        return new Result($this->statement);
     }
 }

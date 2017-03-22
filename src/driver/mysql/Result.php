@@ -17,7 +17,7 @@ class Result implements ResultInterface
 
     public function __construct(\mysqli_stmt $statement)
     {
-        $this->nativeDriver = function_exists('mysqli_fetch_all');
+        $this->nativeDriver = function_exists('\mysqli_fetch_all');
         $this->statement = $statement;
         try {
             if ($this->nativeDriver) {

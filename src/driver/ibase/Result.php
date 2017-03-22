@@ -1,6 +1,6 @@
 <?php
 
-namespace vakata\database\driver\oracle;
+namespace vakata\database\driver\pdo;
 
 use \vakata\database\DBException;
 use \vakata\database\DriverInterface;
@@ -9,21 +9,27 @@ use \vakata\collection\Collection;
 
 class Result implements ResultInterface
 {
-    protected $statement;
+    protected $data;
+    protected $result;
+    protected $driver;
     protected $last = null;
     protected $fetched = -1;
+    protected $affected = 0;
 
-    public function __construct($statement)
+    public function __construct($result, array $data, Driver $driver)
     {
-        $this->statement = $statement;
+        $this->result = $result;
+        $this->data = $data;
+        $this->driver = $driver;
+        $this->affected = \ibase_affected_rows($this->driver);
     }
     public function __destruct()
     {
-        @\oci_free_statement($this->statement);
+        @\ibase_free_result($this->result);
     }
     public function affected() : int
     {
-        return \oci_num_rows($this->statement);
+        return $this->affected;
     }
     public function insertID()
     {
@@ -36,7 +42,7 @@ class Result implements ResultInterface
 
     public function count()
     {
-        return \oci_num_rows($this->statement);
+        throw new DBException('Not supported');
     }
 
     public function key()
@@ -50,12 +56,9 @@ class Result implements ResultInterface
     public function rewind()
     {
         if ($this->fetched >= 0) {
-            if (!\oci_execute($this->statement)) {
-                $err = \oci_error($this->statement);
-                if (!$err) {
-                    $err = [];
-                }
-                throw new DBException('Could not execute query : '.implode(',', $err));
+            $this->result = call_user_func_array("\ibase_execute", $data);
+            if (!$this->result) {
+                throw new DBException('Could not execute query : '.\ibase_errmsg());
             }
         }
         $this->last = null;
@@ -65,7 +68,7 @@ class Result implements ResultInterface
     public function next()
     {
         $this->fetched ++;
-        $this->last = \oci_fetch_array($this->statement, \OCI_ASSOC + \OCI_RETURN_NULLS + \OCI_RETURN_LOBS);
+        $this->last = \ibase_fetch_assoc($this->result, \IBASE_TEXT);
     }
     public function valid()
     {

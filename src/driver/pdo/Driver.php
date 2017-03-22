@@ -77,13 +77,4 @@ class Driver extends DriverAbstract implements DriverInterface
         $this->connect();
         return $this->lnk->rollback();
     }
-
-    public function table(string $table, bool $detectRelations = true) : Table
-    {
-        throw new DBException('Not supported');
-    }
-    public function tables() : array
-    {
-        throw new DBException('Not supported');
-    }
 }

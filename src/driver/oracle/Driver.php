@@ -27,7 +27,7 @@ class Driver extends DriverAbstract implements DriverInterface
     {
         if ($this->lnk === null) {
             $this->lnk = call_user_func(
-                $this->option('persist') ? 'oci_pconnect' : 'oci_connect',
+                $this->option('persist') ? '\oci_pconnect' : '\oci_connect',
                 $this->connection['user'],
                 $this->connection['pass'],
                 $this->connection['host'],
@@ -45,7 +45,7 @@ class Driver extends DriverAbstract implements DriverInterface
     protected function disconnect()
     {
         if ($this->lnk !== null) {
-            @oci_close($this->lnk);
+            @\oci_close($this->lnk);
         }
     }
     public function prepare(string $sql) : StatementInterface
@@ -62,9 +62,9 @@ class Driver extends DriverAbstract implements DriverInterface
                 }
             }
         }
-        $temp = oci_parse($this->lnk, $sql);
+        $temp = \oci_parse($this->lnk, $sql);
         if (!$temp) {
-            $err = oci_error();
+            $err = \oci_error();
             if (!$err) {
                 $err = [];
             }
@@ -83,7 +83,7 @@ class Driver extends DriverAbstract implements DriverInterface
         if (!$this->transaction) {
             return false;
         }
-        if (!oci_commit($this->lnk)) {
+        if (!\oci_commit($this->lnk)) {
             return false;
         }
         $this->transaction = false;
@@ -95,20 +95,11 @@ class Driver extends DriverAbstract implements DriverInterface
         if (!$this->transaction) {
             return false;
         }
-        if (!oci_rollback($this->lnk)) {
+        if (!\oci_rollback($this->lnk)) {
             return false;
         }
         $this->transaction = false;
         return true;
-    }
-
-    public function name() : string
-    {
-        return $this->connection['name'];
-    }
-    public function option($key, $default = null)
-    {
-        return isset($this->connection['opts'][$key]) ? $this->connection['opts'][$key] : $default;
     }
 
     public function isTransaction()
@@ -118,7 +109,7 @@ class Driver extends DriverAbstract implements DriverInterface
 
     public function lob()
     {
-        return oci_new_descriptor($this->lnk, OCI_D_LOB);
+        return \oci_new_descriptor($this->lnk, \OCI_D_LOB);
     }
 
     public function table(

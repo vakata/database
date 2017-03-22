@@ -1,8 +1,7 @@
 <?php
 
-namespace vakata\database\driver\oracle;
+namespace vakata\database\driver\sqlite;
 
-use \vakata\database\DBException;
 use \vakata\database\DriverInterface;
 use \vakata\database\ResultInterface;
 use \vakata\collection\Collection;
@@ -10,24 +9,29 @@ use \vakata\collection\Collection;
 class Result implements ResultInterface
 {
     protected $statement;
+    protected $row = [];
     protected $last = null;
     protected $fetched = -1;
+    protected $iid = null;
+    protected $aff = 0;
 
-    public function __construct($statement)
+    public function __construct(\SQLite3Result $statement, $iid, $aff)
     {
         $this->statement = $statement;
+        $this->iid = $iid;
+        $this->aff = $aff;
     }
     public function __destruct()
     {
-        @\oci_free_statement($this->statement);
+        @$this->statement->finalize();
     }
     public function affected() : int
     {
-        return \oci_num_rows($this->statement);
+        return $this->aff;
     }
     public function insertID()
     {
-        return null;
+        return $this->iid;
     }
     public function toArray() : array
     {
@@ -36,7 +40,7 @@ class Result implements ResultInterface
 
     public function count()
     {
-        return \oci_num_rows($this->statement);
+        throw new DBException('Not supported');
     }
 
     public function key()
@@ -50,13 +54,7 @@ class Result implements ResultInterface
     public function rewind()
     {
         if ($this->fetched >= 0) {
-            if (!\oci_execute($this->statement)) {
-                $err = \oci_error($this->statement);
-                if (!$err) {
-                    $err = [];
-                }
-                throw new DBException('Could not execute query : '.implode(',', $err));
-            }
+            $this->statement->reset();
         }
         $this->last = null;
         $this->fetched = -1;
@@ -65,7 +63,7 @@ class Result implements ResultInterface
     public function next()
     {
         $this->fetched ++;
-        $this->last = \oci_fetch_array($this->statement, \OCI_ASSOC + \OCI_RETURN_NULLS + \OCI_RETURN_LOBS);
+        $this->last = $this->statement->fetchArray(\SQLITE3_ASSOC);
     }
     public function valid()
     {

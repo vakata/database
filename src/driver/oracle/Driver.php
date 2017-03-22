@@ -116,6 +116,11 @@ class Driver extends DriverAbstract implements DriverInterface
         return $this->transaction;
     }
 
+    public function lob()
+    {
+        return oci_new_descriptor($this->lnk, OCI_D_LOB);
+    }
+
     public function table(
         string $table,
         bool $detectRelations = true

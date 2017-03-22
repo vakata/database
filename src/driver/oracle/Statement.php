@@ -34,7 +34,7 @@ class Statement implements StatementInterface
                     // INSERT INTO table (column, lobcolumn) VALUES (?, ?, EMPTY_BLOB()) RETURNING lobcolumn INTO ?
                     if (is_resource($v) && get_resource_type($v) === 'stream') {
                         $ldt = $v;
-                        $lob = oci_new_descriptor($this->lnk, OCI_D_LOB);
+                        $lob = $this->driver->lob();
                         oci_bind_by_name($this->statement, 'f'.$i, $lob, -1, OCI_B_BLOB);
                         continue;
                     }

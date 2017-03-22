@@ -79,7 +79,7 @@ class Statement implements StatementInterface
             }
         }
         if (!$this->statement->execute()) {
-            throw new DBException('Prepared execute error : '.$this->lnk->error);
+            throw new DBException('Prepared execute error');
         }
         return new Result($this->statement);
     }

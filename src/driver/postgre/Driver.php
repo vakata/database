@@ -32,16 +32,12 @@ class Driver extends DriverAbstract implements DriverInterface
                     'user='.$this->connection['user'],
                     'password='.$this->connection['pass'],
                     'host='.$this->connection['host'],
-                    'dbname='.$this->connection['host'],
+                    'dbname='.$this->connection['name'],
                     "options='--client_encoding=".$this->option('charset', 'utf8')."'"
                 ])
             );
             if ($this->lnk === false) {
                 throw new DBException('Connect error');
-            }
-            $this->query("ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY-MM-DD HH24:MI:SS'");
-            if ($timezone = $this->option('timezone')) {
-                $this->query("SET TIME ZONE '".addslashes($timezone)."'");
             }
         }
     }
@@ -68,7 +64,7 @@ class Driver extends DriverAbstract implements DriverInterface
         return new Statement($sql, $this->lnk);
     }
 
-    public function begin()
+    public function begin() : bool
     {
         $this->connect();
         try {
@@ -82,7 +78,7 @@ class Driver extends DriverAbstract implements DriverInterface
 
         return true;
     }
-    public function commit()
+    public function commit() : bool
     {
         $this->connect();
         $this->transaction = false;
@@ -94,7 +90,7 @@ class Driver extends DriverAbstract implements DriverInterface
 
         return true;
     }
-    public function rollback()
+    public function rollback() : bool
     {
         $this->connect();
         $this->transaction = false;

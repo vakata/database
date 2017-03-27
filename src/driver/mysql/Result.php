@@ -43,10 +43,6 @@ class Result implements ResultInterface
             }
         } catch (\Exception $e) { }
     }
-    public function __destruct()
-    {
-        $this->statement->close();
-    }
     public function affected() : int
     {
         return $this->statement->affected_rows;
@@ -94,10 +90,5 @@ class Result implements ResultInterface
     public function valid()
     {
         return !!$this->last;
-    }
-
-    public function collection() : Collection
-    {
-        return new Collection($this);
     }
 }

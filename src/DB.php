@@ -45,20 +45,36 @@ class DB implements DBInterface
             'name' => null,
             'opts' => []
         ];
+        $aliases = [
+            'mysqli' => 'mysql',
+            'pg' => 'postgre',
+            'oci' => 'oracle',
+            'firebird' => 'ibase'
+        ];
         $connectionString = array_pad(explode('://', $connectionString, 2), 2, '');
         $connection['type'] = $connectionString[0];
         $connectionString = $connectionString[1];
-        $connectionString = array_pad(explode('?', $connectionString, 2), 2, '');
-        parse_str($connectionString[1], $connection['opts']);
-        $connectionString = $connectionString[0];
         if (strpos($connectionString, '@') !== false) {
             $connectionString = array_pad(explode('@', $connectionString, 2), 2, '');
             list($connection['user'], $connection['pass']) = array_pad(explode(':', $connectionString[0], 2), 2, '');
             $connectionString = $connectionString[1];
         }
         $connectionString = array_pad(explode('/', $connectionString, 2), 2, '');
-        $connection['name'] = $connectionString[1];
         list($connection['host'], $connection['port']) = array_pad(explode(':', $connectionString[0], 2), 2, null);
+        $connectionString = $connectionString[1];
+        if ($pos = strrpos($connectionString, '?')) {
+            $opt = substr($connectionString, $pos + 1);
+            parse_str($opt, $connection['opts']);
+            if ($connection['opts'] && count($connection['opts'])) {
+                $connectionString = substr($connectionString, 0, $pos);
+            } else {
+                $connection['opts'] = [];
+            }
+        }
+        $connection['name'] = $connectionString;
+        $connection['type'] = isset($aliases[$connection['type']]) ?
+            $aliases[$connection['type']] :
+            $connection['type'];
         $tmp = '\\vakata\\database\\driver\\'.strtolower($connection['type']).'\\Driver';
         return new $tmp($connection);
     }
@@ -126,8 +142,8 @@ class DB implements DBInterface
      */
     public function get(string $sql, $par = null, string $key = null, bool $skip = false, bool $opti = true) : Collection
     {
-        $coll = $this->query($sql, $par)->collection();
-        if ($keys = $this->driver->option('mode') && in_array($keys, ['strtoupper', 'strtolower'])) {
+        $coll = Collection::from($this->query($sql, $par));
+        if (($keys = $this->driver->option('mode')) && in_array($keys, ['strtoupper', 'strtolower'])) {
             $coll->map(function ($v) use ($keys) {
                 $new = [];
                 foreach ($v as $k => $vv) {

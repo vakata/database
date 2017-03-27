@@ -15,6 +15,10 @@ class Statement implements StatementInterface
     {
         $this->statement = $statement;
     }
+    public function __destruct()
+    {
+        //@$this->statement->close();
+    }
     public function execute(array $data = []) : ResultInterface
     {
         $data = array_values($data);

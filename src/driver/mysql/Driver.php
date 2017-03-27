@@ -8,6 +8,7 @@ use \vakata\database\DriverAbstract;
 use \vakata\database\StatementInterface;
 use \vakata\database\schema\Table;
 use \vakata\database\schema\TableRelation;
+use \vakata\collection\Collection;
 
 class Driver extends DriverAbstract implements DriverInterface
 {
@@ -92,7 +93,7 @@ class Driver extends DriverAbstract implements DriverInterface
             return $tables[$table];
         }
         
-        $columns = $this->query("SHOW FULL COLUMNS FROM {$table}")->collection();
+        $columns = Collection::from($this->query("SHOW FULL COLUMNS FROM {$table}"));
         if (!count($columns)) {
             throw new DBException('Table not found by name');
         }
@@ -111,12 +112,11 @@ class Driver extends DriverAbstract implements DriverInterface
                     ->toArray()
             )
             ->setComment(
-                (string)$this
+                (string)Collection::from($this
                     ->query(
                         "SELECT table_comment FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
                         [ $this->connection['name'], $table ]
-                    )
-                    ->collection()
+                    ))
                     ->pluck('table_comment')
                     ->value()
             );
@@ -149,7 +149,7 @@ class Driver extends DriverAbstract implements DriverInterface
                 $foreign = [];
                 $usedcol = [];
                 if (count($columns)) {
-                    foreach ($this
+                    foreach (Collection::from($this
                         ->query(
                             "SELECT
                                  TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME,
@@ -159,8 +159,7 @@ class Driver extends DriverAbstract implements DriverInterface
                                  TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME IN (??) AND
                                  REFERENCED_TABLE_NAME IS NOT NULL",
                             [ $this->connection['name'], $data['table'], $columns ]
-                        )
-                        ->collection()
+                        ))
                         ->map(function ($v) {
                             $new = [];
                             foreach ($v as $kk => $vv) {
@@ -211,14 +210,13 @@ class Driver extends DriverAbstract implements DriverInterface
             // assuming current table is linked to "one" record in the referenced table
             // resulting in a "belongsTo" relationship
             $relations = [];
-            foreach ($this
+            foreach (Collection::from($this
                 ->query(
                     "SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
                      FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
                      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL",
                     [ $this->connection['name'], $table ]
-                )
-                ->collection()
+                ))
                 ->map(function ($v) {
                     $new = [];
                     foreach ($v as $kk => $vv) {
@@ -250,12 +248,11 @@ class Driver extends DriverAbstract implements DriverInterface
     }
     public function tables() : array
     {
-        return $this
+        return Collection::from($this
             ->query(
                 "SELECT table_name FROM information_schema.tables where table_schema = ?",
                 [$this->connection['name']]
-            )
-            ->collection()
+            ))
             ->map(function ($v) {
                 $new = [];
                 foreach ($v as $kk => $vv) {

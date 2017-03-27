@@ -56,7 +56,7 @@ class Driver extends DriverAbstract implements DriverInterface
         }
         return new Statement(
             $statement,
-            $this
+            $this->lnk
         );
     }
 

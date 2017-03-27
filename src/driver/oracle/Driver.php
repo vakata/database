@@ -26,7 +26,7 @@ class Driver extends DriverAbstract implements DriverInterface
     protected function connect()
     {
         if ($this->lnk === null) {
-            $this->lnk = call_user_func(
+            $this->lnk = @call_user_func(
                 $this->option('persist') ? '\oci_pconnect' : '\oci_connect',
                 $this->connection['user'],
                 $this->connection['pass'],
@@ -122,12 +122,11 @@ class Driver extends DriverAbstract implements DriverInterface
             return $tables[$table];
         }
 
-        $columns = $this
+        $columns = Collection::from($this
             ->query(
                 "SELECT * FROM all_tab_cols WHERE table_name = ? AND owner = ?",
                 [ strtoupper($table), $this->name() ]
-            )
-            ->collection()
+            ))
             ->map(function ($v) {
                 $new = [];
                 foreach ($v as $kk => $vv) {
@@ -141,13 +140,12 @@ class Driver extends DriverAbstract implements DriverInterface
             throw new DBException('Table not found by name');
         }
         $owner = $this->name(); // current($columns)['OWNER'];
-        $pkname = $this
+        $pkname = Collection::from($this
             ->query(
                 "SELECT constraint_name FROM all_constraints
                 WHERE table_name = ? AND constraint_type = ? AND owner = ?",
                 [ strtoupper($table), 'P', $owner ]
-            )
-            ->collection()
+            ))
             ->map(function ($v) {
                 $new = [];
                 foreach ($v as $kk => $vv) {
@@ -159,13 +157,12 @@ class Driver extends DriverAbstract implements DriverInterface
             ->value();
         $primary = [];
         if ($pkname) {
-            $primary = $this
+            $primary = Collection::from($this
                 ->query(
                     "SELECT column_name FROM all_cons_columns
                     WHERE table_name = ? AND constraint_name = ? AND owner = ?",
                     [ strtoupper($table), $pkname, $owner ]
-                )
-                ->collection()
+                ))
                 ->map(function ($v) {
                     $new = [];
                     foreach ($v as $kk => $vv) {
@@ -186,7 +183,7 @@ class Driver extends DriverAbstract implements DriverInterface
             // assuming current table is on the "one" end having "many" records in the referencing table
             // resulting in a "hasMany" or "manyToMany" relationship (if a pivot table is detected)
             $relations = [];
-            foreach ($this
+            foreach (Collection::from($this
                 ->query(
                     "SELECT ac.TABLE_NAME, ac.CONSTRAINT_NAME, cc.COLUMN_NAME, cc.POSITION
                     FROM all_constraints ac
@@ -194,8 +191,7 @@ class Driver extends DriverAbstract implements DriverInterface
                     WHERE ac.OWNER = ? AND ac.R_OWNER = ? AND ac.R_CONSTRAINT_NAME = ? AND ac.CONSTRAINT_TYPE = ?
                     ORDER BY cc.POSITION",
                     [ $owner, $owner, $pkname, 'R' ]
-                )
-                ->collection()
+                ))
                 ->map(function ($v) {
                     $new = [];
                     foreach ($v as $kk => $vv) {
@@ -219,7 +215,7 @@ class Driver extends DriverAbstract implements DriverInterface
                 $foreign = [];
                 $usedcol = [];
                 if (count($columns)) {
-                    foreach ($this
+                    foreach (Collection::from($this
                         ->query(
                             "SELECT
                                 cc.COLUMN_NAME, ac.CONSTRAINT_NAME, rc.TABLE_NAME AS REFERENCED_TABLE_NAME, ac.R_CONSTRAINT_NAME
@@ -231,8 +227,7 @@ class Driver extends DriverAbstract implements DriverInterface
                                 cc.COLUMN_NAME IN (??)
                             ORDER BY POSITION",
                             [ $owner, $owner, $data['table'], 'R', $columns ]
-                        )
-                        ->collection()
+                        ))
                         ->map(function ($v) {
                             $new = [];
                             foreach ($v as $kk => $vv) {
@@ -248,12 +243,11 @@ class Driver extends DriverAbstract implements DriverInterface
                 }
                 if (count($foreign) === 1 && !count(array_diff($columns, $usedcol))) {
                     $foreign = current($foreign);
-                    $rcolumns = $this
+                    $rcolumns = Collection::from($this
                         ->query(
                             "SELECT COLUMN_NAME FROM all_cons_columns WHERE OWNER = ? AND CONSTRAINT_NAME = ? ORDER BY POSITION",
                             [ $owner, current($foreign['keymap']) ]
-                        )
-                        ->collection()
+                        ))
                         ->map(function ($v) {
                             $new = [];
                             foreach ($v as $kk => $vv) {
@@ -301,7 +295,7 @@ class Driver extends DriverAbstract implements DriverInterface
             // assuming current table is linked to "one" record in the referenced table
             // resulting in a "belongsTo" relationship
             $relations = [];
-            foreach ($this
+            foreach (Collection::from($this
                 ->query(
                     "SELECT ac.CONSTRAINT_NAME, cc.COLUMN_NAME, rc.TABLE_NAME AS REFERENCED_TABLE_NAME, ac.R_CONSTRAINT_NAME
                     FROM all_constraints ac
@@ -310,8 +304,7 @@ class Driver extends DriverAbstract implements DriverInterface
                     WHERE ac.OWNER = ? AND ac.R_OWNER = ? AND ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ?
                     ORDER BY cc.POSITION",
                     [ $owner, $owner, strtoupper($table), 'R' ]
-                )
-                ->collection()
+                ))
                 ->map(function ($v) {
                     $new = [];
                     foreach ($v as $kk => $vv) {
@@ -325,12 +318,11 @@ class Driver extends DriverAbstract implements DriverInterface
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['R_CONSTRAINT_NAME'];
             }
             foreach ($relations as $name => $data) {
-                $rcolumns = $this
+                $rcolumns = Collection::from($this
                     ->query(
                         "SELECT COLUMN_NAME FROM all_cons_columns WHERE OWNER = ? AND CONSTRAINT_NAME = ? ORDER BY POSITION",
                         [ $owner, current($data['keymap']) ]
-                    )
-                    ->collection()
+                    ))
                     ->map(function ($v) {
                         $new = [];
                         foreach ($v as $kk => $vv) {
@@ -362,12 +354,11 @@ class Driver extends DriverAbstract implements DriverInterface
     }
     public function tables() : array
     {
-        return $this
+        return Collection::from($this
             ->query(
                 "SELECT TABLE_NAME FROM ALL_TABLES where OWNER = ?",
                 [$this->connection['name']]
-            )
-            ->collection()
+            ))
             ->map(function ($v) {
                 $new = [];
                 foreach ($v as $kk => $vv) {

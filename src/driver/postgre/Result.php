@@ -69,9 +69,4 @@ class Result implements ResultInterface
     {
         return !!$this->last;
     }
-
-    public function collection() : Collection
-    {
-        return new Collection($this);
-    }
 }

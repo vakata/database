@@ -1,0 +1,32 @@
+version: '2'
+services:
+  mysql:
+    image: mysql:5.7
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD=true
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pass
+      - MYSQL_DATABASE=schema
+  postgre:
+    image: postgres:9.6
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=schema
+  oracle: # hostname: localhost port: 49161 sid: xe username: system password: oracle
+    image: alexeiled/docker-oracle-xe-11g
+    ports:
+      - "1521:1521"
+  firebird:
+    image: jacobalberty/firebird:3.0
+    ports:
+      - "3050:3050"
+    environment:
+      - ISC_PASSWORD=pass
+      - FIREBIRD_USER=user
+      - FIREBIRD_PASSWORD=pass
+      - FIREBIRD_DATABASE=schema

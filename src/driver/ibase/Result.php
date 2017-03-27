@@ -1,6 +1,6 @@
 <?php
 
-namespace vakata\database\driver\pdo;
+namespace vakata\database\driver\ibase;
 
 use \vakata\database\DBException;
 use \vakata\database\DriverInterface;
@@ -16,7 +16,7 @@ class Result implements ResultInterface
     protected $fetched = -1;
     protected $affected = 0;
 
-    public function __construct($result, array $data, Driver $driver)
+    public function __construct($result, array $data, $driver)
     {
         $this->result = $result;
         $this->data = $data;
@@ -73,10 +73,5 @@ class Result implements ResultInterface
     public function valid()
     {
         return !!$this->last;
-    }
-
-    public function collection() : Collection
-    {
-        return new Collection($this);
     }
 }

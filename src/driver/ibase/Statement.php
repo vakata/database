@@ -12,7 +12,7 @@ class Statement implements StatementInterface
     protected $statement;
     protected $driver;
 
-    public function __construct($statement, Driver $driver)
+    public function __construct($statement, $driver)
     {
         $this->statement = $statement;
         $this->driver = $driver;

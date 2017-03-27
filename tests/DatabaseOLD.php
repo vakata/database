@@ -1,6 +1,8 @@
 <?php
 namespace vakata\database\test;
 
+use vakata\collection\Collection;
+
 class DatabaseTest extends \PHPUnit_Framework_TestCase
 {
 	protected static $db = null;
@@ -143,8 +145,8 @@ class DatabaseTest extends \PHPUnit_Framework_TestCase
 	public function testPrepare() {
 		$q1 = self::$db->prepare('SELECT id FROM test WHERE id = ?');
 		$q2 = self::$db->prepare('SELECT name FROM test WHERE id = ?');
-		$this->assertEquals('user1', $q2->execute([1])->collection()[0]['name']);
-		$this->assertEquals(1, $q1->execute([1])->collection()[0]['id']);
+		$this->assertEquals('user1', Collection::from($q2->execute([1]))[0]['name']);
+		$this->assertEquals(1, Collection::from($q1->execute([1]))[0]['id']);
 	}
 
 	public function testInvalidPrepare() {

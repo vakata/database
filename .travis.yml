@@ -1,7 +1,5 @@
 language: php
 
-dist: trusty
-
 php:
   - 7.0
 
@@ -14,7 +12,6 @@ sudo: false
 
 before_install:
   - mysql -e "create database IF NOT EXISTS test;" -uroot
-  - mysql -u root -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('')"
 
 before_script:
   - travis_retry composer self-update

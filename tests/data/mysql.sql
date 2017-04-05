@@ -50,7 +50,7 @@ CREATE TABLE user_providers (
   usr int(10) UNSIGNED NOT NULL COMMENT 'ID на потребителя в системата',
   name VARCHAR(80) NOT NULL DEFAULT '' COMMENT 'Кратко име на комбинацията услуга / ID',
   data VARCHAR(255) NULL DEFAULT NULL COMMENT 'Допълнителна информация от услугата',
-  created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Дата и час на създаване',
+  created DATETIME NOT NULL COMMENT 'Дата и час на създаване',
   used DATETIME NULL DEFAULT NULL COMMENT 'Дата и час на последно използване'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Начини на аутентикация за всеки потребител';
 
@@ -69,7 +69,7 @@ INSERT INTO user_groups (usr, grp, main, created) VALUES
 
 CREATE TABLE log (
   id bigint(20) NOT NULL,
-  created datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Дата и час на събитието',
+  created datetime NOT NULL COMMENT 'Дата и час на събитието',
   lvl enum('emergency','alert','critical','error','warning','notice','info','debug') NOT NULL DEFAULT 'error' COMMENT 'Тип на събитието',
   message varchar(255) NOT NULL DEFAULT '' COMMENT 'Съобщение',
   context longtext COMMENT 'Допълнителни параметри (в JSON формат)',
@@ -85,7 +85,7 @@ CREATE TABLE uploads (
   name text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Име на файла',
   location text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Път до файла (спрямо основната директория за прикачени файлове)',
   bytesize bigint(20) NOT NULL DEFAULT '0' COMMENT 'Размер на файла',
-  uploaded datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Дата и час на прикачане в системата',
+  uploaded datetime NOT NULL COMMENT 'Дата и час на прикачане в системата',
   hash varchar(32) NOT NULL DEFAULT '' COMMENT 'md5 хеш на файловото съдържание (използва се за ETag)',
   data longblob COMMENT 'Съдържание на файла (само в случай, че не се пише по файловата система)',
   settings text COMMENT 'Опционални настройки на файла'

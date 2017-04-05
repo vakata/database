@@ -9,9 +9,10 @@ return (object)[
         '\\vakata\\database\\StatementInterface',
         '\\vakata\\database\\ResultInterface',
         '\\vakata\\database\\DB',
-        '\\vakata\\database\\Table',
-        '\\vakata\\database\\TableColumn',
-        '\\vakata\\database\\TableQuery',
-        '\\vakata\\database\\TableQueryIterator'
+        '\\vakata\\database\\schema\\Table',
+        '\\vakata\\database\\schema\\TableColumn',
+        '\\vakata\\database\\schema\\TableRelation',
+        '\\vakata\\database\\schema\\TableQuery',
+        '\\vakata\\database\\schema\\TableQueryIterator'
     ],
 ];

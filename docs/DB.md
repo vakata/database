@@ -6,24 +6,20 @@ A database abstraction with support for various drivers (mySQL, postgre, oracle,
 | Name | Description |
 |------|-------------|
 |[__construct](#vakata\database\db__construct)|Create an instance.|
+|[getDriver](#vakata\database\dbgetdriver)|Create a driver instance from a connection string|
 |[prepare](#vakata\database\dbprepare)|Prepare a statement.|
 |[query](#vakata\database\dbquery)|Run a query (prepare & execute).|
 |[get](#vakata\database\dbget)|Run a SELECT query and get an array-like result.|
-|[all](#vakata\database\dball)|Run a SELECT query and get an array result.|
-|[one](#vakata\database\dbone)|Run a SELECT query and get the first row.|
-|[raw](#vakata\database\dbraw)|Run a raw SQL query|
-|[driver](#vakata\database\dbdriver)|Get the current driver name (`"mysqli"`, `"postgre"`, etc).|
-|[name](#vakata\database\dbname)|Get the current database name.|
-|[settings](#vakata\database\dbsettings)|Get the current settings object|
+|[one](#vakata\database\dbone)|Run a SELECT query and get a single row|
+|[all](#vakata\database\dball)|Run a SELECT query and get an array|
 |[begin](#vakata\database\dbbegin)|Begin a transaction.|
 |[commit](#vakata\database\dbcommit)|Commit a transaction.|
 |[rollback](#vakata\database\dbrollback)|Rollback a transaction.|
-|[isTransaction](#vakata\database\dbistransaction)|Check if a transaciton is currently open.|
-|[definition](#vakata\database\dbdefinition)|Get a table definition|
-|[table](#vakata\database\dbtable)|Initialize a table query|
+|[driver](#vakata\database\dbdriver)|Get the current driver name (`"mysql"`, `"postgre"`, etc).|
 |[parseSchema](#vakata\database\dbparseschema)|Parse all tables from the database.|
 |[getSchema](#vakata\database\dbgetschema)|Get the full schema as an array that you can serialize and store|
 |[setSchema](#vakata\database\dbsetschema)|Load the schema data from a schema definition array (obtained from getSchema)|
+|[table](#vakata\database\dbtable)|Initialize a table query|
 
 ---
 
@@ -35,13 +31,32 @@ Create an instance.
 
 ```php
 public function __construct (  
-    string $options  
+    \DriverInterface|string $driver  
 )   
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
-| `$options` | `string` | a connection string (like `"mysqli://user:pass@host/database?option=value"`) |
+| `$driver` | `\DriverInterface`, `string` | a driver instance or a connection string |
+
+---
+
+
+### vakata\database\DB::getDriver
+Create a driver instance from a connection string  
+
+
+```php
+public static function getDriver (  
+    string $connectionString  
+) : \DriverInterface    
+```
+
+|  | Type | Description |
+|-----|-----|-----|
+| `$connectionString` | `string` | the connection string |
+|  |  |  |
+| `return` | `\DriverInterface` |  |
 
 ---
 
@@ -53,14 +68,14 @@ Use only if you need a single query to be performed multiple times with differen
 ```php
 public function prepare (  
     string $sql  
-) : \vakata\database\Query    
+) : \StatementInterface    
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
 | `$sql` | `string` | the query to prepare - use `?` for arguments |
 |  |  |  |
-| `return` | [`\vakata\database\Query`](Query.md) | the prepared statement |
+| `return` | `\StatementInterface` | the prepared statement |
 
 ---
 
@@ -73,15 +88,15 @@ Run a query (prepare & execute).
 public function query (  
     string $sql,  
     array $data  
-) : \vakata\database\QueryResult    
+) : \ResultInterface    
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
 | `$sql` | `string` | SQL query |
-| `$data` | `array` | parameters |
+| `$data` | `array` | parameters (optional) |
 |  |  |  |
-| `return` | [`\vakata\database\QueryResult`](QueryResult.md) | the result of the execution |
+| `return` | `\ResultInterface` | the result of the execution |
 
 ---
 
@@ -93,103 +108,130 @@ When using `get` the data is kept in the database client and fetched as needed (
 ```php
 public function get (  
     string $sql,  
-    array $data,  
+    array $par,  
     string $key,  
     bool $skip,  
-    string $mode,  
     bool $opti  
-) : \vakata\database\Result    
+) : \Collection    
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
 | `$sql` | `string` | SQL query |
-| `$data` | `array` | parameters |
+| `$par` | `array` | parameters |
 | `$key` | `string` | column name to use as the array index |
 | `$skip` | `bool` | do not include the column used as index in the value (defaults to `false`) |
-| `$mode` | `string` | result mode - `"assoc"` by default, could be `"num"`, `"both"`, `"assoc_ci"`, `"assoc_lc"`, `"assoc_uc"` |
 | `$opti` | `bool` | if a single column is returned - do not use an array wrapper (defaults to `true`) |
 |  |  |  |
-| `return` | [`\vakata\database\Result`](Result.md) | the result of the execution - use as a normal array |
-
----
-
-
-### vakata\database\DB::all
-Run a SELECT query and get an array result.  
-
-
-```php
-public function all (  
-    string $sql,  
-    array $data,  
-    string $key,  
-    bool $skip,  
-    string $mode,  
-    bool $opti  
-) : array    
-```
-
-|  | Type | Description |
-|-----|-----|-----|
-| `$sql` | `string` | SQL query |
-| `$data` | `array` | parameters |
-| `$key` | `string` | column name to use as the array index |
-| `$skip` | `bool` | do not include the column used as index in the value (defaults to `false`) |
-| `$mode` | `string` | result mode - `"assoc"` by default, could be `"num"`, `"both"`, `"assoc_ci"`, `"assoc_lc"`, `"assoc_uc"` |
-| `$opti` | `bool` | if a single column is returned - do not use an array wrapper (defaults to `true`) |
-|  |  |  |
-| `return` | `array` | the result of the execution |
+| `return` | `\Collection` | the result of the execution |
 
 ---
 
 
 ### vakata\database\DB::one
-Run a SELECT query and get the first row.  
+Run a SELECT query and get a single row  
 
 
 ```php
 public function one (  
     string $sql,  
-    array $data,  
-    string $mode,  
+    array $par,  
+    callable $keys,  
     bool $opti  
-) : mixed    
+) : \Collection    
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
 | `$sql` | `string` | SQL query |
-| `$data` | `array` | parameters |
-| `$mode` | `string` | result mode - `"assoc"` by default, could be `"num"`, `"both"`, `"assoc_ci"`, `"assoc_lc"`, `"assoc_uc"` |
+| `$par` | `array` | parameters |
+| `$keys` | `callable` | an optional mutator to pass each row's keys through (the column names) |
 | `$opti` | `bool` | if a single column is returned - do not use an array wrapper (defaults to `true`) |
 |  |  |  |
-| `return` | `mixed` | the result of the execution |
+| `return` | `\Collection` | the result of the execution |
 
 ---
 
 
-### vakata\database\DB::raw
-Run a raw SQL query  
+### vakata\database\DB::all
+Run a SELECT query and get an array  
 
 
 ```php
-public function raw (  
-    string $sql  
-) : mixed    
+public function all (  
+    string $sql,  
+    array $par,  
+    string $key,  
+    bool $skip,  
+    callable $keys,  
+    bool $opti  
+) : \Collection    
 ```
 
 |  | Type | Description |
 |-----|-----|-----|
 | `$sql` | `string` | SQL query |
+| `$par` | `array` | parameters |
+| `$key` | `string` | column name to use as the array index |
+| `$skip` | `bool` | do not include the column used as index in the value (defaults to `false`) |
+| `$keys` | `callable` | an optional mutator to pass each row's keys through (the column names) |
+| `$opti` | `bool` | if a single column is returned - do not use an array wrapper (defaults to `true`) |
 |  |  |  |
-| `return` | `mixed` | the result of the execution |
+| `return` | `\Collection` | the result of the execution |
+
+---
+
+
+### vakata\database\DB::begin
+Begin a transaction.  
+
+
+```php
+public function begin () : $this    
+```
+
+|  | Type | Description |
+|-----|-----|-----|
+|  |  |  |
+| `return` | `$this` |  |
+
+---
+
+
+### vakata\database\DB::commit
+Commit a transaction.  
+
+
+```php
+public function commit () : $this    
+```
+
+|  | Type | Description |
+|-----|-----|-----|
+|  |  |  |
+| `return` | `$this` |  |
+
+---
+
+
+### vakata\database\DB::rollback
+Rollback a transaction.  
+
+
+```php
+public function rollback () : $this    
+```
+
+|  | Type | Description |
+|-----|-----|-----|
+|  |  |  |
+| `return` | `$this` |  |
 
 ---
 
 
 ### vakata\database\DB::driver
-Get the current driver name (`"mysqli"`, `"postgre"`, etc).  
+Get the current driver name (`"mysql"`, `"postgre"`, etc).  
 
 
 ```php
@@ -200,144 +242,6 @@ public function driver () : string
 |-----|-----|-----|
 |  |  |  |
 | `return` | `string` | the current driver name |
-
----
-
-
-### vakata\database\DB::name
-Get the current database name.  
-
-
-```php
-public function name () : string    
-```
-
-|  | Type | Description |
-|-----|-----|-----|
-|  |  |  |
-| `return` | `string` | the current database name |
-
----
-
-
-### vakata\database\DB::settings
-Get the current settings object  
-
-
-```php
-public function settings () : \vakata\database\Settings    
-```
-
-|  | Type | Description |
-|-----|-----|-----|
-|  |  |  |
-| `return` | `\vakata\database\Settings` | the current settings |
-
----
-
-
-### vakata\database\DB::begin
-Begin a transaction.  
-
-
-```php
-public function begin () : bool    
-```
-
-|  | Type | Description |
-|-----|-----|-----|
-|  |  |  |
-| `return` | `bool` | `true` if a transaction was opened, `false` otherwise |
-
----
-
-
-### vakata\database\DB::commit
-Commit a transaction.  
-
-
-```php
-public function commit () : bool    
-```
-
-|  | Type | Description |
-|-----|-----|-----|
-|  |  |  |
-| `return` | `bool` | was the commit successful |
-
----
-
-
-### vakata\database\DB::rollback
-Rollback a transaction.  
-
-
-```php
-public function rollback () : bool    
-```
-
-|  | Type | Description |
-|-----|-----|-----|
-|  |  |  |
-| `return` | `bool` | was the rollback successful |
-
----
-
-
-### vakata\database\DB::isTransaction
-Check if a transaciton is currently open.  
-
-
-```php
-public function isTransaction () : bool    
-```
-
-|  | Type | Description |
-|-----|-----|-----|
-|  |  |  |
-| `return` | `bool` | is a transaction currently open |
-
----
-
-
-### vakata\database\DB::definition
-Get a table definition  
-
-
-```php
-public function definition (  
-    string $table,  
-    bool $detectRelations,  
-    bool $lowerCase  
-) : \the    
-```
-
-|  | Type | Description |
-|-----|-----|-----|
-| `$table` | `string` | the table to analyze |
-| `$detectRelations` | `bool` | should relations be extracted - defaults to `true` |
-| `$lowerCase` | `bool` | should the table fields be converted to lowercase - defaults to `true` |
-|  |  |  |
-| `return` | `\the` | newly added definition |
-
----
-
-
-### vakata\database\DB::table
-Initialize a table query  
-
-
-```php
-public function table (  
-    string $table  
-) : \TableQuery    
-```
-
-|  | Type | Description |
-|-----|-----|-----|
-| `$table` | `string` | the table to query |
-|  |  |  |
-| `return` | `\TableQuery` |  |
 
 ---
 
@@ -389,6 +293,25 @@ public function setSchema (
 | `$data` | `array` | the schema definition |
 |  |  |  |
 | `return` | `$this` |  |
+
+---
+
+
+### vakata\database\DB::table
+Initialize a table query  
+
+
+```php
+public function table (  
+    string $table  
+) : \TableQuery    
+```
+
+|  | Type | Description |
+|-----|-----|-----|
+| `$table` | `string` | the table to query |
+|  |  |  |
+| `return` | `\TableQuery` |  |
 
 ---
 

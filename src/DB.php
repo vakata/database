@@ -5,6 +5,7 @@ namespace vakata\database;
 use \vakata\collection\Collection;
 use \vakata\database\schema\Table;
 use \vakata\database\schema\TableQuery;
+use \vakata\database\schema\TableRelation;
 
 /**
  * A database abstraction with support for various drivers (mySQL, postgre, oracle, msSQL, sphinx, and even PDO).

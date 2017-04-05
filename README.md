@@ -3,10 +3,10 @@
 [![Latest Version on Packagist][ico-version]][link-packagist]
 [![Software License][ico-license]](LICENSE.md)
 [![Build Status][ico-travis]][link-travis]
-[![Code Climate][ico-cc]][link-cc]
-[![Tests Coverage][ico-cc-coverage]][link-cc]
+[![Scrutinizer Code Quality][ico-code-quality]][link-scrutinizer]
+[![Code Coverage][ico-scrutinizer]][link-scrutinizer]
 
-A database abstraction with support for various drivers (mySQL, postgre, oracle, msSQL, sphinx, and even PDO).
+A database abstraction with support for various drivers (mySQL, postgre, oracle, ibase, sqlite and even PDO).
 
 ## Install
 
@@ -19,7 +19,7 @@ $ composer require vakata/database
 ## Usage
 
 ``` php
-$db = new \vakata\database\DB('mysqli://user:pass@127.0.0.1/database_name?charset=utf8');
+$db = new \vakata\database\DB('mysql://user:pass@127.0.0.1/database_name?charset=utf8');
 
 // get an array result:
 $db->all('SELECT id, name FROM table');
@@ -52,7 +52,7 @@ $db->one('SELECT name FROM table WHERE id = ?', [1]);
 // insert / update / delete queries (affected rows count and last insert ID)
 $db->query("UPDATE table SET name = ? WHERE id = ?", ['asdf', 1])->affected();
 // 1
-$db->query("INSERT INTO table (name) VALUES(?)", ['asdf'])->insertId();
+$db->query("INSERT INTO table (name) VALUES(?)", ['asdf'])->insertID();
 // 3
 $db->query("DELETE FROM table WHERE id = ?", [3])->affected();
 // 1
@@ -160,7 +160,7 @@ The MIT License (MIT). Please see [License File](LICENSE.md) for more informatio
 
 [link-packagist]: https://packagist.org/packages/vakata/database
 [link-travis]: https://travis-ci.org/vakata/database
-[link-scrutinizer]: https://scrutinizer-ci.com/g/vakata/database/code-structure
+[link-scrutinizer]: https://scrutinizer-ci.com/g/vakata/database
 [link-code-quality]: https://scrutinizer-ci.com/g/vakata/database
 [link-downloads]: https://packagist.org/packages/vakata/database
 [link-author]: https://github.com/vakata

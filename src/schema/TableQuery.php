@@ -647,7 +647,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             return $ret;
         } else {
             $ret = [];
-            $ins = $this->db->query($sql, $par)->insertId();
+            $ins = $this->db->query($sql, $par)->insertID();
             foreach ($this->definition->getPrimaryKey() as $k) {
                 $ret[$k] = $data[$k] ?? $ins;
             }

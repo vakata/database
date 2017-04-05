@@ -188,11 +188,11 @@ abstract class DB extends \PHPUnit\Framework\TestCase
     public function testTransaction()
     {
         $this->getDB()->begin();
-        $this->assertEquals(6, $this->getDB()->query('INSERT INTO log (lvl) VALUES(?)', ['debug'])->insertId());
+        $this->assertEquals(6, $this->getDB()->query('INSERT INTO log (lvl) VALUES(?)', ['debug'])->insertID());
         $this->getDB()->rollback();
         $this->assertEquals(true, $this->getDB()->one('SELECT MAX(id) FROM log') < 6);
         $this->getDB()->begin();
-        $this->assertEquals(true, $this->getDB()->query('INSERT INTO log (lvl) VALUES(?)', ['debug'])->insertId() > 5);
+        $this->assertEquals(true, $this->getDB()->query('INSERT INTO log (lvl) VALUES(?)', ['debug'])->insertID() > 5);
         $this->getDB()->commit();
         $this->assertEquals(true, $this->getDB()->one('SELECT MAX(id) FROM test') > 5);
     }
@@ -208,7 +208,7 @@ abstract class DB extends \PHPUnit\Framework\TestCase
         $handle = fopen('php://memory', 'w');
         fwrite($handle, 'asdf');
         rewind($handle);
-        $id = $this->getDB()->query('INSERT INTO log (lvl, request) VALUES(??)', ['debug', $handle])->insertId();
+        $id = $this->getDB()->query('INSERT INTO log (lvl, request) VALUES(??)', ['debug', $handle])->insertID();
         fclose($handle);
         $this->assertEquals('asdf', self::$db->one('SELECT request FROM log WHERE id = ?', $id));
     }

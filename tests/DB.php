@@ -194,7 +194,7 @@ abstract class DB extends \PHPUnit\Framework\TestCase
         $this->getDB()->begin();
         $this->assertEquals(true, $this->getDB()->query('INSERT INTO log (lvl) VALUES(?)', ['debug'])->insertID() > 5);
         $this->getDB()->commit();
-        $this->assertEquals(true, $this->getDB()->one('SELECT MAX(id) FROM test') > 5);
+        $this->assertEquals(true, $this->getDB()->one('SELECT MAX(id) FROM log') > 5);
     }
     public function testSerialize()
     {

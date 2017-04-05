@@ -11,7 +11,7 @@ use vakata\database\ResultInterface;
 class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
 {
     /**
-     * @var DatabaseInterface
+     * @var DBInterface
      */
     protected $db;
     /**

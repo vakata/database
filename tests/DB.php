@@ -56,8 +56,8 @@ abstract class DB extends \PHPUnit\Framework\TestCase
     {
         $this->assertEquals(2, count($this->getDB()->query('SELECT * FROM log WHERE id IN (??)', [[1,2,3]])));
         $this->assertEquals(1, count($this->getDB()->query('SELECT * FROM log WHERE id IN (??)', [1,3])));
-        $this->assertEquals(2, count($this->getDB()->query('SELECT * FROM test WHERE id > ? AND id IN (??) AND id < ?', [0, [1,2,3], 4])));
-        $this->assertEquals(2, count($this->getDB()->query('SELECT * FROM test WHERE id > ? AND (id IN (??) OR id IN (??)) AND id < ?', [0, [1,2,3], [1,2,3], 4])));
+        $this->assertEquals(2, count($this->getDB()->query('SELECT * FROM log WHERE id > ? AND id IN (??) AND id < ?', [0, [1,2,3], 4])));
+        $this->assertEquals(2, count($this->getDB()->query('SELECT * FROM log WHERE id > ? AND (id IN (??) OR id IN (??)) AND id < ?', [0, [1,2,3], [1,2,3], 4])));
     }
     public function testPrepare()
     {

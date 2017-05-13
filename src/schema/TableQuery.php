@@ -149,35 +149,56 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     }
     /**
      * Filter the results by a column and a value
-     * @param  string $column the column name to filter by (related columns can be used - for example: author.name)
-     * @param  mixed  $value  a required value, array of values or range of values (range example: ['beg'=>1,'end'=>3])
+     * @param  string $column  the column name to filter by (related columns can be used - for example: author.name)
+     * @param  mixed  $value   a required value, array of values or range of values (range example: ['beg'=>1,'end'=>3])
+     * @param  bool   $negate  optional boolean indicating that the filter should be negated
      * @return $this
      */
-    public function filter(string $column, $value) : TableQuery
+    public function filter(string $column, $value, bool $negate = false) : TableQuery
     {
         list($name, $column) = array_values($this->getColumn($column));
         if (is_null($value)) {
-            return $this->where($name . ' IS NULL');
+            return $negate ?
+                $this->where($name . ' IS NOT NULL') :
+                $this->where($name . ' IS NULL');
         }
         if (!is_array($value)) {
-            return $this->where(
-                $name . ' = ?',
-                [ $this->normalizeValue($column, $value) ]
-            );
+            return $negate ?
+                $this->where(
+                    $name . ' <> ?',
+                    [ $this->normalizeValue($column, $value) ]
+                ) :
+                $this->where(
+                    $name . ' = ?',
+                    [ $this->normalizeValue($column, $value) ]
+                );
         }
         if (isset($value['beg']) && isset($value['end'])) {
-            return $this->where(
-                $name.' BETWEEN ? AND ?',
-                [
-                    $this->normalizeValue($column, $value['beg']),
-                    $this->normalizeValue($column, $value['end'])
-                ]
-            );
+            return $negate ?
+                $this->where(
+                    $name.' NOT BETWEEN ? AND ?',
+                    [
+                        $this->normalizeValue($column, $value['beg']),
+                        $this->normalizeValue($column, $value['end'])
+                    ]
+                ) :
+                $this->where(
+                    $name.' BETWEEN ? AND ?',
+                    [
+                        $this->normalizeValue($column, $value['beg']),
+                        $this->normalizeValue($column, $value['end'])
+                    ]
+                );
         }
-        return $this->where(
-            $name . ' IN (??)',
-            [ array_map(function ($v) use ($column) { return $this->normalizeValue($column, $v); }, $value) ]
-        );
+        return $negate ?
+            $this->where(
+                $name . ' NOT IN (??)',
+                [ array_map(function ($v) use ($column) { return $this->normalizeValue($column, $v); }, $value) ]
+            ) :
+            $this->where(
+                $name . ' IN (??)',
+                [ array_map(function ($v) use ($column) { return $this->normalizeValue($column, $v); }, $value) ]
+            );
     }
     /**
      * Sort by a column

@@ -3,6 +3,7 @@
 namespace vakata\database;
 
 use \vakata\collection\Collection;
+use \vakata\database\schema\Table;
 
 interface DBInterface
 {
@@ -17,4 +18,10 @@ interface DBInterface
     public function commit() : DBInterface;
     public function rollback() : DBInterface;
     public function driver() : string;
+
+    public function definition(string $table, bool $detectRelations = true) : Table;
+    public function parseSchema();
+    public function getSchema($asPlainArray = true);
+    public function setSchema(array $data);
+    public function table($table);
 }

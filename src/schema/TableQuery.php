@@ -10,6 +10,7 @@ use vakata\database\ResultInterface;
  */
 class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
 {
+    const SEP = '___';
     /**
      * @var DBInterface
      */
@@ -43,6 +44,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @var int[]
      */
     protected $li_of = [0,0];
+    /**
+     * @var array
+     */
     protected $fields = [];
     /**
      * @var array
@@ -79,29 +83,44 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
 
     protected function getColumn($column)
     {
-        $column = explode('.', $column, 2);
+        $column = explode('.', $column);
         if (count($column) === 1) {
             $column = [ $this->definition->getName(), $column[0] ];
-        }
-        if ($column[0] === $this->definition->getName()) {
             $col = $this->definition->getColumn($column[1]);
-            if (!$col) {
-                throw new DBException('Invalid column name in own table');
-            }
-        } else {
-            if ($this->definition->hasRelation($column[0])) {
-                $col = $this->definition->getRelation($column[0])->table->getColumn($column[1]);
+        } elseif (count($column) === 2) {
+            if ($column[0] === $this->definition->getName()) {
+                $col = $this->definition->getColumn($column[1]);
                 if (!$col) {
-                    throw new DBException('Invalid column name in related table');
-                }
-            } else if (isset($this->joins[$column[0]])) {
-                $col = $this->joins[$column[0]]->table->getColumn($column[1]);
-                if (!$col) {
-                    throw new DBException('Invalid column name in related table');
+                    throw new DBException('Invalid column name in own table');
                 }
             } else {
-                throw new DBException('Invalid foreign table name: ' . implode(',', $column));
+                if ($this->definition->hasRelation($column[0])) {
+                    $col = $this->definition->getRelation($column[0])->table->getColumn($column[1]);
+                    if (!$col) {
+                        throw new DBException('Invalid column name in related table');
+                    }
+                } else if (isset($this->joins[$column[0]])) {
+                    $col = $this->joins[$column[0]]->table->getColumn($column[1]);
+                    if (!$col) {
+                        throw new DBException('Invalid column name in related table');
+                    }
+                } else {
+                    throw new DBException('Invalid foreign table name: ' . implode(',', $column));
+                }
             }
+        } else {
+            $name = array_pop($column);
+            $this->with(implode('.', $column));
+            $table = $this->definition;
+            $table = array_reduce(
+                $column,
+                function ($carry, $item) use (&$table) {
+                    $table = $table->getRelation($item)->table;
+                    return $table;
+                }
+            );
+            $col = $table->getColumn($name);
+            $column = [ implode(static::SEP, $column), $name ];
         }
         return [ 'name' => implode('.', $column), 'data' => $col ];
     }
@@ -361,11 +380,11 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         foreach ($this->definition->getRelations() as $k => $v) {
             foreach ($this->where as $vv) {
                 if (strpos($vv[0], $k . '.') !== false) {
-                    $relations[] = $k;
+                    $relations[$k] = [ $v, $table ];
                 }
             }
             if (isset($this->order[0]) && strpos($this->order[0], $k . '.') !== false) {
-                $relations[] = $k;
+                $relations[$k] = [ $v, $table ];
             }
         }
 
@@ -377,8 +396,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
             $sql .= implode(' AND ', $tmp) . ' ';
         }
-        foreach (array_unique($relations) as $k) {
-            $v = $this->definition->getRelation($k);
+        foreach ($relations as $k => $v) {
+            $table = $v[1];
+            $v = $v[0];
             if ($v->pivot) {
                 $sql .= 'LEFT JOIN '.$v->pivot->getName().' '.$k.'_pivot ON ';
                 $tmp = [];
@@ -439,23 +459,36 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         foreach ($fields as $k => $v) {
             if (strpos($v, '*') !== false) {
                 $temp = explode('.', $v);
-                if (count($temp) == 1) {
-                    $table = $this->definition->getName();
-                } else {
-                    $table = $temp[0];
-                }
                 $cols = [];
-                if ($this->definition->hasRelation($table)) {
-                    $cols = $this->definition->getRelation($table)->table->getColumns();
-                } else if (isset($this->joins[$table])) {
-                    $cols = $this->joins[$table]->table->getColumns();
+                if (count($temp) === 1) {
+                    $table = $this->definition->getName();
+                    $cols = $this->definition->getColumns();
+                } else if (count($temp) === 2) {
+                    $table = $temp[0];
+                    $cols = [];
+                    if ($this->definition->hasRelation($table)) {
+                        $cols = $this->definition->getRelation($table)->table->getColumns();
+                    } else if (isset($this->joins[$table])) {
+                        $cols = $this->joins[$table]->table->getColumns();
+                    } else {
+                        throw new DBException('Invalid foreign table name');
+                    }
                 } else {
-                    throw new DBException('Invalid foreign table name');
+                    $name = array_pop($temp);
+                    $this->with(implode('.', $temp));
+                    $table = array_reduce(
+                        $temp,
+                        function ($carry, $item) use (&$table) {
+                            return $table->getRelation($item)->table;
+                        }
+                    );
+                    $cols = $table->getColumns();
+                    $table = implode(static::SEP, $temp);
                 }
+                unset($fields[$k]);
                 foreach ($cols as $col) {
                     $fields[] = $table . '.' . $col;
                 }
-                unset($fields[$k]);
             }
         }
         $primary = $this->definition->getPrimaryKey();
@@ -491,28 +524,28 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $this->columns($fields);
         }
         $relations = $this->withr;
-        foreach ($this->definition->getRelations() as $k => $v) {
+        foreach ($this->definition->getRelations() as $k => $relation) {
             foreach ($this->fields as $field) {
                 if (strpos($field, $k . '.') === 0) {
-                    $relations[] = $k;
+                    $relations[$k] = [ $relation, $table ];
                 }
             }
             foreach ($this->where as $v) {
                 if (strpos($v[0], $k . '.') !== false) {
-                    $relations[] = $k;
+                    $relations[$k] = [ $relation, $table ];
                 }
             }
             if (isset($this->order[0]) && strpos($this->order[0], $k . '.') !== false) {
-                $relations[] = $k;
+                $relations[$k] = [ $relation, $table ];
             }
         }
         $select = [];
         foreach ($this->fields as $k => $field) {
             $select[] = $field . (!is_numeric($k) ? ' ' . $k : '');
         }
-        foreach ($this->withr as $relation) {
-            foreach ($this->definition->getRelation($relation)->table->getColumns() as $column) {
-                $select[] = $relation . '.' . $column . ' ' . $relation . '___' . $column;
+        foreach ($this->withr as $name => $relation) {
+            foreach ($relation[0]->table->getColumns() as $column) {
+                $select[] = $name . '.' . $column . ' ' . $name . static::SEP . $column;
             }
         }
         $sql = 'SELECT '.implode(', ', $select).' FROM '.$table.' ';
@@ -525,8 +558,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
             $sql .= implode(' AND ', $tmp) . ' ';
         }
-        foreach (array_unique($relations) as $relation) {
-            $v = $this->definition->getRelation($relation);
+        foreach ($relations as $relation => $v) {
+            $table = $v[1];
+            $v = $v[0];
             if ($v->pivot) {
                 $sql .= 'LEFT JOIN '.$v->pivot->getName().' '.$relation.'_pivot ON ';
                 $tmp = [];
@@ -614,12 +648,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         return $this->qiterator = new TableQueryIterator(
             $this->db->get($sql, $par), 
             $this->definition->getPrimaryKey(),
-            array_combine(
-                $this->withr,
-                array_map(function ($relation) {
-                    return $this->definition->getRelation($relation);
-                }, $this->withr)
-            )
+            $this->withr
         );
     }
     /**
@@ -743,11 +772,22 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      */
     public function with(string $relation) : TableQuery
     {
-        if (!$this->definition->hasRelation($relation)) {
-            throw new DBException('Invalid relation name');
-        }
         $this->qiterator = null;
-        $this->withr[$relation] = $relation;
+        $parts = explode('.', $relation);
+        $table = $this->definition;
+        array_reduce(
+            $parts,
+            function ($carry, $item) use (&$table) {
+                $relation = $table->getRelation($item);
+                if (!$relation) {
+                    throw new DBException('Invalid relation name');
+                }
+                $name = $carry ? $carry . static::SEP . $item : $item;
+                $this->withr[$name] = [ $relation, $carry ?? $table->getName() ];
+                $table = $relation->table;
+                return $name;
+            }
+        );
         return $this;
     }
 

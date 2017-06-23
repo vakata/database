@@ -9,6 +9,7 @@ use vakata\database\DBException;
  */
 class TableQueryIterator implements \Iterator, \ArrayAccess
 {
+    const SEP = '___';
     /**
      * @var array
      */
@@ -44,6 +45,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
     public function current()
     {
         $result = null;
+        $remove = [];
         while ($this->result->valid()) {
             $row = $this->result->current();
             $pk = [];
@@ -59,40 +61,67 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
                 $result = $row;
             }
             foreach ($this->relations as $name => $relation) {
-                if (!isset($result[$name])) {
-                    $result[$name] = $relation->many ? [] : null;
-                }
+                $relation = $relation[0];
                 $fields = [];
                 $exists = false;
                 foreach ($relation->table->getColumns() as $column) {
-                    $fields[$column] = $row[$name . '___' . $column];
-                    if (!$exists && $row[$name . '___' . $column] !== null) {
+                    $fields[$column] = $row[$name . static::SEP . $column];
+                    if (!$exists && $row[$name . static::SEP . $column] !== null) {
                         $exists = true;
                     }
-                    unset($result[$name . '___' . $column]);
+                    $remove[] = $name . static::SEP . $column;
                 }
+                $temp  = &$result;
+                $parts = explode(static::SEP, $name);
+                $name  = array_pop($parts);
+                $full  = '';
+                foreach ($parts as $item) {
+                    $full = $full ? $full . static::SEP . $item : $item;
+                    $temp = &$temp[$item];
+                    $rpk = [];
+                    foreach ($this->relations[$full][0]->table->getPrimaryKey() as $pkey) {
+                        $rpk[$field] = $row[$full . static::SEP . $field];
+                    }
+                    $temp = &$temp[json_encode($rpk)];
+                }
+                if (!isset($temp[$name])) {
+                    $temp[$name] = $relation->many ? [ '___clean' => true ] : null;
+                }
+                $temp = &$temp[$name];
                 if ($exists) {
                     if ($relation->many) {
                         $rpk = [];
                         foreach ($relation->table->getPrimaryKey() as $field) {
                             $rpk[$field] = $fields[$field];
                         }
-                        $result[$name][json_encode($rpk)] = $fields;
+                        $temp[json_encode($rpk)] = array_merge($temp[json_encode($rpk)] ?? [], $fields);
                     } else {
-                        $result[$name] = $fields;
+                        $temp = array_merge($temp ?? [], $fields);
                     }
                 }
             }
             $this->result->next();
         }
         if ($result) {
-            foreach ($this->relations as $name => $relation) {
-                if ($relation->many) {
-                    $result[$name] = array_values($result[$name]);
+            foreach ($remove as $name) {
+                unset($result[$name]);
+            }
+            $result = $this->values($result);
+        }
+        return $result;
+    }
+    protected function values(array $data)
+    {
+        foreach ($data as $k => $v) {
+            if (is_array($v) && isset($v['___clean']) && $v['___clean'] === true) {
+                unset($v['___clean']);
+                $data[$k] = array_values($v);
+                foreach ($data[$k] as $kk => $vv) {
+                    $data[$k][$kk] = $this->values($vv);
                 }
             }
         }
-        return $result;
+        return $data;
     }
 
     public function rewind()

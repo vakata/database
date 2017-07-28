@@ -83,7 +83,7 @@ class Statement implements StatementInterface
             }
         }
         if (!$this->statement->execute()) {
-            throw new DBException('Prepared execute error');
+            throw new DBException('Prepared execute error: ' . $this->statement->error);
         }
         return new Result($this->statement);
     }

@@ -132,6 +132,10 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         switch ($col->getBasicType()) {
             case 'date':
                 if (is_string($value)) {
+                    $temp = strtotime($value);
+                    if (!$temp) {
+                        return null;
+                    }
                     return date('Y-m-d', strtotime($value));
                 }
                 if (is_int($value)) {
@@ -143,6 +147,10 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 return $value;
             case 'datetime':
                 if (is_string($value)) {
+                    $temp = strtotime($value);
+                    if (!$temp) {
+                        return null;
+                    }
                     return date('Y-m-d H:i:s', strtotime($value));
                 }
                 if (is_int($value)) {

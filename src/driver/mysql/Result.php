@@ -41,7 +41,7 @@ class Result implements ResultInterface
                     call_user_func_array(array($this->statement, 'bind_result'), $temp);
                 }
             }
-        } catch (\Exception $e) { }
+        } catch (\Exception $ignore) { }
     }
     public function affected() : int
     {

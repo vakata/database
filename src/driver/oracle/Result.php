@@ -52,7 +52,7 @@ class Result implements ResultInterface
         if ($this->fetched >= 0) {
             if (!\oci_execute($this->statement)) {
                 $err = \oci_error($this->statement);
-                if (!$err) {
+                if (!is_array($err)) {
                     $err = [];
                 }
                 throw new DBException('Could not execute query : '.implode(',', $err));

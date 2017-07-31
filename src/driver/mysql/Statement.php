@@ -17,7 +17,7 @@ class Statement implements StatementInterface
     }
     public function __destruct()
     {
-        //@$this->statement->close();
+        // used to close statement here
     }
     public function execute(array $data = []) : ResultInterface
     {

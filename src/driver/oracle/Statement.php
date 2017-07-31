@@ -48,7 +48,7 @@ class Statement implements StatementInterface
         $temp = \oci_execute($this->statement, $this->driver->isTransaction() ? \OCI_NO_AUTO_COMMIT : \OCI_COMMIT_ON_SUCCESS);
         if (!$temp) {
             $err = \oci_error($this->statement);
-            if (!$err) {
+            if (!is_array($err)) {
                 $err = [];
             }
             throw new DBException('Could not execute query : '.implode(',', $err));

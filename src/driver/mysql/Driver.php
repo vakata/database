@@ -12,7 +12,6 @@ use \vakata\collection\Collection;
 
 class Driver extends DriverAbstract implements DriverInterface
 {
-    protected $connection;
     protected $lnk = null;
 
     public function __construct(array $connection)
@@ -50,14 +49,14 @@ class Driver extends DriverAbstract implements DriverInterface
                 throw new DBException('Charset error: '.$this->lnk->connect_errno);
             }
             if (isset($this->connection['opts']['timezone'])) {
-                @$this->lnk->query("SET time_zone = '".addslashes($this->connection['opts']['timezone'])."'");
+                $this->lnk->query("SET time_zone = '".addslashes($this->connection['opts']['timezone'])."'");
             }
         }
     }
     protected function disconnect()
     {
         if ($this->lnk !== null) {
-            @$this->lnk->close();
+            $this->lnk->close();
         }
     }
     public function prepare(string $sql) : StatementInterface

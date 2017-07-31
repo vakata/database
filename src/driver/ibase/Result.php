@@ -25,7 +25,7 @@ class Result implements ResultInterface
     }
     public function __destruct()
     {
-        @\ibase_free_result($this->result);
+        \ibase_free_result($this->result);
     }
     public function affected() : int
     {
@@ -56,7 +56,7 @@ class Result implements ResultInterface
     public function rewind()
     {
         if ($this->fetched >= 0) {
-            $this->result = call_user_func_array("\ibase_execute", $data);
+            $this->result = call_user_func_array("\ibase_execute", $this->data);
             if (!$this->result) {
                 throw new DBException('Could not execute query : '.\ibase_errmsg());
             }

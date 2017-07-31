@@ -117,8 +117,8 @@ class DB implements DBInterface
     }
     /**
      * Run a query (prepare & execute).
-     * @param string $sql  SQL query
-     * @param array  $data parameters (optional)
+     * @param string      $sql  SQL query
+     * @param array|null  $par parameters (optional)
      * @return ResultInterface the result of the execution
      */
     public function query(string $sql, $par = null) : ResultInterface
@@ -141,7 +141,7 @@ class DB implements DBInterface
      *
      * @return Collection the result of the execution
      */
-    public function get(string $sql, $par = null, string $key = null, bool $skip = false, bool $opti = true) : Collection
+    public function get(string $sql, $par = null, string $key = null, bool $skip = false, bool $opti = true): Collection
     {
         $coll = Collection::from($this->query($sql, $par));
         if (($keys = $this->driver->option('mode')) && in_array($keys, ['strtoupper', 'strtolower'])) {
@@ -153,7 +153,7 @@ class DB implements DBInterface
                 return $new;
             });
         }
-        if ($key) {
+        if ($key !== null) {
             $coll->mapKey(function ($v) use ($key) { return $v[$key]; });
         }
         if ($skip) {
@@ -162,16 +162,12 @@ class DB implements DBInterface
         if ($opti) {
             $coll->map(function ($v) { return count($v) === 1 ? current($v) : $v; });
         }
-        if ($keys) {
-            $coll->map(function ($v) use ($key) { unset($v[$key]); return $v; });
-        }
         return $coll;
     }
     /**
      * Run a SELECT query and get a single row
      * @param string   $sql      SQL query
      * @param array    $par      parameters
-     * @param callable $keys     an optional mutator to pass each row's keys through (the column names)
      * @param bool     $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
      * @return Collection the result of the execution
      */
@@ -185,7 +181,6 @@ class DB implements DBInterface
      * @param array    $par      parameters
      * @param string   $key      column name to use as the array index
      * @param bool     $skip     do not include the column used as index in the value (defaults to `false`)
-     * @param callable $keys     an optional mutator to pass each row's keys through (the column names)
      * @param bool     $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
      * @return Collection the result of the execution
      */

@@ -19,7 +19,7 @@ class Result implements ResultInterface
     }
     public function __destruct()
     {
-        @\oci_free_statement($this->statement);
+        \oci_free_statement($this->statement);
     }
     public function affected() : int
     {

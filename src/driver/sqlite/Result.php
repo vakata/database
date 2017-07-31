@@ -23,7 +23,7 @@ class Result implements ResultInterface
     }
     public function __destruct()
     {
-        @$this->statement->finalize();
+        $this->statement->finalize();
     }
     public function affected() : int
     {

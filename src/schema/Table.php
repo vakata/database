@@ -153,7 +153,6 @@ class Table
             $toTableColumn = [$toTableColumn];
         }
         foreach ($this->getPrimaryKey() as $k => $pkField) {
-            $key = null;
             if (isset($toTableColumn[$pkField])) {
                 $key = $toTableColumn[$pkField];
             } elseif (isset($toTableColumn[$k])) {
@@ -208,7 +207,6 @@ class Table
             $toTableColumn = [$toTableColumn];
         }
         foreach ($this->getPrimaryKey() as $k => $pkField) {
-            $key = null;
             if (isset($toTableColumn[$pkField])) {
                 $key = $toTableColumn[$pkField];
             } elseif (isset($toTableColumn[$k])) {
@@ -318,7 +316,6 @@ class Table
             $toTableColumn = [$toTableColumn];
         }
         foreach ($this->getPrimaryKey() as $k => $pkField) {
-            $key = null;
             if (isset($toTableColumn[$pkField])) {
                 $key = $toTableColumn[$pkField];
             } elseif (isset($toTableColumn[$k])) {
@@ -340,7 +337,6 @@ class Table
             $localColumn = [$localColumn];
         }
         foreach ($toTable->getPrimaryKey() as $k => $pkField) {
-            $key = null;
             if (isset($localColumn[$pkField])) {
                 $key = $localColumn[$pkField];
             } elseif (isset($localColumn[$k])) {

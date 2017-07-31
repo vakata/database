@@ -59,8 +59,8 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
 
     /**
      * Create an instance
-     * @param  DBInterface        $db         the database connection
-     * @param  Table|string  $definition     the name or definition of the main table in the query
+     * @param  DBInterface    $db         the database connection
+     * @param  Table|string   $table      the name or definition of the main table in the query
      */
     public function __construct(DBInterface $db, $table)
     {
@@ -617,9 +617,6 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
             $sql .= implode(' AND ', $tmp).' ';
         }
-        //if ($this->definition->hasRelations()) {
-        //    $sql .= 'GROUP BY '.$table.'.'.implode(', '.$table.'.', $primary).' ';
-        //}
         if (count($this->order)) {
             $sql .= 'ORDER BY ' . $this->order[0] . ' ';
             $par = array_merge($par, $this->order[1]);
@@ -688,11 +685,6 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
         $sql = 'INSERT INTO '.$table.' ('.implode(', ', array_keys($insert)).') VALUES (??)';
         $par = [$insert];
-        //if ($update) {
-        //    $sql .= 'ON DUPLICATE KEY UPDATE ';
-        //    $sql .= implode(', ', array_map(function ($v) { return $v . ' = ?'; }, array_keys($insert))) . ' ';
-        //    $par  = array_merge($par, $insert);
-        //}
         if ($this->db->driver() === 'oracle') {
             $primary = $this->definition->getPrimaryKey();
             $ret = [];

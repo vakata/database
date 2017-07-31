@@ -23,7 +23,7 @@ class Result implements ResultInterface
     }
     public function __destruct()
     {
-        @\pg_free_result($this->statement);
+        \pg_free_result($this->statement);
     }
     public function affected() : int
     {

@@ -11,8 +11,8 @@ use \vakata\database\schema\TableRelation;
 
 class Driver extends DriverAbstract implements DriverInterface
 {
-    protected $connection;
     protected $lnk = null;
+    protected $transaction = false;
 
     public function __construct(array $connection)
     {
@@ -44,7 +44,7 @@ class Driver extends DriverAbstract implements DriverInterface
     protected function disconnect()
     {
         if ($this->lnk !== null) {
-            @$this->lnk->close();
+            $this->lnk->close();
         }
     }
     public function prepare(string $sql) : StatementInterface

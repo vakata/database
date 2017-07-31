@@ -7,6 +7,8 @@ use \vakata\database\schema\TableQuery;
 
 abstract class DriverAbstract implements DriverInterface
 {
+    protected $connection;
+    
     protected function expand(string $sql, $par = null) : array
     {
         $new = '';

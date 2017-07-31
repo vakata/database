@@ -11,7 +11,6 @@ use \vakata\database\schema\TableRelation;
 
 class Driver extends DriverAbstract implements DriverInterface
 {
-    protected $connection;
     protected $lnk = null;
     protected $transaction = null;
 

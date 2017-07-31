@@ -225,9 +225,20 @@ class DB implements DBInterface
      * Get the current driver name (`"mysql"`, `"postgre"`, etc).
      * @return string the current driver name
      */
-    public function driver() : string
+    public function driverName() : string
     {
         return array_reverse(explode('\\', get_class($this->driver)))[1];
+    }
+    /**
+     * Get an option from the driver
+     *
+     * @param string $key     the option name
+     * @param mixed  $default the default value to return if the option key is not defined
+     * @return mixed the option value
+     */
+    public function driverOption(string $key, $default = null)
+    {
+        return $this->driver->option($key, $default);
     }
 
     public function definition(string $table, bool $detectRelations = true) : Table

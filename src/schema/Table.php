@@ -261,7 +261,6 @@ class Table
             $localColumn = [$localColumn];
         }
         foreach ($toTable->getPrimaryKey() as $k => $pkField) {
-            $key = null;
             if (isset($localColumn[$pkField])) {
                 $key = $localColumn[$pkField];
             } elseif (isset($localColumn[$k])) {
@@ -446,7 +445,7 @@ class Table
                 $t[strtolower($kk)] = strtolower($vv);
             }
             $v->keymap = $t;
-            if ($v->pivot_keymap) {
+            if ($v->pivot_keymap !== null) {
                 $t = [];
                 foreach ($v->pivot_keymap as $kk => $vv) {
                     $t[strtolower($kk)] = strtolower($vv);

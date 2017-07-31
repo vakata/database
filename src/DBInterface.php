@@ -17,7 +17,8 @@ interface DBInterface
     public function begin() : DBInterface;
     public function commit() : DBInterface;
     public function rollback() : DBInterface;
-    public function driver() : string;
+    public function driverName() : string;
+    public function driverOption(string $key, $default = null);
 
     public function definition(string $table, bool $detectRelations = true) : Table;
     public function parseSchema();

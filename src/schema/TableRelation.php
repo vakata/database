@@ -27,7 +27,7 @@ class TableRelation
      */
     public $pivot;
     /**
-     * @var string[]
+     * @var string[]|null
      */
     public $pivot_keymap;
     /**

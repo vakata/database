@@ -37,7 +37,7 @@ abstract class DriverAbstract implements DriverInterface
     /**
      * Run a query (prepare & execute).
      * @param string $sql  SQL query
-     * @param array  $data parameters (optional)
+     * @param mixed  $par  parameters (optional)
      * @return ResultInterface the result of the execution
      */
     public function query(string $sql, $par = null) : ResultInterface
@@ -52,7 +52,7 @@ abstract class DriverAbstract implements DriverInterface
     {
         return $this->connection['name'];
     }
-    public function option($key, $default = null)
+    public function option(string $key, $default = null)
     {
         return isset($this->connection['opts'][$key]) ? $this->connection['opts'][$key] : $default;
     }

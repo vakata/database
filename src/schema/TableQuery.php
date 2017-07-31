@@ -467,13 +467,11 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         foreach ($fields as $k => $v) {
             if (strpos($v, '*') !== false) {
                 $temp = explode('.', $v);
-                $cols = [];
                 if (count($temp) === 1) {
                     $table = $this->definition->getName();
                     $cols = $this->definition->getColumns();
                 } else if (count($temp) === 2) {
                     $table = $temp[0];
-                    $cols = [];
                     if ($this->definition->hasRelation($table)) {
                         $cols = $this->definition->getRelation($table)->table->getColumns();
                     } else if (isset($this->joins[$table])) {
@@ -482,7 +480,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                         throw new DBException('Invalid foreign table name');
                     }
                 } else {
-                    $name = array_pop($temp);
+                    array_pop($temp);
                     $this->with(implode('.', $temp));
                     $table = array_reduce(
                         $temp,
@@ -628,8 +626,8 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $sql .= (count($this->order) ? ', ' : 'ORDER BY ') . implode(', ', $porder) . ' ';
 
         if ($this->li_of[0]) {
-            if ($this->db->driver() === 'oracle') {
-                if ((int)($this->db->settings()->options['version'] ?? 0) >= 12) {
+            if ($this->db->driverName() === 'oracle') {
+                if ((int)$this->db->driverOption('version', 0) >= 12) {
                     $sql .= 'OFFSET ' . $this->li_of[1] . ' ROWS FETCH NEXT ' . $this->li_of[0] . ' ROWS ONLY';
                 } else {
                     $f = array_map(function ($v) {
@@ -685,7 +683,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
         $sql = 'INSERT INTO '.$table.' ('.implode(', ', array_keys($insert)).') VALUES (??)';
         $par = [$insert];
-        if ($this->db->driver() === 'oracle') {
+        if ($this->db->driverName() === 'oracle') {
             $primary = $this->definition->getPrimaryKey();
             $ret = [];
             foreach ($primary as $k) {

@@ -15,7 +15,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
      */
     protected $pkey;
     /**
-     * @var Result
+     * @var Collection
      */
     protected $result;
     /**
@@ -80,7 +80,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
                     $temp = &$temp[$item];
                     $rpk = [];
                     foreach ($this->relations[$full][0]->table->getPrimaryKey() as $pkey) {
-                        $rpk[$field] = $row[$full . static::SEP . $field];
+                        $rpk[$pkey] = $row[$full . static::SEP . $pkey];
                     }
                     $temp = &$temp[json_encode($rpk)];
                 }

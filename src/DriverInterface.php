@@ -13,7 +13,7 @@ interface DriverInterface
     public function rollback() : bool;
 
     public function name() : string;
-    public function option($key, $default = null);
+    public function option(string $key, $default = null);
 
     public function table(string $table, bool $detectRelations = true) : Table;
     public function tables() : array;

@@ -64,7 +64,7 @@ class Driver extends DriverAbstract implements DriverInterface
         $temp = \oci_parse($this->lnk, $sql);
         if (!$temp) {
             $err = \oci_error();
-            if (!$err) {
+            if (!is_array($err)) {
                 $err = [];
             }
             throw new DBException('Could not prepare : '.implode(', ', $err).' <'.$sql.'>');
@@ -138,7 +138,7 @@ class Driver extends DriverAbstract implements DriverInterface
         if (!count($columns)) {
             throw new DBException('Table not found by name');
         }
-        $owner = $this->name(); // current($columns)['OWNER'];
+        $owner = $this->name(); // used to be the current column's OWNER
         $pkname = Collection::from($this
             ->query(
                 "SELECT constraint_name FROM all_constraints
@@ -204,7 +204,7 @@ class Driver extends DriverAbstract implements DriverInterface
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$primary[(int)$relation['POSITION']-1]] = $relation['COLUMN_NAME'];
             }
             foreach ($relations as $data) {
-                $rtable = $this->table($data['table'], true); // ?? $this->addTableByName($data['table'], false);
+                $rtable = $this->table($data['table'], true);
                 $columns = [];
                 foreach ($rtable->getColumns() as $column) {
                     if (!in_array($column, $data['keymap'])) {

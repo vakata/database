@@ -56,6 +56,10 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @var array
      */
     protected $joins = [];
+    /**
+     * @var array
+     */
+    protected $pkey = [];
 
     /**
      * Create an instance
@@ -66,7 +70,10 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     {
         $this->db = $db;
         $this->definition = $table instanceof Table ? $table : $this->db->definition((string)$table);
-        $this->columns($this->definition->getColumns());
+        $primary = $this->definition->getPrimaryKey();
+        $columns = $this->definition->getColumns();
+        $this->pkey = count($primary) ? $primary : $columns;
+        $this->columns($columns);
     }
     public function __clone()
     {
@@ -174,6 +181,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 return $value;
         }
     }
+
     /**
      * Filter the results by a column and a value
      * @param  string $column  the column name to filter by (related columns can be used - for example: author.name)
@@ -380,8 +388,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     public function count() : int
     {
         $table = $this->definition->getName();
-        $primary = $this->definition->getPrimaryKey();
-        $sql = 'SELECT COUNT(DISTINCT '.$table.'.'.implode(', '.$table.'.', $primary).') FROM '.$table.' ';
+        $sql = 'SELECT COUNT(DISTINCT '.$table.'.'.implode(', '.$table.'.', $this->pkey).') FROM '.$table.' ';
         $par = [];
         
         $relations = $this->withr;
@@ -525,7 +532,6 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             return $this->qiterator;
         }
         $table = $this->definition->getName();
-        $primary = $this->definition->getPrimaryKey();
         if ($fields !== null) {
             $this->columns($fields);
         }
@@ -620,10 +626,12 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $par = array_merge($par, $this->order[1]);
         }
         $porder = [];
-        foreach ($primary as $field) {
+        foreach ($this->definition->getPrimaryKey() as $field) {
             $porder[] = $this->getColumn($field)['name'];
         }
-        $sql .= (count($this->order) ? ', ' : 'ORDER BY ') . implode(', ', $porder) . ' ';
+        if (count($porder)) {
+            $sql .= (count($this->order) ? ', ' : 'ORDER BY ') . implode(', ', $porder) . ' ';
+        }
 
         if ($this->li_of[0]) {
             if ($this->db->driverName() === 'oracle') {
@@ -650,7 +658,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
         return $this->qiterator = new TableQueryIterator(
             $this->db->get($sql, $par), 
-            $this->definition->getPrimaryKey(),
+            $this->pkey,
             $this->withr
         );
     }
@@ -683,8 +691,12 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
         $sql = 'INSERT INTO '.$table.' ('.implode(', ', array_keys($insert)).') VALUES (??)';
         $par = [$insert];
+        $primary = $this->definition->getPrimaryKey();
+        if (!count($primary)) {
+            $this->db->query($sql, $par);
+            return [];
+        }
         if ($this->db->driverName() === 'oracle') {
-            $primary = $this->definition->getPrimaryKey();
             $ret = [];
             foreach ($primary as $k) {
                 $ret[$k] = str_repeat(' ', 255);
@@ -696,7 +708,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         } else {
             $ret = [];
             $ins = $this->db->query($sql, $par)->insertID();
-            foreach ($this->definition->getPrimaryKey() as $k) {
+            foreach ($primary as $k) {
                 $ret[$k] = $data[$k] ?? $ins;
             }
             return $ret;

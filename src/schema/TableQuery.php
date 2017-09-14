@@ -94,6 +94,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         if (count($column) === 1) {
             $column = [ $this->definition->getName(), $column[0] ];
             $col = $this->definition->getColumn($column[1]);
+            if (!$col) {
+                throw new DBException('Invalid column name in own table');
+            }
         } elseif (count($column) === 2) {
             if ($column[0] === $this->definition->getName()) {
                 $col = $this->definition->getColumn($column[1]);

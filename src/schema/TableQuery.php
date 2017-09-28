@@ -228,6 +228,33 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                     ]
                 );
         }
+        if (isset($value['gt']) || isset($value['lt']) || isset($value['gte']) || isset($value['lte'])) {
+            if (isset($value['gt'])) {
+                $this->where(
+                    $name. ' ' . ($negate ? '<=' : '>') . ' ?',
+                    [ $this->normalizeValue($column, $value['gt']) ]
+                );
+            }
+            if (isset($value['gte'])) {
+                $this->where(
+                    $name. ' ' . ($negate ? '<' : '>=') . ' ?',
+                    [ $this->normalizeValue($column, $value['gte']) ]
+                );
+            }
+            if (isset($value['lt'])) {
+                $this->where(
+                    $name. ' ' . ($negate ? '>=' : '<') . ' ?',
+                    [ $this->normalizeValue($column, $value['lt']) ]
+                );
+            }
+            if (isset($value['lte'])) {
+                $this->where(
+                    $name. ' ' . ($negate ? '>' : '<=') . ' ?',
+                    [ $this->normalizeValue($column, $value['lte']) ]
+                );
+            }
+            return $this;
+        }
         return $negate ?
             $this->where(
                 $name . ' NOT IN (??)',

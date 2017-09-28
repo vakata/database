@@ -60,6 +60,18 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
         $this->assertEquals(count($this->getDB()->book()->filter('tag.name', 'Escarina')), 1);
         $this->assertEquals(count($this->getDB()->book()->filter('tag.name', 'Discworld')), 1);
         $this->assertEquals(count($this->getDB()->book()->filter('tag.name', 'None')), 0);
+        $this->assertEquals(count($this->getDB()->book()->filter('author_id', ['gt' => 0])), 1);
+        $this->assertEquals(count($this->getDB()->book()->filter('author_id', ['gt' => 1])), 0);
+        $this->assertEquals(count($this->getDB()->book()->filter('author_id', ['gte' => 1])), 1);
+        $this->assertEquals(count($this->getDB()->book()->filter('author_id', ['lt' => 1])), 0);
+        $this->assertEquals(count($this->getDB()->book()->filter('author_id', ['lt' => 2])), 1);
+        $this->assertEquals(count($this->getDB()->book()->filter('author_id', ['lte' => 1])), 1);
+        $this->assertEquals(count($this->getDB()->book()->filter('author_id', ['gt' => 0], true)), 0);
+        $this->assertEquals(count($this->getDB()->book()->filter('author_id', ['gt' => 1], true)), 1);
+        $this->assertEquals(count($this->getDB()->book()->filter('author_id', ['gte' => 1], true)), 0);
+        $this->assertEquals(count($this->getDB()->book()->filter('author_id', ['lt' => 1], true)), 1);
+        $this->assertEquals(count($this->getDB()->book()->filter('author_id', ['lt' => 2], true)), 0);
+        $this->assertEquals(count($this->getDB()->book()->filter('author_id', ['lte' => 1], true)), 0);
     }
 
     public function testReadLoop() {

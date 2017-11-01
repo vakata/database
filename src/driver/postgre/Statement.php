@@ -36,6 +36,8 @@ class Statement implements StatementInterface
                 $res = \pg_fetch_row($iid);
                 $iid = $res[0];
             }
+        }
+        if (preg_match('@^\s*(INSERT|REPLACE|UPDATE|DELETE)\s+@i', $this->statement)) {
             $aff = \pg_affected_rows($temp);
         }
 

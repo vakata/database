@@ -56,7 +56,12 @@ class Driver extends DriverAbstract implements DriverInterface
     public function prepare(string $sql) : StatementInterface
     {
         $this->connect();
-        return new Statement($sql, $this->lnk);
+        return new Statement(
+            $sql,
+            $this->lnk,
+            $this->connection['opts']['charset_in'] ?? null,
+            $this->connection['opts']['charset_out'] ?? null
+        );
     }
 
     public function begin() : bool

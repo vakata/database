@@ -11,16 +11,20 @@ class Result implements ResultInterface
 {
     protected $statement;
     protected $data;
+    protected $charIn;
+    protected $charOut;
     protected $columns;
     protected $last = null;
     protected $fetched = -1;
     protected $iid = null;
 
-    public function __construct($statement, $data, $iid)
+    public function __construct($statement, $data, $iid, $charIn = null, $charOut = null)
     {
         $this->statement = $statement;
         $this->data = $data;
         $this->iid = $iid;
+        $this->charIn = $charIn;
+        $this->charOut = $charOut;
         $this->columns = [];
         $i = 0;
         try {
@@ -83,10 +87,27 @@ class Result implements ResultInterface
             foreach ($this->columns as $col) {
                 $this->last[$col] = \odbc_result($this->statement, $col);
             }
+            $this->last = $this->convert($this->last);
         }
     }
     public function valid()
     {
         return !!$this->last;
+    }
+    protected function convert($data)
+    {
+        if (!is_callable("\iconv") || !isset($this->charIn) || !isset($this->charOut)) {
+            return $data;
+        }
+        if (is_array($data)) {
+            foreach ($data as $k => $v) {
+                $data[$k] = $this->convert($v);
+            }
+            return $data;
+        }
+        if (is_string($data)) {
+            return \iconv($this->charIn, $this->charOut, $data);
+        }
+        return $data;
     }
 }

@@ -8,6 +8,7 @@ use \vakata\database\DriverAbstract;
 use \vakata\database\StatementInterface;
 use \vakata\database\schema\Table;
 use \vakata\database\schema\TableRelation;
+use \vakata\collection\Collection;
 
 class Driver extends DriverAbstract implements DriverInterface
 {

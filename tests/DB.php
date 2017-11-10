@@ -30,6 +30,14 @@ abstract class DB extends \PHPUnit\Framework\TestCase
         }
     }
 
+    public function testDriver()
+    {
+        $db = new DBI($this->getConnectionString());
+        $this->assertEquals(true, $db->test());
+        $db = new DBI('mysql://user:invalid@unknown/error');
+        $this->assertEquals(false, $db->test());
+    }
+
     public function testCreate()
     {
         $this->assertEquals(true, $this->getDB() instanceof DBI);

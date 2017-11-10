@@ -17,4 +17,6 @@ interface DriverInterface
 
     public function table(string $table, bool $detectRelations = true) : Table;
     public function tables() : array;
+
+    public function test() : bool;
 }

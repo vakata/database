@@ -85,7 +85,10 @@ abstract class DriverAbstract implements DriverInterface
             return false;
         }
     }
+    
     abstract public function prepare(string $sql) : StatementInterface;
+    abstract public function test() : bool;
+
     public function table(string $table, bool $detectRelations = true) : Table
     {
         throw new DBException('Not supported');

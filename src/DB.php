@@ -90,6 +90,15 @@ class DB implements DBInterface
     {
         return $this->driver->prepare($sql);
     }
+    /**
+     * Test the connection
+     *
+     * @return bool
+     */
+    public function test() : bool
+    {
+        return $this->driver->test();
+    }
     protected function expand(string $sql, $par = null) : array
     {
         $new = '';

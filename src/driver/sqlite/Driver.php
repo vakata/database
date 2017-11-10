@@ -41,6 +41,18 @@ class Driver extends DriverAbstract implements DriverInterface
             }
         }
     }
+    public function test() : bool
+    {
+        if ($this->lnk) {
+            return true;
+        }
+        try {
+            $this->connect();
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
     protected function disconnect()
     {
         if ($this->lnk !== null) {

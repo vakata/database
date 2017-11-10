@@ -48,7 +48,7 @@ class Driver extends DriverAbstract implements DriverInterface
             return true;
         }
         try {
-            $this->connect();
+            @$this->connect();
             return true;
         } catch (\Exception $e) {
             return false;
@@ -56,7 +56,7 @@ class Driver extends DriverAbstract implements DriverInterface
     }
     protected function disconnect()
     {
-        if ($this->lnk !== null) {
+        if ($this->lnk !== null && $this->lnk !== false) {
             \oci_close($this->lnk);
         }
     }

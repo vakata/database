@@ -116,6 +116,8 @@ class TableColumn
             $this->btype = 'datetime';
         } elseif (strpos($type, 'date') !== false) {
             $this->btype = 'date';
+        } elseif (strpos($type, 'time') !== false) {
+            $this->btype = 'time';
         } elseif (strpos($type, 'lob') !== false || strpos($type, 'binary') !== false) {
             $this->btype = 'blob';
         }

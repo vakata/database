@@ -74,21 +74,24 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
                 $temp  = &$result;
                 $parts = explode(static::SEP, $name);
                 $name  = array_pop($parts);
-                $full  = '';
-                foreach ($parts as $item) {
-                    $full = $full ? $full . static::SEP . $item : $item;
-                    $temp = &$temp[$item];
-                    $rpk = [];
-                    foreach ($this->relations[$full][0]->table->getPrimaryKey() as $pkey) {
-                        $rpk[$pkey] = $row[$full . static::SEP . $pkey];
-                    }
-                    $temp = &$temp[json_encode($rpk)];
-                }
-                if (!isset($temp[$name])) {
+                if (!$exists && !count($parts) && !isset($temp[$name])) {
                     $temp[$name] = $relation->many ? [ '___clean' => true ] : null;
                 }
-                $temp = &$temp[$name];
                 if ($exists) {
+                    $full  = '';
+                    foreach ($parts as $item) {
+                        $full = $full ? $full . static::SEP . $item : $item;
+                        $temp = &$temp[$item];
+                        $rpk = [];
+                        foreach ($this->relations[$full][0]->table->getPrimaryKey() as $pkey) {
+                            $rpk[$pkey] = $row[$full . static::SEP . $pkey];
+                        }
+                        $temp = &$temp[json_encode($rpk)];
+                    }
+                    if (!isset($temp[$name])) {
+                        $temp[$name] = $relation->many ? [ '___clean' => true ] : null;
+                    }
+                    $temp = &$temp[$name];
                     if ($relation->many) {
                         $rpk = [];
                         foreach ($relation->table->getPrimaryKey() as $field) {

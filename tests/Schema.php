@@ -43,6 +43,7 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
     public function testRemoteRelations() {
         $author = $this->getDB()->author()->with('book')->with('book.tag');
         $this->assertEquals(count($author[0]['book'][0]['tag']), 2);
+        $this->assertEquals(count($author[2]['book']), 0);
     }
 
     public function testSerialize() {

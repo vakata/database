@@ -60,6 +60,10 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @var array
      */
     protected $pkey = [];
+    /**
+     * @var array
+     */
+    protected $aliases = [];
 
     /**
      * Create an instance
@@ -566,19 +570,25 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $this->columns($fields);
         }
         $relations = $this->withr;
+        foreach ($relations as $k => $v) {
+            $this->getAlias($k);
+        }
         foreach ($this->definition->getRelations() as $k => $relation) {
-            foreach ($this->fields as $field) {
+            foreach ($this->fields as $kk => $field) {
                 if (strpos($field, $k . '.') === 0) {
                     $relations[$k] = [ $relation, $table ];
+                    $this->fields[$kk] = str_replace($k . '.', $this->getAlias($k) . '.', $field);
                 }
             }
-            foreach ($this->where as $v) {
+            foreach ($this->where as $kk => $v) {
                 if (strpos($v[0], $k . '.') !== false) {
                     $relations[$k] = [ $relation, $table ];
+                    $this->where[$kk] = str_replace($k . '.', $this->getAlias($k) . '.', $v);
                 }
             }
             if (isset($this->order[0]) && strpos($this->order[0], $k . '.') !== false) {
                 $relations[$k] = [ $relation, $table ];
+                $this->order[0] = str_replace($k . '.', $this->getAlias($k) . '.', $this->order[0]);
             }
         }
         $select = [];
@@ -587,7 +597,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
         foreach ($this->withr as $name => $relation) {
             foreach ($relation[0]->table->getColumns() as $column) {
-                $select[] = $name . '.' . $column . ' ' . $name . static::SEP . $column;
+                $select[] = $this->getAlias($name) . '.' . $column . ' ' . $this->getAlias($name . static::SEP . $column);
             }
         }
         $sql = 'SELECT '.implode(', ', $select).' FROM '.$table.' ';
@@ -601,26 +611,29 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $sql .= implode(' AND ', $tmp) . ' ';
         }
         foreach ($relations as $relation => $v) {
-            $table = $v[1];
+            $table = $v[1] !== $this->definition->getName() ? $this->getAlias($v[1]) : $v[1];
             $v = $v[0];
             if ($v->pivot) {
-                $sql .= 'LEFT JOIN '.$v->pivot->getName().' '.$relation.'_pivot ON ';
+                $alias = $this->getAlias($relation.'_pivot');
+                $sql .= 'LEFT JOIN '.$v->pivot->getName().' '.$alias.' ON ';
                 $tmp = [];
                 foreach ($v->keymap as $kk => $vv) {
-                    $tmp[] = $table.'.'.$kk.' = '.$relation.'_pivot.'.$vv.' ';
+                    $tmp[] = $table.'.'.$kk.' = '.$alias.'.'.$vv.' ';
                 }
                 $sql .= implode(' AND ', $tmp) . ' ';
-                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$relation.' ON ';
+                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$this->getAlias($relation).' ON ';
                 $tmp = [];
                 foreach ($v->pivot_keymap as $kk => $vv) {
-                    $tmp[] = $relation.'.'.$vv.' = '.$relation.'_pivot.'.$kk.' ';
+                    $tmp[] = $this->getAlias($relation).'.'.$vv.' = '.$alias.'.'.$kk.' ';
                 }
                 $sql .= implode(' AND ', $tmp) . ' ';
             } else {
-                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$relation.' ON ';
+                $alias = $this->getAlias($relation);
+
+                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$alias.' ON ';
                 $tmp = [];
                 foreach ($v->keymap as $kk => $vv) {
-                    $tmp[] = $table.'.'.$kk.' = '.$relation.'.'.$vv.' ';
+                    $tmp[] = $table.'.'.$kk.' = '.$alias.'.'.$vv.' ';
                 }
                 if ($v->sql) {
                     $tmp[] = $v->sql . ' ';
@@ -689,8 +702,14 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         return $this->qiterator = new TableQueryIterator(
             $this->db->get($sql, $par), 
             $this->pkey,
-            $this->withr
+            $this->withr,
+            $this->aliases
         );
+    }
+    protected function getAlias($name)
+    {
+        // to bypass use: return $name;
+        return $this->aliases[$name] = $this->aliases[$name] ?? 'alias' . static::SEP . count($this->aliases);
     }
     /**
      * Perform the actual fetch

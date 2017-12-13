@@ -23,6 +23,10 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
      */
     protected $relations;
     /**
+     * @var array[]
+     */
+    protected $aliases;
+    /**
      * @var string|null
      */
     protected $primary = null;
@@ -31,11 +35,12 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
      */
     protected $fetched = 0;
 
-    public function __construct(Collection $result, array $pkey, array $relations = [])
+    public function __construct(Collection $result, array $pkey, array $relations = [], array $aliases = [])
     {
         $this->pkey = $pkey;
         $this->result = $result;
         $this->relations = $relations;
+        $this->aliases = $aliases;
     }
 
     public function key()
@@ -65,11 +70,15 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
                 $fields = [];
                 $exists = false;
                 foreach ($relation->table->getColumns() as $column) {
-                    $fields[$column] = $row[$name . static::SEP . $column];
-                    if (!$exists && $row[$name . static::SEP . $column] !== null) {
+                    $nm = $name . static::SEP . $column;
+                    if (isset($this->aliases[$nm])) {
+                        $nm = $this->aliases[$nm];
+                    }
+                    $fields[$column] = $row[$nm];
+                    if (!$exists && $row[$nm] !== null) {
                         $exists = true;
                     }
-                    $remove[] = $name . static::SEP . $column;
+                    $remove[] = $nm; // $name . static::SEP . $column;
                 }
                 $temp  = &$result;
                 $parts = explode(static::SEP, $name);
@@ -84,7 +93,11 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
                         $temp = &$temp[$item];
                         $rpk = [];
                         foreach ($this->relations[$full][0]->table->getPrimaryKey() as $pkey) {
-                            $rpk[$pkey] = $row[$full . static::SEP . $pkey];
+                            $nm = $full . static::SEP . $pkey;
+                            if (isset($this->aliases[$nm])) {
+                                $nm = $this->aliases[$nm];
+                            }
+                            $rpk[$pkey] = $row[$nm];
                         }
                         $temp = &$temp[json_encode($rpk)];
                     }

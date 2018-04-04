@@ -443,29 +443,29 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $j = array_map(function ($v) { return clone $v; }, $this->joins);
         foreach ($this->definition->getRelations() as $k => $v) {
             foreach ($w as $kk => $vv) {
-                if (strpos($vv[0], $k . '.') !== false) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv[0])) {
                     $relations[$k] = [ $v, $table ];
-                    $w[$kk][0] = str_replace($k . '.', $getAlias($k) . '.', $vv[0]);
+                    $w[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv[0]);
                 }
             }
-            if (isset($o[0]) && strpos($o[0], $k . '.') !== false) {
+            if (isset($o[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $o[0])) {
                 $relations[$k] = [ $v, $table ];
             }
             foreach ($h as $kk => $vv) {
-                if (strpos($vv[0], $k . '.') !== false) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv[0])) {
                     $relations[$k] = [ $relation, $table ];
-                    $h[$kk][0] = str_replace($k . '.', $getAlias($k) . '.', $vv[0]);
+                    $h[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv[0]);
                 }
             }
-            if (isset($g[0]) && strpos($g[0], $k . '.') !== false) {
+            if (isset($g[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $g[0])) {
                 $relations[$k] = [ $relation, $table ];
-                $g[0] = str_replace($k . '.', $getAlias($k) . '.', $g[0]);
+                $g[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $g[0]);
             }
             foreach ($j as $kk => $v) {
                 foreach ($v->keymap as $kkk => $vv) {
-                    if (strpos($vv, $k . '.') !== false) {
+                    if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv)) {
                         $relations[$k] = [ $relation, $table ];
-                        $j[$k]->keymap[$kkk] = str_replace($k . '.', $getAlias($k) . '.', $vv);
+                        $j[$k]->keymap[$kkk] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv);
                     }
                 }
             }
@@ -629,30 +629,30 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 }
             }
             foreach ($w as $kk => $v) {
-                if (strpos($v[0], $k . '.') !== false) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
                     $relations[$k] = [ $relation, $table ];
-                    $w[$kk][0] = str_replace($k . '.', $getAlias($k) . '.', $v[0]);
+                    $w[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $v[0]);
                 }
             }
             foreach ($h as $kk => $v) {
-                if (strpos($v[0], $k . '.') !== false) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
                     $relations[$k] = [ $relation, $table ];
-                    $h[$kk][0] = str_replace($k . '.', $getAlias($k) . '.', $v[0]);
+                    $h[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $v[0]);
                 }
             }
-            if (isset($o[0]) && strpos($o[0], $k . '.') !== false) {
+            if (isset($o[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $o[0])) {
                 $relations[$k] = [ $relation, $table ];
-                $o[0] = str_replace($k . '.', $getAlias($k) . '.', $o[0]);
+                $o[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $o[0]);
             }
-            if (isset($g[0]) && strpos($g[0], $k . '.') !== false) {
+            if (isset($g[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $g[0])) {
                 $relations[$k] = [ $relation, $table ];
-                $g[0] = str_replace($k . '.', $getAlias($k) . '.', $g[0]);
+                $g[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $g[0]);
             }
             foreach ($j as $kk => $v) {
                 foreach ($v->keymap as $kkk => $vv) {
-                    if (strpos($vv, $k . '.') !== false) {
+                    if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv)) {
                         $relations[$k] = [ $relation, $table ];
-                        $j[$k]->keymap[$kkk] = str_replace($k . '.', $getAlias($k) . '.', $vv);
+                        $j[$k]->keymap[$kkk] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv);
                     }
                 }
             }

@@ -215,6 +215,12 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                     [ $this->normalizeValue($column, $value) ]
                 );
         }
+        if (isset($value['beg']) && strlen($value['beg']) && (!isset($value['end']) || !strlen($value['end']))) {
+            $value = [ 'gte' => $value['beg'] ];
+        }
+        if (isset($value['end']) && strlen($value['end']) && (!isset($value['beg']) || !strlen($value['beg']))) {
+            $value = [ 'lte' => $value['end'] ];
+        }
         if (isset($value['beg']) && isset($value['end'])) {
             return $negate ?
                 $this->where(

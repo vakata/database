@@ -1,6 +1,7 @@
 <?php
 namespace vakata\database\schema;
 
+use vakata\collection\Collection;
 use vakata\database\DBInterface;
 use vakata\database\DBException;
 use vakata\database\ResultInterface;
@@ -43,7 +44,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     /**
      * @var int[]
      */
-    protected $li_of = [0,0];
+    protected $li_of = [0,0,0];
     /**
      * @var array
      */
@@ -335,7 +336,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $this->order = [];
         $this->having = [];
         $this->aliases = [];
-        $this->li_of = [0,0];
+        $this->li_of = [0,0,0];
         $this->qiterator = null;
         return $this;
     }
@@ -416,10 +417,10 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  int         $offset number of rows to skip from the beginning (defaults to 0)
      * @return $this
      */
-    public function limit(int $limit, int $offset = 0) : TableQuery
+    public function limit(int $limit, int $offset = 0, bool $limitOnMainTable = false) : TableQuery
     {
         $this->qiterator = null;
-        $this->li_of = [ $limit, $offset ];
+        $this->li_of = [ $limit, $offset, $limitOnMainTable ? 1 : 0 ];
         return $this;
     }
     /**
@@ -627,6 +628,39 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $o = $this->order;
         $g = $this->group;
         $j = array_map(function ($v) { return clone $v; }, $this->joins);
+
+        $porder = [];
+        foreach ($this->definition->getPrimaryKey() as $field) {
+            $porder[] = $this->getColumn($field)['name'];
+        }
+
+        if (count($porder) && $this->li_of[2] === 1) {
+            $ids = $this->ids();
+            if (count($ids)) {
+                if (count($porder) > 1) {
+                    $pkw = [];
+                    foreach ($porder as $name) {
+                        $pkw[] = $name . ' = ?';
+                    }
+                    $pkw = '(' . implode(' AND ', $pkw) . ')';
+                    $pkp = [];
+                    foreach ($ids as $id) {
+                        foreach ($id as $p) {
+                            $pkp[] = $p;
+                        }
+                    }
+                    $w[] = [
+                        implode(' OR ', array_fill(0, count($ids), $pkw)),
+                        $pkp
+                    ];
+                } else {
+                    $w[] = [ $porder[0] . ' IN ('.implode(',', array_fill(0, count($ids), '?')).')', $ids ];
+                }
+            } else {
+                $w[] = [ '1=0', [] ];
+            }
+        }
+
         foreach ($this->definition->getRelations() as $k => $relation) {
             foreach ($f as $kk => $field) {
                 if (strpos($field, $k . '.') === 0) {
@@ -740,15 +774,10 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $sql .= 'ORDER BY ' . $o[0] . ' ';
             $par = array_merge($par, $o[1]);
         }
-        $porder = [];
-        foreach ($this->definition->getPrimaryKey() as $field) {
-            $porder[] = $this->getColumn($field)['name'];
-        }
         if (count($porder)) {
             $sql .= (count($o) ? ', ' : 'ORDER BY ') . implode(', ', $porder) . ' ';
         }
-
-        if ($this->li_of[0]) {
+        if (($this->li_of[2] === 0 || !count($porder)) && $this->li_of[0]) {
             if ($this->db->driverName() === 'oracle') {
                 if ((int)$this->db->driverOption('version', 0) >= 12) {
                     $sql .= 'OFFSET ' . $this->li_of[1] . ' ROWS FETCH NEXT ' . $this->li_of[0] . ' ROWS ONLY';
@@ -942,5 +971,155 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     public function collection(array $fields = null) : Collection
     {
         return new Collection($this->iterator($fields));
+    }
+
+    public function ids()
+    {
+        $aliases = [];
+        $getAlias = function ($name) use (&$aliases) {
+            // to bypass use: return $name;
+            return $aliases[$name] = $aliases[$name] ?? 'alias' . static::SEP . count($aliases);
+        };
+        $table = $this->definition->getName();
+        $sql = 'SELECT DISTINCT '.$table.'.'.implode(', '.$table.'.', $this->pkey).' FROM '.$table.' ';
+        $par = [];
+        
+        $relations = $this->withr;
+        foreach ($relations as $k => $v) {
+            $getAlias($k);
+        }
+        $f = $this->fields;
+        $w = $this->where;
+        $h = $this->having;
+        $o = $this->order;
+        $g = $this->group;
+        $j = array_map(function ($v) { return clone $v; }, $this->joins);
+        foreach ($this->definition->getRelations() as $k => $v) {
+            foreach ($w as $kk => $vv) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv[0])) {
+                    $relations[$k] = [ $v, $table ];
+                    $w[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv[0]);
+                }
+            }
+            if (isset($o[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $o[0])) {
+                $relations[$k] = [ $v, $table ];
+            }
+            foreach ($h as $kk => $vv) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv[0])) {
+                    $relations[$k] = [ $relation, $table ];
+                    $h[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv[0]);
+                }
+            }
+            if (isset($g[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $g[0])) {
+                $relations[$k] = [ $relation, $table ];
+                $g[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $g[0]);
+            }
+            foreach ($j as $kk => $v) {
+                foreach ($v->keymap as $kkk => $vv) {
+                    if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv)) {
+                        $relations[$k] = [ $relation, $table ];
+                        $j[$k]->keymap[$kkk] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv);
+                    }
+                }
+            }
+        }
+
+        foreach ($j as $k => $v) {
+            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getName().' '.$k.' ON ';
+            $tmp = [];
+            foreach ($v->keymap as $kk => $vv) {
+                $tmp[] = $kk.' = '.$vv;
+            }
+            $sql .= implode(' AND ', $tmp) . ' ';
+        }
+        foreach ($relations as $k => $v) {
+            $table = $v[1] !== $this->definition->getName() ? $getAlias($v[1]) : $v[1];
+            $v = $v[0];
+            if ($v->pivot) {
+                $alias = $getAlias($k.'_pivot');
+                $sql .= 'LEFT JOIN '.$v->pivot->getName().' '.$alias.' ON ';
+                $tmp = [];
+                foreach ($v->keymap as $kk => $vv) {
+                    $tmp[] = $table.'.'.$kk.' = '.$alias.'.'.$vv.' ';
+                }
+                $sql .= implode(' AND ', $tmp) . ' ';
+                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$getAlias($k).' ON ';
+                $tmp = [];
+                foreach ($v->pivot_keymap as $kk => $vv) {
+                    $tmp[] = $getAlias($k).'.'.$vv.' = '.$alias.'.'.$kk.' ';
+                }
+                $sql .= implode(' AND ', $tmp) . ' ';
+            } else {
+                $alias = $getAlias($k);
+                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$alias.' ON ';
+                $tmp = [];
+                foreach ($v->keymap as $kk => $vv) {
+                    $tmp[] = $table.'.'.$kk.' = '.$alias.'.'.$vv.' ';
+                }
+                if ($v->sql) {
+                    $tmp[] = $v->sql . ' ';
+                    $par = array_merge($par, $v->par ?? []);
+                }
+                $sql .= implode(' AND ', $tmp) . ' ';
+            }
+        }
+        if (count($w)) {
+            $sql .= 'WHERE ';
+            $tmp = [];
+            foreach ($w as $v) {
+                $tmp[] = '(' . $v[0] . ')';
+                $par = array_merge($par, $v[1]);
+            }
+            $sql .= implode(' AND ', $tmp).' ';
+        }
+        if (count($g)) {
+            $sql .= 'GROUP BY ' . $g[0] . ' ';
+            $par = array_merge($par, $g[1]);
+        }
+        if (count($h)) {
+            $sql .= 'HAVING ';
+            $tmp = [];
+            foreach ($h as $v) {
+                $tmp[] = '(' . $v[0] . ')';
+                $par = array_merge($par, $v[1]);
+            }
+            $sql .= implode(' AND ', $tmp).' ';
+        }
+        if (count($o)) {
+            $sql .= 'ORDER BY ' . $o[0] . ' ';
+            $par = array_merge($par, $o[1]);
+        }
+        $porder = [];
+        foreach ($this->definition->getPrimaryKey() as $field) {
+            $porder[] = $this->getColumn($field)['name'];
+        }
+        if (count($porder)) {
+            $sql .= (count($o) ? ', ' : 'ORDER BY ') . implode(', ', $porder) . ' ';
+        }
+
+        if ($this->li_of[0]) {
+            if ($this->db->driverName() === 'oracle') {
+                if ((int)$this->db->driverOption('version', 0) >= 12) {
+                    $sql .= 'OFFSET ' . $this->li_of[1] . ' ROWS FETCH NEXT ' . $this->li_of[0] . ' ROWS ONLY';
+                } else {
+                    $f = array_map(function ($v) {
+                        $v = explode(' ', trim($v), 2);
+                        if (count($v) === 2) { return $v[1]; }
+                        $v = explode('.', $v[0], 2);
+                        return count($v) === 2 ? $v[1] : $v[0];
+                    }, $select);
+                    $sql = "SELECT " . implode(', ', $f) . " 
+                            FROM (
+                                SELECT tbl__.*, rownum rnum__ FROM (
+                                    " . $sql . "
+                                ) tbl__ 
+                                WHERE rownum <= " . ($this->li_of[0] + $this->li_of[1]) . "
+                            ) WHERE rnum__ > " . $this->li_of[1];
+                }
+            } else {
+                $sql .= 'LIMIT ' . $this->li_of[0] . ' OFFSET ' . $this->li_of[1];
+            }
+        }
+        return $this->db->all($sql, $par);
     }
 }

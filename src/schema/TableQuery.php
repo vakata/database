@@ -1003,6 +1003,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
             if (isset($o[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $o[0])) {
                 $relations[$k] = [ $v, $table ];
+                $o[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $o[0]);
             }
             foreach ($h as $kk => $vv) {
                 if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv[0])) {

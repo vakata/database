@@ -184,9 +184,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 }
                 return $value;
             case 'int':
-                return (int)preg_replace('([^+-0-9]+)', '', $value);
+                return (int)preg_replace('([^+\-0-9]+)', '', $value);
             case 'float':
-                return (int)preg_replace('([^+-0-9.]+)', '', str_replace(',', '.', $value));
+                return (int)preg_replace('([^+\-0-9.]+)', '', str_replace(',', '.', $value));
             default:
                 return $value;
         }

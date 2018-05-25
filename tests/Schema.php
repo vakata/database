@@ -141,4 +141,17 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
         $this->assertEquals(count($this->getDB()->author()), 4);
         $this->assertEquals($this->getDB()->one('SELECT COUNT(id) FROM author'), 4);
     }
+    public function testAny() {
+        $author = $this->getDB()->author();
+        $this->assertEquals(count($author->reset()->any([['id', 1], ['id', 2], ['id', [3,4]]])), 4);
+        $this->assertEquals(count($author->reset()->any([['id', 1], ['id', 2]])), 2);
+    }
+    public function testAll() {
+        $author = $this->getDB()->author();
+        $this->assertEquals(count($author->reset()->all([['id', 1], ['id', 2], ['id', [3,4]]])), 0);
+        $this->assertEquals(count($author->reset()->all([['id', 1], ['id', 2]])), 0);
+        $this->assertEquals(count($author->reset()->all([['id', 1], ['id', ['lt'=>2]]])), 1);
+        $this->assertEquals(count($author->reset()->all([['id', 1], ['id', ['not'=>2]]])), 1);
+        $this->assertEquals(count($author->reset()->all([['id', 2], ['id', ['not'=>2]]])), 0);
+    }
 }

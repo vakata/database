@@ -192,31 +192,28 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
     }
 
-    /**
-     * Filter the results by a column and a value
-     * @param  string $column  the column name to filter by (related columns can be used - for example: author.name)
-     * @param  mixed  $value   a required value, array of values or range of values (range example: ['beg'=>1,'end'=>3])
-     * @param  bool   $negate  optional boolean indicating that the filter should be negated
-     * @return $this
-     */
-    public function filter(string $column, $value, bool $negate = false) : TableQuery
+    protected function filterSQL(string $column, $value, bool $negate = false) : array
     {
         list($name, $column) = array_values($this->getColumn($column));
+        if (is_array($value) && count($value) === 1 && isset($value['not'])) {
+            $negate = true;
+            $value = $value['not'];
+        }
         if (is_null($value)) {
             return $negate ?
-                $this->where($name . ' IS NOT NULL') :
-                $this->where($name . ' IS NULL');
+                [ $name . ' IS NOT NULL', [] ]:
+                [ $name . ' IS NULL', [] ];
         }
         if (!is_array($value)) {
             return $negate ?
-                $this->where(
+                [
                     $name . ' <> ?',
                     [ $this->normalizeValue($column, $value) ]
-                ) :
-                $this->where(
+                ] :
+                [
                     $name . ' = ?',
                     [ $this->normalizeValue($column, $value) ]
-                );
+                ];
         }
         if (isset($value['beg']) && strlen($value['beg']) && (!isset($value['end']) || !strlen($value['end']))) {
             $value = [ 'gte' => $value['beg'] ];
@@ -226,57 +223,102 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
         if (isset($value['beg']) && isset($value['end'])) {
             return $negate ?
-                $this->where(
+                [
                     $name.' NOT BETWEEN ? AND ?',
                     [
                         $this->normalizeValue($column, $value['beg']),
                         $this->normalizeValue($column, $value['end'])
                     ]
-                ) :
-                $this->where(
+                ] :
+                [
                     $name.' BETWEEN ? AND ?',
                     [
                         $this->normalizeValue($column, $value['beg']),
                         $this->normalizeValue($column, $value['end'])
                     ]
-                );
+                ];
         }
         if (isset($value['gt']) || isset($value['lt']) || isset($value['gte']) || isset($value['lte'])) {
+            $sql = [];
+            $par = [];
             if (isset($value['gt'])) {
-                $this->where(
-                    $name. ' ' . ($negate ? '<=' : '>') . ' ?',
-                    [ $this->normalizeValue($column, $value['gt']) ]
-                );
+                $sql[] = $name. ' ' . ($negate ? '<=' : '>') . ' ?';
+                $par[] = $this->normalizeValue($column, $value['gt']);
             }
             if (isset($value['gte'])) {
-                $this->where(
-                    $name. ' ' . ($negate ? '<' : '>=') . ' ?',
-                    [ $this->normalizeValue($column, $value['gte']) ]
-                );
+                $sql[] = $name. ' ' . ($negate ? '<' : '>=') . ' ?';
+                $par[] = $this->normalizeValue($column, $value['gte']);
             }
             if (isset($value['lt'])) {
-                $this->where(
-                    $name. ' ' . ($negate ? '>=' : '<') . ' ?',
-                    [ $this->normalizeValue($column, $value['lt']) ]
-                );
+                $sql[] = $name. ' ' . ($negate ? '>=' : '<') . ' ?';
+                $par[] = $this->normalizeValue($column, $value['lt']);
             }
             if (isset($value['lte'])) {
-                $this->where(
-                    $name. ' ' . ($negate ? '>' : '<=') . ' ?',
-                    [ $this->normalizeValue($column, $value['lte']) ]
-                );
+                $sql[] = $name. ' ' . ($negate ? '>' : '<=') . ' ?';
+                $par[] = $this->normalizeValue($column, $value['lte']);
             }
-            return $this;
+            return [
+                '(' . implode(' AND ', $sql) . ')',
+                $par
+            ];
         }
         return $negate ?
-            $this->where(
+            [
                 $name . ' NOT IN (??)',
                 [ array_map(function ($v) use ($column) { return $this->normalizeValue($column, $v); }, $value) ]
-            ) :
-            $this->where(
+            ] :
+            [
                 $name . ' IN (??)',
                 [ array_map(function ($v) use ($column) { return $this->normalizeValue($column, $v); }, $value) ]
-            );
+            ];
+    }
+    /**
+     * Filter the results by a column and a value
+     * @param  string $column  the column name to filter by (related columns can be used - for example: author.name)
+     * @param  mixed  $value   a required value, array of values or range of values (range example: ['beg'=>1,'end'=>3])
+     * @param  bool   $negate  optional boolean indicating that the filter should be negated
+     * @return $this
+     */
+    public function filter(string $column, $value, bool $negate = false) : TableQuery
+    {
+        $sql = $this->filterSQL($column, $value, $negate);
+        return strlen($sql[0]) ? $this->where($sql[0], $sql[1]) : $this;
+    }
+    /**
+     * Filter the results matching any of the criteria
+     * @param  array $criteria  each row is a column, value and optional negate flag (same as filter method)
+     * @return $this
+     */
+    public function any(array $criteria) : TableQuery
+    {
+        $sql = [];
+        $par = [];
+        foreach ($criteria as $row) {
+            if (isset($row[1])) {
+                $temp = $this->filterSQL($row[0], $row[1] ?? null, $row[2] ?? false);
+                $sql[] = $temp[0];
+                $par = array_merge($par, $temp[1]);
+            }
+        }
+        return $this->where('(' . implode(' OR ', $sql) . ')', $par);
+    }
+    /**
+     * Filter the results matching all of the criteria
+     * @param  array $criteria  each row is a column, value and optional negate flag (same as filter method)
+     * @return $this
+     */
+    public function all(array $criteria) : TableQuery
+    {
+        $sql = [];
+        $par = [];
+        foreach ($criteria as $row) {
+            if (isset($row[1])) {
+                $temp = $this->filterSQL($row[0], $row[1] ?? null, $row[2] ?? false);
+                $sql[] = $temp[0];
+                $par = array_merge($par, $temp[1]);
+            }
+        }
+        return $this->where('(' . implode(' AND ', $sql) . ')', $par);
     }
     /**
      * Sort by a column

@@ -199,6 +199,19 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $negate = true;
             $value = $value['not'];
         }
+        if (is_array($value) && count($value) === 1 && isset($value['like'])) {
+            $value = $value['like'];
+            // str_replace(['%', '_'], ['\\%','\\_'], $q)
+            return $negate ?
+                [
+                    $name . ' NOT LIKE ?',
+                    [ $this->normalizeValue($column, $value) ]
+                ] :
+                [
+                    $name . ' LIKE ?',
+                    [ $this->normalizeValue($column, $value) ]
+                ];
+        }
         if (is_null($value)) {
             return $negate ?
                 [ $name . ' IS NOT NULL', [] ]:

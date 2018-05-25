@@ -154,4 +154,11 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
         $this->assertEquals(count($author->reset()->all([['id', 1], ['id', ['not'=>2]]])), 1);
         $this->assertEquals(count($author->reset()->all([['id', 2], ['id', ['not'=>2]]])), 0);
     }
+    public function testLike() {
+        $author = $this->getDB()->author();
+        $this->assertEquals(count($author->reset()->filter('name', ['like'=>'Brad'])), 0);
+        $this->assertEquals(count($author->reset()->filter('name', ['like'=>'%Brad%'])), 1);
+        $this->assertEquals(count($author->reset()->filter('name', ['like'=>'%Ivan%'])), 0);
+        $this->assertEquals(count($author->reset()->any([['name', ['like'=>'%Ivan%']], ['name', ['like'=>'%Brad%']]])), 1);
+    }
 }

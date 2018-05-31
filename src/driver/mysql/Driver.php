@@ -40,7 +40,8 @@ class Driver extends DriverAbstract implements DriverInterface
                 $this->connection['user'],
                 $this->connection['pass'],
                 $this->connection['name'],
-                $this->connection['port']
+                isset($this->connection['opts']['socket']) ? null : $this->connection['port'],
+                $this->connection['opts']['socket'] ?? null
             );
             if ($this->lnk->connect_errno) {
                 throw new DBException('Connect error: '.$this->lnk->connect_errno);

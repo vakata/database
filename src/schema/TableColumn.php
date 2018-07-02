@@ -104,14 +104,14 @@ class TableColumn
     {
         $this->type = $type;
         $type = strtolower($type);
-        if (strpos($type, 'text') !== false || strpos($type, 'char') !== false) {
+        if (strpos($type, 'enum') !== false || strpos($type, 'set') !== false) {
+            $this->btype = 'enum';
+        } elseif (strpos($type, 'text') !== false || strpos($type, 'char') !== false) {
             $this->btype = 'text';
         } elseif (strpos($type, 'int') !== false || strpos($type, 'bit') !== false) {
             $this->btype = 'int';
         } elseif (strpos($type, 'float') !== false || strpos($type, 'double') !== false || strpos($type, 'decimal') !== false) {
             $this->btype = 'float';
-        } elseif (strpos($type, 'enum') !== false || strpos($type, 'set') !== false) {
-            $this->btype = 'enum';
         } elseif (strpos($type, 'datetime') !== false || strpos($type, 'timestamp') !== false) {
             $this->btype = 'datetime';
         } elseif (strpos($type, 'date') !== false) {

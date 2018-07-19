@@ -280,6 +280,7 @@ class DB implements DBInterface
                     return [
                         'name' => $column->getName(),
                         'type' => $column->getType(),
+                        'length' => $column->getLength(),
                         'comment' => $column->getComment(),
                         'values' => $column->getValues(),
                         'default' => $column->getDefault(),

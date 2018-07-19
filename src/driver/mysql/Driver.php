@@ -115,6 +115,35 @@ class Driver extends DriverAbstract implements DriverInterface
                 $columns
                     ->clone()
                     ->mapKey(function ($v) { return $v['Field']; })
+                    ->map(function ($v) {
+                        $v['length'] = null;
+                        if (!isset($v['Type'])) {
+                            return $v;
+                        }
+                        $type = strtolower($v['Type']);
+                        switch ($type) {
+                            case 'tinytext':
+                                $v['length'] = 255;
+                                break;
+                            case 'text':
+                                $v['length'] = 65535;
+                                break;
+                            case 'mediumtext':
+                                $v['length'] = 16777215;
+                                break;
+                            case 'longtext':
+                                // treat this as no limit
+                                break;
+                            default:
+                                if (strpos($type, 'char') !== false && strpos($type, '(') !== false) {
+                                    // extract length from varchar
+                                    $v['length'] = (int)explode(')', explode('(', $type)[1])[0];
+                                    $v['length'] = $v['length'] > 0 ? $v['length'] : null;
+                                }
+                                break;
+                        }
+                        return $v;
+                    })
                     ->toArray()
             )
             ->setPrimaryKey(

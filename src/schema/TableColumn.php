@@ -13,6 +13,7 @@ class TableColumn
     protected $default = null;
     protected $comment = null;
     protected $nullable = false;
+    protected $length = null;
 
     public function __construct(string $name)
     {
@@ -45,6 +46,9 @@ class TableColumn
         }
         if (isset($data['default'])) {
             $instance->setDefault($data['default']);
+        }
+        if (isset($data['length'])) {
+            $instance->setLength($data['length']);
         }
         if ($instance->getBasicType() === 'enum' && strpos($instance->getType(), 'enum(') === 0) {
             $temp = array_map(function ($v) {
@@ -141,6 +145,19 @@ class TableColumn
     public function setComment(string $comment)
     {
         $this->comment = $comment;
+        return $this;
+    }
+    public function hasLength()
+    {
+        return $this->length !== null;
+    }
+    public function getLength()
+    {
+        return $this->length;
+    }
+    public function setLength($length)
+    {
+        $this->length = $length;
         return $this;
     }
 }

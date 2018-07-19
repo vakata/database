@@ -148,6 +148,25 @@ class Driver extends DriverAbstract implements DriverInterface
                 return $new;
             })
             ->mapKey(function ($v) { return $v['COLUMN_NAME']; })
+            ->map(function ($v) {
+                $v['length'] = null;
+                if (!isset($v['DATA_TYPE'])) {
+                    return $v;
+                }
+                $type = strtolower($v['DATA_TYPE']);
+                switch ($type) {
+                    case 'clob': // unlimited
+                        break;
+                    default:
+                        if (strpos($type, 'char') !== false && strpos($type, '(') !== false) {
+                            // extract length from varchar
+                            $v['length'] = (int)explode(')', (explode('(', $type)[1] ?? ''))[0];
+                            $v['length'] = $v['length'] > 0 ? $v['length'] : null;
+                        }
+                        break;
+                }
+                return $v;
+            })
             ->toArray();
         if (!count($columns)) {
             throw new DBException('Table not found by name');

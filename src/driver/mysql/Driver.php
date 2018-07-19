@@ -105,6 +105,43 @@ class Driver extends DriverAbstract implements DriverInterface
         if (isset($tables[$table])) {
             return $tables[$table];
         }
+
+        static $comments = null;
+        if (!isset($comments)) {
+            $comments = Collection::from(
+                $this->query(
+                    "SELECT TABLE_NAME, TABLE_COMMENT FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ?",
+                    [ $this->connection['name'] ]
+                )
+            )
+            ->mapKey(function ($v) {
+                return $v['TABLE_NAME'];
+            })
+            ->pluck('TABLE_COMMENT')
+            ->toArray();
+        }
+
+        static $relationsT = null;
+        static $relationsR = null;
+        if (!isset($relationsT) || !isset($relationsR)) {
+            $relationsT = [];
+            $relationsR = [];
+            $col = Collection::from(
+                $this->query(
+                    "SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
+                     FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+                     WHERE
+                        TABLE_SCHEMA = ? AND TABLE_NAME IS NOT NULL AND
+                        REFERENCED_TABLE_SCHEMA = ? AND REFERENCED_TABLE_NAME IS NOT NULL",
+                    [ $this->connection['name'], $this->connection['name'] ]
+                )
+            )->toArray();
+            foreach ($col as $row) {
+                $relationsT[$row['TABLE_NAME']][] = $row;
+                $relationsR[$row['REFERENCED_TABLE_NAME']][] = $row;
+            }
+        }
+
         
         $columns = Collection::from($this->query("SHOW FULL COLUMNS FROM {$table}"));
         if (!count($columns)) {
@@ -153,30 +190,14 @@ class Driver extends DriverAbstract implements DriverInterface
                     ->pluck('Field')
                     ->toArray()
             )
-            ->setComment(
-                (string)Collection::from($this
-                    ->query(
-                        "SELECT table_comment FROM information_schema.tables WHERE table_schema = ? AND table_name = ?",
-                        [ $this->connection['name'], $table ]
-                    ))
-                    ->pluck('table_comment')
-                    ->value()
-            );
+            ->setComment($comments[$table] ?? '');
 
         if ($detectRelations) {
             // relations where the current table is referenced
             // assuming current table is on the "one" end having "many" records in the referencing table
             // resulting in a "hasMany" or "manyToMany" relationship (if a pivot table is detected)
             $relations = [];
-            foreach (
-                $this
-                    ->query(
-                        "SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_COLUMN_NAME
-                         FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-                         WHERE TABLE_SCHEMA = ? AND REFERENCED_TABLE_SCHEMA = ? AND REFERENCED_TABLE_NAME = ?",
-                        [ $this->connection['name'], $this->connection['name'], $table ]
-                    ) as $relation
-            ) {
+            foreach ($relationsR[$table] ?? [] as $relation) {
                 $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_NAME'];
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['REFERENCED_COLUMN_NAME']] = $relation['COLUMN_NAME'];
             }
@@ -191,17 +212,10 @@ class Driver extends DriverAbstract implements DriverInterface
                 $foreign = [];
                 $usedcol = [];
                 if (count($columns)) {
-                    foreach (Collection::from($this
-                        ->query(
-                            "SELECT
-                                 TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME,
-                                 REFERENCED_COLUMN_NAME, REFERENCED_TABLE_NAME
-                             FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-                             WHERE
-                                 TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME IN (??) AND
-                                 REFERENCED_TABLE_NAME IS NOT NULL",
-                            [ $this->connection['name'], $data['table'], $columns ]
-                        ))
+                    foreach (Collection::from($relationsT[$data['table']] ?? [])
+                        ->filter(function ($v) use ($columns) {
+                            return in_array($v['COLUMN_NAME'], $columns);
+                        })
                         ->map(function ($v) {
                             $new = [];
                             foreach ($v as $kk => $vv) {
@@ -252,13 +266,7 @@ class Driver extends DriverAbstract implements DriverInterface
             // assuming current table is linked to "one" record in the referenced table
             // resulting in a "belongsTo" relationship
             $relations = [];
-            foreach (Collection::from($this
-                ->query(
-                    "SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
-                     FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-                     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL",
-                    [ $this->connection['name'], $table ]
-                ))
+            foreach (Collection::from($relationsT[$table] ?? [])
                 ->map(function ($v) {
                     $new = [];
                     foreach ($v as $kk => $vv) {

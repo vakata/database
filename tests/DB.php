@@ -207,7 +207,7 @@ abstract class DB extends \PHPUnit\Framework\TestCase
     public function testSerialize()
     {
         // no exception should be thrown
-        $data = $this->getDB()->get('SELECT * FROM groups');
+        $data = $this->getDB()->get('SELECT * FROM grps');
         json_encode($data);
         $this->assertEquals(true, strlen(serialize($data)) > 0);
     }

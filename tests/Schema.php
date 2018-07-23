@@ -2,6 +2,7 @@
 namespace vakata\database\test;
 
 use vakata\database\DB as DBI;
+use vakata\database\DBException as DBE;
 
 abstract class Schema extends \PHPUnit\Framework\TestCase
 {
@@ -160,5 +161,21 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
         $this->assertEquals(count($author->reset()->filter('name', ['like'=>'%Brad%'])), 1);
         $this->assertEquals(count($author->reset()->filter('name', ['like'=>'%Ivan%'])), 0);
         $this->assertEquals(count($author->reset()->any([['name', ['like'=>'%Ivan%']], ['name', ['like'=>'%Brad%']]])), 1);
+    }
+    public function testStrictDisabled()
+    {
+        $db = $this->getDB();
+        $id = $db->tag()->insert([
+            'name' => str_repeat('a', 256)
+        ]);
+        $this->assertEquals(str_repeat('a', 255), $db->tag()->filter('id', $id['id'])[0]['name']);
+    }
+    public function testStrictEnabled()
+    {
+        $this->expectException(DBE::class);
+        $db = new DBI($this->getConnectionString() . '&strict=1');
+        $db->tag()->insert([
+            'name' => str_repeat('a', 256)
+        ]);
     }
 }

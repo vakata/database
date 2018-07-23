@@ -141,6 +141,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     }
     protected function normalizeValue(TableColumn $col, $value)
     {
+        $strict = (int)$this->db->driverOption('strict', 0) > 0;
         if ($value === null && $col->isNullable()) {
             return null;
         }
@@ -149,9 +150,12 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 if (is_string($value)) {
                     $temp = strtotime($value);
                     if (!$temp) {
+                        if ($strict) {
+                            throw new DBException('Invalid value for date column ' . $col->getName());
+                        }
                         return null;
                     }
-                    return date('Y-m-d', strtotime($value));
+                    return date('Y-m-d', $temp);
                 }
                 if (is_int($value)) {
                     return date('Y-m-d', $value);
@@ -159,14 +163,20 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 if ($value instanceof \DateTime) {
                     return $value->format('Y-m-d');
                 }
+                if ($strict) {
+                    throw new DBException('Invalid value (unknown data type) for date column ' . $col->getName());
+                }
                 return $value;
             case 'datetime':
                 if (is_string($value)) {
                     $temp = strtotime($value);
                     if (!$temp) {
+                        if ($strict) {
+                            throw new DBException('Invalid value for datetime column ' . $col->getName());
+                        }
                         return null;
                     }
-                    return date('Y-m-d H:i:s', strtotime($value));
+                    return date('Y-m-d H:i:s', $temp);
                 }
                 if (is_int($value)) {
                     return date('Y-m-d H:i:s', $value);
@@ -174,12 +184,25 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 if ($value instanceof \DateTime) {
                     return $value->format('Y-m-d H:i:s');
                 }
+                if ($strict) {
+                    throw new DBException('Invalid value (unknown data type) for datetime column ' . $col->getName());
+                }
                 return $value;
             case 'enum':
+                $values = $col->getValues();
                 if (is_int($value)) {
-                    return $value;
+                    if (!isset($values[$value])) {
+                        if ($strict) {
+                            throw new DBException('Invalid value (using integer) for enum ' . $col->getName());
+                        }
+                        return $value;
+                    }
+                    return $values[$value];
                 }
                 if (!in_array($value, $col->getValues())) {
+                    if ($strict) {
+                        throw new DBException('Invalid value for enum ' . $col->getName());
+                    }
                     return 0;
                 }
                 return $value;
@@ -187,7 +210,15 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 return (int)preg_replace('([^+\-0-9]+)', '', $value);
             case 'float':
                 return (float)preg_replace('([^+\-0-9.]+)', '', str_replace(',', '.', $value));
-            default:
+            case 'text':
+                if ($col->hasLength() && mb_strlen($value) > $col->getLength()) {
+                    if ($strict) {
+                        throw new DBException('Invalid value for text column ' . $col->getName());
+                    }
+                    return mb_substr($value, 0, $col->getLength());
+                }
+                return $value;
+            default: // time, blob, etc
                 return $value;
         }
     }

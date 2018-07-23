@@ -81,7 +81,7 @@ class Driver extends DriverAbstract implements DriverInterface
         return new Statement($temp, $this->lnk);
     }
 
-    public function begin()
+    public function begin() : bool
     {
         $this->connect();
         try {
@@ -95,7 +95,7 @@ class Driver extends DriverAbstract implements DriverInterface
 
         return true;
     }
-    public function commit()
+    public function commit() : bool
     {
         $this->connect();
         $this->transaction = false;
@@ -107,7 +107,7 @@ class Driver extends DriverAbstract implements DriverInterface
 
         return true;
     }
-    public function rollback()
+    public function rollback() : bool
     {
         $this->connect();
         $this->transaction = false;

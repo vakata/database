@@ -17,11 +17,13 @@
     ],
     "require": {
         "php" : ">=5.4.0",
-        "vakata/collection" : "^1.1.2"
+        "vakata/collection" : "~1.5",
+        "symfony/polyfill-mbstring" : "~1.8",
+        "symfony/polyfill-iconv" : "~1.8"
     },
     "require-dev": {
         "phpunit/phpunit" : "6.*",
-        "clean/phpdoc-md": "dev-master"
+        "victorjonsson/markdowndocs": "^1.3"
     },
     "autoload": {
         "psr-4": {
@@ -36,6 +38,6 @@
     "scripts": {
         "test": "phpunit",
         "psr2": "php-cs-fixer fix ./src",
-        "phpdoc": "phpdoc-md"
+        "phpdoc": "phpdoc-md generate src > api.md"
     }
 }

@@ -123,7 +123,7 @@ $schema->book()->where('id = 5')->update(['name' => 'New title']);
 $schema->book()->where('id = 5')->delete();
 ```
 
-Read more in the [API docs](docs/README.md)
+Read more in the [API docs](api.md)
 
 ## Testing
 

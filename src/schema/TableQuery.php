@@ -211,7 +211,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             case 'float':
                 return (float)preg_replace('([^+\-0-9.]+)', '', str_replace(',', '.', $value));
             case 'text':
-                if ($col->hasLength() && mb_strlen($value) > $col->getLength()) {
+                // check using strlen first, in order to avoid hitting mb_ functions which might be polyfilled
+                // because the polyfill is quite slow
+                if ($col->hasLength() && strlen($value) > $col->getLength() && mb_strlen($value) > $col->getLength()) {
                     if ($strict) {
                         throw new DBException('Invalid value for text column ' . $col->getName());
                     }

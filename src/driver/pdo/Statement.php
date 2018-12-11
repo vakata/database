@@ -40,7 +40,7 @@ class Statement implements StatementInterface
                     // INSERT INTO table (column, lobcolumn) VALUES (?, ?, EMPTY_BLOB()) RETURNING lobcolumn INTO ?
                     if (is_resource($v) && get_resource_type($v) === 'stream') {
                         $this->statement->bindParam($i+1, $v, \PDO::PARAM_LOB);
-                        continue;
+                        break;
                     }
                     if (!is_string($data[$i])) {
                         $data[$i] = serialize($data[$i]);

@@ -52,7 +52,7 @@ class Statement implements StatementInterface
                             $ref[0] .= 'b';
                             $ref[$i + 1] = &$nul;
                             $lng[] = $i;
-                            continue;
+                            break;
                         }
                         if (!is_string($data[$i])) {
                             $data[$i] = serialize($data[$i]);

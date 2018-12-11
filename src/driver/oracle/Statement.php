@@ -36,7 +36,7 @@ class Statement implements StatementInterface
                         $ldt = $v;
                         $lob = $this->driver->lob();
                         \oci_bind_by_name($this->statement, 'f'.$i, $lob, -1, \OCI_B_BLOB);
-                        continue;
+                        break;
                     }
                     if (!is_string($data[$i]) && !is_null($data[$i])) {
                         $data[$i] = serialize($data[$i]);

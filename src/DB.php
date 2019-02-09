@@ -178,7 +178,7 @@ class DB implements DBInterface
      * @param string   $sql      SQL query
      * @param array    $par      parameters
      * @param bool     $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
-     * @return Collection the result of the execution
+     * @return mixed the result of the execution
      */
     public function one(string $sql, $par = null, bool $opti = true)
     {

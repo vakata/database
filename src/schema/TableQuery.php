@@ -865,6 +865,8 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $par = array_merge($par, $o[1]);
         }
         if (count($porder)) {
+            $pdir = (count($o) && strpos($o[0], 'DESC') !== false) ? 'DESC' : 'ASC';
+            $porder = array_map(function ($v) use ($pdir) { return $v . ' ' . $pdir; }, $porder);
             $sql .= (count($o) ? ', ' : 'ORDER BY ') . implode(', ', $porder) . ' ';
         }
         if (($this->li_of[2] === 0 || !count($porder)) && $this->li_of[0]) {
@@ -1181,8 +1183,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $par = array_merge($par, $o[1]);
         }
         $porder = [];
+        $pdir = (count($o) && strpos($o[0], 'DESC') !== false) ? 'DESC' : 'ASC';
         foreach ($this->definition->getPrimaryKey() as $field) {
-            $porder[] = $this->getColumn($field)['name'];
+            $porder[] = $this->getColumn($field)['name'] . ' ' . $pdir;
         }
         if (count($porder)) {
             $sql .= (count($o) ? ', ' : 'ORDER BY ') . implode(', ', $porder) . ' ';

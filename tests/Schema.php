@@ -10,6 +10,11 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
 
     abstract protected function getConnectionString();
 
+    public static function tearDownAfterClass()
+    {
+        static::$db = null;
+    }
+
     protected function getDB()
     {
         if (!static::$db) {
@@ -95,7 +100,7 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
         $this->assertEquals($author[0]['book'][0]['name'], 'Equal rites');
     }
     public function testReadChanges() {
-        $this->getDB()->query('INSERT INTO author VALUES(NULL, ?)', ['Stephen King']);
+        $this->getDB()->query('INSERT INTO author (name) VALUES (?)', ['Stephen King']);
         $author = $this->getDB()->author();
         $this->assertEquals($author[3]['name'], 'Stephen King');
     }
@@ -104,19 +109,19 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
             $this->getDB()->author()
                 ->join('book', [ 'author_id' => 'id' ], 'books')
                 ->groupById()
-                ->having('cnt = ?', [1])
+                ->having('COUNT(books.id) = ?', [1]) // ->having('cnt = ?', [1]) - not standard SQL!
                 ->order('cnt DESC')
                 ->limit(2)
                 ->select(['id', 'cnt' => 'COUNT(books.id)']),
             [ [ 'id' => 1, 'cnt' => 1 ] ]
         );
-        $this->getDB()->query('INSERT INTO book VALUES(NULL, ?, ?)', ['Going postal', 1]);
-        $this->getDB()->query('INSERT INTO book VALUES(NULL, ?, ?)', ['HGTG', 2]);
+        $this->getDB()->query('INSERT INTO book(name, author_id) VALUES(?, ?)', ['Going postal', 1]);
+        $this->getDB()->query('INSERT INTO book(name, author_id) VALUES(?, ?)', ['HGTG', 2]);
         $this->assertEquals(
             $this->getDB()->author()
                 ->join('book', [ 'author_id' => 'id' ], 'books')
                 ->groupById()
-                ->having('cnt > ?', [0])
+                ->having('COUNT(books.id) > ?', [0]) // ->having('cnt > ?', [0]) - not standard SQL!
                 ->order('cnt ASC')
                 ->limit(2)
                 ->select(['id', 'cnt' => 'COUNT(books.id)']),

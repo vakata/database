@@ -31,14 +31,14 @@ class Statement implements StatementInterface
         $iid = null;
         $aff = 0;
         if (preg_match('@^\s*(INSERT|REPLACE)\s+INTO@i', $this->statement)) {
-            $iid = \pg_query($this->driver, 'SELECT lastval()');
+            $iid = @\pg_query($this->driver, 'SELECT lastval()');
             if ($iid) {
                 $res = \pg_fetch_row($iid);
                 $iid = $res[0];
             }
         }
         if (preg_match('@^\s*(INSERT|REPLACE|UPDATE|DELETE)\s+@i', $this->statement)) {
-            $aff = \pg_affected_rows($temp);
+            $aff = @\pg_affected_rows($temp);
         }
 
         return new Result($temp, $iid, $aff);

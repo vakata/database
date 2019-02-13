@@ -5,6 +5,7 @@ namespace vakata\database;
 use \vakata\collection\Collection;
 use \vakata\database\schema\Table;
 use \vakata\database\schema\TableQuery;
+use \vakata\database\schema\TableQueryMapped;
 use \vakata\database\schema\TableRelation;
 
 /**
@@ -338,12 +339,14 @@ class DB implements DBInterface
      * @param string $table the table to query
      * @return TableQuery
      */
-    public function table($table)
+    public function table($table, bool $mapped = false)
     {
-        return new TableQuery($this, $this->definition($table));
+        return $mapped ?
+            new TableQueryMapped($this, $this->definition($table)) :
+            new TableQuery($this, $this->definition($table));
     }
     public function __call($method, $args)
     {
-        return $this->table($method);
+        return $this->table($method, $args[0] ?? false);
     }
 }

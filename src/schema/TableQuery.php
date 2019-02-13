@@ -733,33 +733,6 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $porder[] = $this->getColumn($field)['name'];
         }
 
-        if (count($porder) && $this->li_of[2] === 1) {
-            $ids = $this->ids();
-            if (count($ids)) {
-                if (count($porder) > 1) {
-                    $pkw = [];
-                    foreach ($porder as $name) {
-                        $pkw[] = $name . ' = ?';
-                    }
-                    $pkw = '(' . implode(' AND ', $pkw) . ')';
-                    $pkp = [];
-                    foreach ($ids as $id) {
-                        foreach ($id as $p) {
-                            $pkp[] = $p;
-                        }
-                    }
-                    $w[] = [
-                        implode(' OR ', array_fill(0, count($ids), $pkw)),
-                        $pkp
-                    ];
-                } else {
-                    $w[] = [ $porder[0] . ' IN ('.implode(',', array_fill(0, count($ids), '?')).')', $ids ];
-                }
-            } else {
-                $w[] = [ '1=0', [] ];
-            }
-        }
-
         foreach ($this->definition->getRelations() as $k => $relation) {
             foreach ($f as $kk => $field) {
                 if (strpos($field, $k . '.') === 0) {
@@ -807,7 +780,11 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
         $sql = 'SELECT '.implode(', ', $select).' FROM '.$table.' ';
         $par = [];
+        $many = false;
         foreach ($j as $k => $v) {
+            if ($v->many) {
+                $many = true;
+            }
             $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getName().' '.$k.' ON ';
             $tmp = [];
             foreach ($v->keymap as $kk => $vv) {
@@ -818,6 +795,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         foreach ($relations as $relation => $v) {
             $table = $v[1] !== $this->definition->getName() ? $getAlias($v[1]) : $v[1];
             $v = $v[0];
+            if ($v->many || $v->pivot) {
+                $many = true;
+            }
             if ($v->pivot) {
                 $alias = $getAlias($relation.'_pivot');
                 $sql .= 'LEFT JOIN '.$v->pivot->getName().' '.$alias.' ON ';
@@ -845,6 +825,33 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                     $par = array_merge($par, $v->par ?? []);
                 }
                 $sql .= implode(' AND ', $tmp) . ' ';
+            }
+        }
+
+        if ($many && count($porder) && $this->li_of[2] === 1) {
+            $ids = $this->ids();
+            if (count($ids)) {
+                if (count($porder) > 1) {
+                    $pkw = [];
+                    foreach ($porder as $name) {
+                        $pkw[] = $name . ' = ?';
+                    }
+                    $pkw = '(' . implode(' AND ', $pkw) . ')';
+                    $pkp = [];
+                    foreach ($ids as $id) {
+                        foreach ($id as $p) {
+                            $pkp[] = $p;
+                        }
+                    }
+                    $w[] = [
+                        implode(' OR ', array_fill(0, count($ids), $pkw)),
+                        $pkp
+                    ];
+                } else {
+                    $w[] = [ $porder[0] . ' IN ('.implode(',', array_fill(0, count($ids), '?')).')', $ids ];
+                }
+            } else {
+                $w[] = [ '1=0', [] ];
             }
         }
         if (count($w)) {
@@ -878,7 +885,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $porder = array_map(function ($v) use ($pdir) { return $v . ' ' . $pdir; }, $porder);
             $sql .= (count($o) ? ', ' : 'ORDER BY ') . implode(', ', $porder) . ' ';
         }
-        if (($this->li_of[2] === 0 || !count($porder)) && $this->li_of[0]) {
+        if ((!$many || $this->li_of[2] === 0 || !count($porder)) && $this->li_of[0]) {
             if ($this->db->driverName() === 'oracle') {
                 if ((int)$this->db->driverOption('version', 0) >= 12) {
                     $sql .= 'OFFSET ' . $this->li_of[1] . ' ROWS FETCH NEXT ' . $this->li_of[0] . ' ROWS ONLY';

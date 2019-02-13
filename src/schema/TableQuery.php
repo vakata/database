@@ -498,7 +498,16 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     public function order(string $sql, array $params = []) : TableQuery
     {
         $this->qiterator = null;
-        $this->order = [ $sql, $params ];
+        $name = null;
+        if (!count($params)) {
+            $name = preg_replace('(\s+(ASC|DESC)\s*$)i', '', $sql);
+            try {
+                $name = $this->getColumn(trim($name))['name'];
+            } catch (\Exception $e) {
+                $name = null;
+            }
+        }
+        $this->order = [ $sql, $params, $name ];
         return $this;
     }
     /**
@@ -1067,15 +1076,20 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
 
     public function ids()
     {
+        if (count($this->group)) {
+            throw new DBException('Can not LIMIT result set by master table when GROUP BY is used');
+        }
+        if (count($this->order) && !isset($this->order[2])) {
+            throw new DBException('Can not LIMIT result set by master table with a complex ORDER BY query');
+        }
+
         $aliases = [];
         $getAlias = function ($name) use (&$aliases) {
             // to bypass use: return $name;
             return $aliases[$name] = $aliases[$name] ?? 'alias' . static::SEP . count($aliases);
         };
-        $table = $this->definition->getName();
-        $sql = 'SELECT DISTINCT '.$table.'.'.implode(', '.$table.'.', $this->pkey).' FROM '.$table.' ';
-        $par = [];
         
+        $table = $this->definition->getName();
         $relations = $this->withr;
         foreach ($relations as $k => $v) {
             $getAlias($k);
@@ -1096,6 +1110,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             if (isset($o[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $o[0])) {
                 $relations[$k] = [ $v, $table ];
                 $o[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $o[0]);
+                $o[2] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $o[2]);
             }
             foreach ($h as $kk => $vv) {
                 if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv[0])) {
@@ -1117,6 +1132,23 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
         }
 
+        $key = array_map(function ($v) use ($table) { return $table . '.' . $v; }, $this->pkey);
+        $own = false;
+        $dir = 'ASC';
+        if (count($o)) {
+            $dir = strpos($o[0], ' DESC') ? 'DESC' : 'ASC';
+            $own = strpos($o[2], $table . '.') === 0;
+        }
+
+        $dst = $key;
+        if ($own) {
+            // if using own table - do not use max/min in order - that will prevent index usage
+            $dst[] = $o[2] . ' orderbyfix___';
+        }
+        $dst = array_unique($dst);
+
+        $par = [];
+        $sql  = 'SELECT DISTINCT '.implode(', ', $dst).' FROM '.$table.' ';
         foreach ($j as $k => $v) {
             $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getName().' '.$k.' ON ';
             $tmp = [];
@@ -1165,9 +1197,8 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
             $sql .= implode(' AND ', $tmp).' ';
         }
-        if (count($g)) {
-            $sql .= 'GROUP BY ' . $g[0] . ' ';
-            $par = array_merge($par, $g[1]);
+        if (!$own) {
+            $sql .= 'GROUP BY ' . implode(', ', $key) . ' ';
         }
         if (count($h)) {
             $sql .= 'HAVING ';
@@ -1179,8 +1210,12 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $sql .= implode(' AND ', $tmp).' ';
         }
         if (count($o)) {
-            $sql .= 'ORDER BY ' . $o[0] . ' ';
-            $par = array_merge($par, $o[1]);
+            $sql .= 'ORDER BY ';
+            if ($own) {
+                $sql .= $o[2] . ' ' . $dir;
+            } else {
+                $sql .= 'MAX('.$o[2].') ' . $dir;
+            }
         }
         $porder = [];
         $pdir = (count($o) && strpos($o[0], 'DESC') !== false) ? 'DESC' : 'ASC';
@@ -1202,7 +1237,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                         $v = explode('.', $v[0], 2);
                         return count($v) === 2 ? $v[1] : $v[0];
                     }, $select);
-                    $sql = "SELECT " . implode(', ', $f) . " 
+                    $sql = "SELECT " . implode(', ', $dst) . " 
                             FROM (
                                 SELECT tbl__.*, rownum rnum__ FROM (
                                     " . $sql . "
@@ -1214,6 +1249,11 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 $sql .= 'LIMIT ' . $this->li_of[0] . ' OFFSET ' . $this->li_of[1];
             }
         }
-        return $this->db->all($sql, $par);
+        return array_map(function ($v) use ($own) {
+            if (isset($v['orderbyfix___'])) {
+                unset($v['orderbyfix___']);
+            }
+            return count($v) === 1 ? array_values($v)[0] : $v;
+        }, $this->db->all($sql, $par, null, false, false));
     }
 }

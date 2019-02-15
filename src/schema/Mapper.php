@@ -4,6 +4,9 @@ namespace vakata\database\schema;
 use vakata\collection\Collection;
 use vakata\database\DBInterface;
 
+/**
+ * A basic mapper to enable relation traversing and basic create / update / delete functionality
+ */
 class Mapper
 {
     protected $db;
@@ -13,7 +16,15 @@ class Mapper
     {
         $this->db = $db;
     }
-    public function entity($definition, array $data, bool $empty = false)
+    /**
+     * Create an entity from an array of data
+     *
+     * @param Table $definition
+     * @param array $data
+     * @param boolean $empty
+     * @return object
+     */
+    public function entity(Table $definition, array $data, bool $empty = false)
     {
         if (!$empty) {
             $primary = [];
@@ -142,13 +153,26 @@ class Mapper
         $this->lazy($entity);
         return $this->objects[$definition->getName()][base64_encode(serialize($primary))] = $entity;
     }
-    public function collection($iterator, $definition)
+    /**
+     * Get a collection of entities
+     *
+     * @param TableQuery $iterator
+     * @param Table $definition
+     * @return Collection
+     */
+    public function collection(TableQueryIterator $iterator, Table $definition) : Collection
     {
         return Collection::from($iterator)
             ->map(function ($v) use ($definition) {
                 return $this->entity($definition, $v);
             });
     }
+    /**
+     * Persist all changes to an entity in the DB. Does not include modified relation collections.
+     *
+     * @param object $entity
+     * @return object
+     */
     public function save($entity)
     {
         $query = $this->db->table($entity->definition()->getName());
@@ -173,6 +197,12 @@ class Mapper
         }
         return $this->lazy($entity);
     }
+    /**
+     * Delete an entity from the database
+     *
+     * @param object $entity
+     * @return void
+     */
     public function delete($entity)
     {
         $query = $this->db->table($entity->definition()->getName());
@@ -185,7 +215,13 @@ class Mapper
             unset($this->objects[$entity->definition()->getName()][base64_encode(serialize($primary))]);
         }
     }
-    public function refresh($entity, $own = true)
+    /**
+     * Refresh an entity from the DB (includes own columns and relations).
+     *
+     * @param object $entity
+     * @return object
+     */
+    public function refresh($entity)
     {
         $query = $this->db->table($entity->definition()->getName());
         $primary = $entity->id();

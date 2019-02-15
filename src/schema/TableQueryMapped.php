@@ -22,10 +22,21 @@ class TableQueryMapped extends TableQuery
         }
         $this->mapper = static::$mappers[spl_object_hash($db)];
     }
-    public function iterator(array $fields = null) : \Iterator
+    /**
+     * Perform the actual fetch
+     * @param  array|null $fields optional array of columns to select (related columns can be used too)
+     * @return Collection               the query result as a mapped Collection
+     */
+    public function iterator(array $fields = null)
     {
         return $this->mapper->collection(parent::iterator($fields), $this->definition);
     }
+    /**
+     * Create an empty entity for the queried table.
+     *
+     * @param array $data optional array of data to populate with
+     * @return object
+     */
     public function create(array $data = [])
     {
         return $this->mapper->entity($this->definition, $data, true);

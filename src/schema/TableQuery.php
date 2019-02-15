@@ -700,9 +700,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     /**
      * Perform the actual fetch
      * @param  array|null $fields optional array of columns to select (related columns can be used too)
-     * @return \Iterator               the query result as an iterator
+     * @return TableQueryIterator               the query result as an iterator
      */
-    public function iterator(array $fields = null) : \Iterator
+    public function iterator(array $fields = null)
     {
         if ($this->qiterator) {
             return $this->qiterator;

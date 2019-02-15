@@ -325,7 +325,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  bool   $negate  optional boolean indicating that the filter should be negated
      * @return $this
      */
-    public function filter(string $column, $value, bool $negate = false) : TableQuery
+    public function filter(string $column, $value, bool $negate = false) : self
     {
         $sql = $this->filterSQL($column, $value, $negate);
         return strlen($sql[0]) ? $this->where($sql[0], $sql[1]) : $this;
@@ -335,7 +335,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array $criteria  each row is a column, value and optional negate flag (same as filter method)
      * @return $this
      */
-    public function any(array $criteria) : TableQuery
+    public function any(array $criteria) : self
     {
         $sql = [];
         $par = [];
@@ -353,7 +353,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array $criteria  each row is a column, value and optional negate flag (same as filter method)
      * @return $this
      */
-    public function all(array $criteria) : TableQuery
+    public function all(array $criteria) : self
     {
         $sql = [];
         $par = [];
@@ -372,7 +372,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  bool|boolean $desc   should the sorting be in descending order, defaults to `false`
      * @return $this
      */
-    public function sort(string $column, bool $desc = false) : TableQuery
+    public function sort(string $column, bool $desc = false) : self
     {
         return $this->order($this->getColumn($column)['name'] . ' ' . ($desc ? 'DESC' : 'ASC'));
     }
@@ -381,7 +381,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  string|array        $column the column name (or names) to group by
      * @return $this
      */
-    public function group($column) : TableQuery
+    public function group($column) : self
     {
         if (!is_array($column)) {
             $column = [ $column ];
@@ -397,7 +397,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  int|integer $perPage the number of records per page - defaults to 25
      * @return $this
      */
-    public function paginate(int $page = 1, int $perPage = 25) : TableQuery
+    public function paginate(int $page = 1, int $perPage = 25) : self
     {
         return $this->limit($perPage, ($page - 1) * $perPage);
     }
@@ -417,7 +417,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * Remove all filters, sorting, etc
      * @return $this
      */
-    public function reset() : TableQuery
+    public function reset() : self
     {
         $this->where = [];
         $this->joins = [];
@@ -436,7 +436,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array  $params optional params for the statement (defaults to an empty array)
      * @return $this
      */
-    public function groupBy(string $sql, array $params = []) : TableQuery
+    public function groupBy(string $sql, array $params = []) : self
     {
         $this->qiterator = null;
         $this->group = [ $sql, $params ];
@@ -471,7 +471,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array  $params parameters for the SQL statement (defaults to an empty array)
      * @return $this
      */
-    public function where(string $sql, array $params = []) : TableQuery
+    public function where(string $sql, array $params = []) : self
     {
         $this->qiterator = null;
         $this->where[] = [ $sql, $params ];
@@ -483,7 +483,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array  $params parameters for the SQL statement (defaults to an empty array)
      * @return $this
      */
-    public function having(string $sql, array $params = []) : TableQuery
+    public function having(string $sql, array $params = []) : self
     {
         $this->qiterator = null;
         $this->having[] = [ $sql, $params ];
@@ -495,7 +495,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array  $params optional params for the statement (defaults to an empty array)
      * @return $this
      */
-    public function order(string $sql, array $params = []) : TableQuery
+    public function order(string $sql, array $params = []) : self
     {
         $this->qiterator = null;
         $name = null;
@@ -516,7 +516,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  int         $offset number of rows to skip from the beginning (defaults to 0)
      * @return $this
      */
-    public function limit(int $limit, int $offset = 0, bool $limitOnMainTable = false) : TableQuery
+    public function limit(int $limit, int $offset = 0, bool $limitOnMainTable = false) : self
     {
         $this->qiterator = null;
         $this->li_of = [ $limit, $offset, $limitOnMainTable ? 1 : 0 ];
@@ -645,7 +645,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array $fields optional array of columns to select (related columns can be used too)
      * @return $this
      */
-    public function columns(array $fields) : TableQuery
+    public function columns(array $fields) : self
     {
         foreach ($fields as $k => $v) {
             if (strpos($v, '*') !== false) {
@@ -1033,7 +1033,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  string $relation the relation name to fetch along with the data
      * @return $this
      */
-    public function with(string $relation) : TableQuery
+    public function with(string $relation) : self
     {
         $this->qiterator = null;
         $parts = explode('.', $relation);
@@ -1262,5 +1262,24 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
             return count($v) === 1 ? array_values($v)[0] : $v;
         }, $this->db->all($sql, $par, null, false, false));
+    }
+    public function find($primary)
+    {
+        $columns = $this->definition->getPrimaryKey();
+        if (!count($columns)) {
+            throw new DBException('Missing primary key');
+        }
+        if (!is_array($primary)) {
+            $temp = [];
+            $temp[$columns[0]] = $primary;
+            $primary = $temp;
+        }
+        foreach ($columns as $k) {
+            if (!isset($primary[$k])) {
+                throw new DBException('Missing primary key component');
+            }
+            $this->filter($k, $primary[$k]);
+        }
+        return $this->iterator()[0];
     }
 }

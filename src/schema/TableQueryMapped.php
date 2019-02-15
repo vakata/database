@@ -26,4 +26,8 @@ class TableQueryMapped extends TableQuery
     {
         return $this->mapper->collection(parent::iterator($fields), $this->definition);
     }
+    public function create(array $data = [])
+    {
+        return $this->mapper->entity($this->definition, $data, true);
+    }
 }

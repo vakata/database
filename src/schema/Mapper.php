@@ -13,23 +13,28 @@ class Mapper
     {
         $this->db = $db;
     }
-    public function entity($definition, array $data)
+    public function entity($definition, array $data, bool $empty = false)
     {
-        $primary = [];
-        foreach ($definition->getPrimaryKey() as $column) {
-            $primary[$column] = $data[$column];
+        if (!$empty) {
+            $primary = [];
+            foreach ($definition->getPrimaryKey() as $column) {
+                $primary[$column] = $data[$column];
+            }
+            if (isset($this->objects[$definition->getName()][base64_encode(serialize($primary))])) {
+                return $this->objects[$definition->getName()][base64_encode(serialize($primary))];
+            }
         }
-        if (isset($this->objects[$definition->getName()][base64_encode(serialize($primary))])) {
-            return $this->objects[$definition->getName()][base64_encode(serialize($primary))];
-        }
-        $entity = new class ($definition, $data) extends \StdClass {
+        $entity = new class ($this, $definition, $data, $empty) extends \StdClass {
+            protected $mapper;
+            protected $empty;
             protected $definition;
             protected $initial = [];
             protected $changed = [];
             protected $fetched = [];
 
-            public function __construct($definition, array $data = [])
+            public function __construct($mapper, $definition, array $data = [])
             {
+                $this->mapper = $mapper;
                 $this->definition = $definition;
                 $this->initial = $data;
             }
@@ -46,7 +51,7 @@ class Mapper
                 if (isset($this->initial[$property])) {
                     return $this->initial[$property];
                 }
-                if (isset($this->fetched)) {
+                if (isset($this->fetched[$property])) {
                     return is_callable($this->fetched[$property]) ?
                         $this->fetched[$property] = call_user_func($this->fetched[$property]) :
                         $this->fetched[$property];
@@ -56,6 +61,21 @@ class Mapper
             public function __set($property, $value)
             {
                 $this->changed[$property] = $value;
+            }
+            public function __call($method, $args)
+            {
+                if (isset($this->definition->getRelations()[$method])) {
+                    if (isset($this->fetched[$method])) {
+                        return is_callable($this->fetched[$method]) ?
+                            $this->fetched[$method] = call_user_func($this->fetched[$method], $args[0] ?? null) :
+                            $this->fetched[$method];
+                    }
+                }
+                return null;
+            }
+            public function definition()
+            {
+                return $this->definition;
             }
             public function toArray(bool $fetch = false)
             {
@@ -78,15 +98,108 @@ class Mapper
                 }
                 return $data;
             }
+            public function fromArray(array $data)
+            {
+                foreach ($this->definition->getColumns() as $k) {
+                    if (isset($data[$k])) {
+                        $this->changed[$k] = $data[$k];
+                    }
+                }
+                return $this;
+            }
             public function id()
             {
                 $primary = [];
                 foreach ($this->definition->getPrimaryKey() as $k) {
-                    $primary[$k] = $this->{$k};
+                    $primary[$k] = $this->initial[$k] ?? null;
                 }
                 return $primary;
             }
+            public function save()
+            {
+                $this->mapper->save($this);
+                return $this->flatten();
+            }
+            public function delete()
+            {
+                $this->mapper->delete($this);
+            }
+            public function refresh()
+            {
+                $this->mapper->refresh($this);
+                return $this->flatten();
+            }
+            public function flatten()
+            {
+                $this->initial = $this->toArray();
+                $this->changed = [];
+                return $this;
+            }
         };
+        if ($empty) {
+            return $entity;
+        }
+        $this->lazy($entity);
+        return $this->objects[$definition->getName()][base64_encode(serialize($primary))] = $entity;
+    }
+    public function collection($iterator, $definition)
+    {
+        return Collection::from($iterator)
+            ->map(function ($v) use ($definition) {
+                return $this->entity($definition, $v);
+            });
+    }
+    public function save($entity)
+    {
+        $query = $this->db->table($entity->definition()->getName());
+        $primary = $entity->id();
+        if (!isset($this->objects[$entity->definition()->getName()][base64_encode(serialize($primary))])) {
+            $new = $query->insert($entity->toArray());
+            $entity->fromArray($new);
+            $this->objects[$entity->definition()->getName()][base64_encode(serialize($new))] = $entity;
+        } else {
+            foreach ($primary as $k => $v) {
+                $query->filter($k, $v);
+            }
+            $query->update($entity->toArray());
+            $new = [];
+            foreach ($primary as $k => $v) {
+                $new[$k] = $entity->{$k};
+            }
+            if (base64_encode(serialize($new)) !== base64_encode(serialize($primary))) {
+                unset($this->objects[$entity->definition()->getName()][base64_encode(serialize($primary))]);
+                $this->objects[$entity->definition()->getName()][base64_encode(serialize($new))] = $entity;
+            }
+        }
+        return $this->lazy($entity);
+    }
+    public function delete($entity)
+    {
+        $query = $this->db->table($entity->definition()->getName());
+        $primary = $entity->id();
+        if (isset($this->objects[$entity->definition()->getName()][base64_encode(serialize($primary))])) {
+            foreach ($primary as $k => $v) {
+                $query->filter($k, $v);
+            }
+            $query->delete();
+            unset($this->objects[$entity->definition()->getName()][base64_encode(serialize($primary))]);
+        }
+    }
+    public function refresh($entity, $own = true)
+    {
+        $query = $this->db->table($entity->definition()->getName());
+        $primary = $entity->id();
+        foreach ($primary as $k => $v) {
+            $query->filter($k, $v);
+        }
+        $entity->fromArray($query[0] ?? []);
+        return $this->lazy($entity);
+    }
+    protected function lazy($entity)
+    {
+        $data = $entity->toArray();
+        $primary = $entity->id();
+        $definition = $entity->definition();
         foreach ($definition->getColumns() as $column) {
             if (!isset($data[$column])) {
                 $entity->__lazyProperty($column, function () use ($entity, $definition, $primary, $column) {
@@ -106,8 +219,11 @@ class Mapper
                     }, $data[$name]) :
                     $this->entity($relation->table, $data[$name]);
             } else {
-                $entity->__lazyProperty($name, function () use ($entity, $definition, $primary, $relation, $data) {
+                $entity->__lazyProperty($name, function (array $columns = null) use ($entity, $definition, $primary, $relation, $data) {
                     $query = $this->db->table($relation->table->getName(), true);
+                    if ($columns !== null) {
+                        $query->columns($columns);
+                    }
                     if ($relation->sql) {
                         $query->where($relation->sql, $relation->par);
                     }
@@ -142,17 +258,6 @@ class Mapper
                 });
             }
         }
-        return $this->objects[$definition->getName()][base64_encode(serialize($primary))] = $entity;
-    }
-    public function collection($iterator, $definition)
-    {
-        return Collection::from($iterator)
-            // ->mapKey(function ($v, $k) use ($definition) {
-            //     $pk = $definition->getPrimaryKey();
-            //     return count($pk) === 1 ? ($v[$pk[0]] ?? $k) : $k;
-            // })
-            ->map(function ($v) use ($definition) {
-                return $this->entity($definition, $v);
-            });
+        return $entity;
     }
 }

@@ -96,7 +96,7 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
     }
 
     public function testReadChanges() {
-        self::$db->query('INSERT INTO author VALUES(NULL, ?)', ['Stephen King']);
+        self::$db->query('INSERT INTO author (name) VALUES(?)', ['Stephen King']);
         $author = $this->getDB()->author(true);
         $this->assertEquals($author[3]->name, 'Stephen King');
     }
@@ -139,7 +139,7 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
     }
     public function testCreateRelationFromDB() {
         $author = $this->getDB()->author(true);
-        self::$db->query('INSERT INTO book VALUES(NULL, ?, ?)', ['The Hitchhiker\'s Guide to the Galaxy', 42]);
+        self::$db->query('INSERT INTO book (name, author_id) VALUES(?, ?)', ['The Hitchhiker\'s Guide to the Galaxy', 42]);
         $this->assertEquals('The Hitchhiker\'s Guide to the Galaxy', $author[3]->book[0]->name);
     }
 }

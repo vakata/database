@@ -49,7 +49,7 @@ class Mapper
                 $this->definition = $definition;
                 $this->initial = $data;
             }
-            public function __lazyProperty(string $property, callable $resolve)
+            public function __lazyProperty(string $property, $resolve)
             {
                 $this->fetched[$property] = $resolve;
                 return $this;
@@ -150,7 +150,7 @@ class Mapper
         if ($empty) {
             return $entity;
         }
-        $this->lazy($entity);
+        $this->lazy($entity, $data);
         return $this->objects[$definition->getName()][base64_encode(serialize($primary))] = $entity;
     }
     /**
@@ -195,7 +195,7 @@ class Mapper
                 $this->objects[$entity->definition()->getName()][base64_encode(serialize($new))] = $entity;
             }
         }
-        return $this->lazy($entity);
+        return $this->lazy($entity, $entity->toArray());
     }
     /**
      * Delete an entity from the database
@@ -228,12 +228,12 @@ class Mapper
         foreach ($primary as $k => $v) {
             $query->filter($k, $v);
         }
-        $entity->fromArray($query[0] ?? []);
-        return $this->lazy($entity);
+        $data = $query[0] ?? [];
+        $entity->fromArray($data);
+        return $this->lazy($entity, $data);
     }
-    protected function lazy($entity)
+    protected function lazy($entity, $data)
     {
-        $data = $entity->toArray();
         $primary = $entity->id();
         $definition = $entity->definition();
         foreach ($definition->getColumns() as $column) {
@@ -248,51 +248,53 @@ class Mapper
             }
         }
         foreach ($definition->getRelations() as $name => $relation) {
-            if (isset($data[$name])) {
-                $entity->{$name} = $relation->many ? 
-                    array_map(function ($v) use ($relation) {
-                        return $this->entity($relation->table, $v);
-                    }, $data[$name]) :
-                    $this->entity($relation->table, $data[$name]);
-            } else {
-                $entity->__lazyProperty($name, function (array $columns = null) use ($entity, $definition, $primary, $relation, $data) {
-                    $query = $this->db->table($relation->table->getName(), true);
-                    if ($columns !== null) {
-                        $query->columns($columns);
-                    }
-                    if ($relation->sql) {
-                        $query->where($relation->sql, $relation->par);
-                    }
-                    if ($relation->pivot) {
-                        $nm = null;
-                        foreach ($relation->table->getRelations() as $rname => $rdata) {
-                            if ($rdata->pivot && $rdata->pivot->getName() === $relation->pivot->getName()) {
-                                $nm = $rname;
+            $entity->__lazyProperty(
+                $name,
+                isset($data[$name]) ?
+                    ($relation->many ? 
+                        array_map(function ($v) use ($relation) {
+                            return $this->entity($relation->table, $v);
+                        }, $data[$name]) :
+                        $this->entity($relation->table, $data[$name])
+                    ) :
+                    function (array $columns = null) use ($entity, $definition, $primary, $relation, $data) {
+                        $query = $this->db->table($relation->table->getName(), true);
+                        if ($columns !== null) {
+                            $query->columns($columns);
+                        }
+                        if ($relation->sql) {
+                            $query->where($relation->sql, $relation->par);
+                        }
+                        if ($relation->pivot) {
+                            $nm = null;
+                            foreach ($relation->table->getRelations() as $rname => $rdata) {
+                                if ($rdata->pivot && $rdata->pivot->getName() === $relation->pivot->getName()) {
+                                    $nm = $rname;
+                                }
+                            }
+                            if (!$nm) {
+                                $nm = $definition->getName();
+                                $relation->table->manyToMany(
+                                    $this->db->table($definition->getName()),
+                                    $relation->pivot,
+                                    $nm,
+                                    array_flip($relation->keymap),
+                                    $relation->pivot_keymap
+                                );
+                            }
+                            foreach ($definition->getPrimaryKey() as $v) {
+                                $query->filter($nm . '.' . $v, $data[$v] ?? null);
+                            }
+                        } else {
+                            foreach ($relation->keymap as $k => $v) {
+                                $query->filter($v, $entity->{$k} ?? null);
                             }
                         }
-                        if (!$nm) {
-                            $nm = $definition->getName();
-                            $relation->table->manyToMany(
-                                $this->db->table($definition->getName()),
-                                $relation->pivot,
-                                $nm,
-                                array_flip($relation->keymap),
-                                $relation->pivot_keymap
-                            );
-                        }
-                        foreach ($definition->getPrimaryKey() as $v) {
-                            $query->filter($nm . '.' . $v, $data[$v] ?? null);
-                        }
-                    } else {
-                        foreach ($relation->keymap as $k => $v) {
-                            $query->filter($v, $entity->{$k} ?? null);
-                        }
+                        return $relation->many ?
+                            $query->iterator() :
+                            $query[0];
                     }
-                    return $relation->many ?
-                        $query->iterator() :
-                        $query[0];
-                });
-            }
+            );
         }
         return $entity;
     }

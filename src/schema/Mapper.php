@@ -56,16 +56,16 @@ class Mapper
             }
             public function __get($property)
             {
+                if (isset($this->fetched[$property])) {
+                    return is_callable($this->fetched[$property]) ?
+                        $this->fetched[$property] = call_user_func($this->fetched[$property]) :
+                        $this->fetched[$property];
+                }
                 if (isset($this->changed[$property])) {
                     return $this->changed[$property];
                 }
                 if (isset($this->initial[$property])) {
                     return $this->initial[$property];
-                }
-                if (isset($this->fetched[$property])) {
-                    return is_callable($this->fetched[$property]) ?
-                        $this->fetched[$property] = call_user_func($this->fetched[$property]) :
-                        $this->fetched[$property];
                 }
                 return null;
             }

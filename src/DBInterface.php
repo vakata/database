@@ -24,5 +24,5 @@ interface DBInterface
     public function parseSchema();
     public function getSchema($asPlainArray = true);
     public function setSchema(array $data);
-    public function table($table);
+    public function table($table, bool $mapped = false);
 }

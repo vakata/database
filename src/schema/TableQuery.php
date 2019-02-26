@@ -541,7 +541,6 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         foreach ($relations as $k => $v) {
             $getAlias($k);
         }
-        $f = $this->fields;
         $w = $this->where;
         $h = $this->having;
         $o = $this->order;
@@ -559,19 +558,19 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
             foreach ($h as $kk => $vv) {
                 if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv[0])) {
-                    $relations[$k] = [ $relation, $table ];
+                    $relations[$k] = [ $v, $table ];
                     $h[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv[0]);
                 }
             }
             if (isset($g[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $g[0])) {
-                $relations[$k] = [ $relation, $table ];
+                $relations[$k] = [ $v, $table ];
                 $g[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $g[0]);
             }
-            foreach ($j as $kk => $v) {
-                foreach ($v->keymap as $kkk => $vv) {
-                    if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv)) {
-                        $relations[$k] = [ $relation, $table ];
-                        $j[$k]->keymap[$kkk] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv);
+            foreach ($j as $kk => $vv) {
+                foreach ($vv->keymap as $kkk => $vvv) {
+                    if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vvv)) {
+                        $relations[$k] = [ $v, $table ];
+                        $j[$kk]->keymap[$kkk] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vvv);
                     }
                 }
             }
@@ -1101,7 +1100,6 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         foreach ($relations as $k => $v) {
             $getAlias($k);
         }
-        $f = $this->fields;
         $w = $this->where;
         $h = $this->having;
         $o = $this->order;
@@ -1121,19 +1119,19 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
             foreach ($h as $kk => $vv) {
                 if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv[0])) {
-                    $relations[$k] = [ $relation, $table ];
+                    $relations[$k] = [ $v, $table ];
                     $h[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv[0]);
                 }
             }
             if (isset($g[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $g[0])) {
-                $relations[$k] = [ $relation, $table ];
+                $relations[$k] = [ $v, $table ];
                 $g[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $g[0]);
             }
-            foreach ($j as $kk => $v) {
-                foreach ($v->keymap as $kkk => $vv) {
-                    if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv)) {
-                        $relations[$k] = [ $relation, $table ];
-                        $j[$k]->keymap[$kkk] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv);
+            foreach ($j as $kk => $vv) {
+                foreach ($vv->keymap as $kkk => $vvv) {
+                    if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vvv)) {
+                        $relations[$k] = [ $v, $table ];
+                        $j[$kk]->keymap[$kkk] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vvv);
                     }
                 }
             }
@@ -1238,12 +1236,6 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 if ((int)$this->db->driverOption('version', 0) >= 12) {
                     $sql .= 'OFFSET ' . $this->li_of[1] . ' ROWS FETCH NEXT ' . $this->li_of[0] . ' ROWS ONLY';
                 } else {
-                    $f = array_map(function ($v) {
-                        $v = explode(' ', trim($v), 2);
-                        if (count($v) === 2) { return $v[1]; }
-                        $v = explode('.', $v[0], 2);
-                        return count($v) === 2 ? $v[1] : $v[0];
-                    }, $select);
                     $sql = "SELECT " . implode(', ', $dst) . " 
                             FROM (
                                 SELECT tbl__.*, rownum rnum__ FROM (

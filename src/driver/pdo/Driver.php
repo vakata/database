@@ -68,7 +68,7 @@ class Driver extends DriverAbstract implements DriverInterface
             return true;
         }
         try {
-            @$this->connect();
+            $this->connect();
             return true;
         } catch (\Exception $e) {
             $this->lnk = null;

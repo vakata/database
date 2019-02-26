@@ -26,8 +26,8 @@ class Mapper
      */
     public function entity(Table $definition, array $data, bool $empty = false)
     {
+        $primary = [];
         if (!$empty) {
-            $primary = [];
             foreach ($definition->getPrimaryKey() as $column) {
                 $primary[$column] = $data[$column];
             }

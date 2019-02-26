@@ -6,12 +6,16 @@ use \vakata\database\DBException;
 use \vakata\database\DriverInterface;
 use \vakata\database\DriverAbstract;
 use \vakata\database\StatementInterface;
+use \vakata\database\ResultInterface;
 use \vakata\database\schema\Table;
 use \vakata\database\schema\TableRelation;
 use \vakata\collection\Collection;
 
 trait Schema
 {
+    protected $connection;
+    abstract public function query(string $sql, $par = null) : ResultInterface;
+
     public function table(string $table, bool $detectRelations = true) : Table
     {
         static $tables = [];

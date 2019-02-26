@@ -35,7 +35,7 @@ class Mapper
                 return $this->objects[$definition->getName()][base64_encode(serialize($primary))];
             }
         }
-        $entity = new class ($this, $definition, $data, $empty) extends \StdClass {
+        $entity = new class ($this, $definition, $data) extends \StdClass {
             protected $mapper;
             protected $empty;
             protected $definition;

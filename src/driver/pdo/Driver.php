@@ -11,7 +11,20 @@ use \vakata\database\schema\TableRelation;
 
 class Driver extends DriverAbstract implements DriverInterface
 {
+    use \vakata\database\driver\mysql\Schema,
+        \vakata\database\driver\oracle\Schema,
+        \vakata\database\driver\postgre\Schema
+    {
+        \vakata\database\driver\mysql\Schema::table as mtable;
+        \vakata\database\driver\mysql\Schema::tables as mtables;
+        \vakata\database\driver\oracle\Schema::table as otable;
+        \vakata\database\driver\oracle\Schema::tables as otables;
+        \vakata\database\driver\postgre\Schema::table as ptable;
+        \vakata\database\driver\postgre\Schema::tables as ptables;
+    }
+
     protected $lnk = null;
+    protected $drv = null;
 
     public function __construct(array $connection)
     {
@@ -26,6 +39,8 @@ class Driver extends DriverAbstract implements DriverInterface
             $temp = $temp[1];
         }
         $connection['dsn'] = $temp;
+        $connection['name'] = '';
+        $this->drv = explode(':', $temp)[0];
         $this->connection = $connection;
     }
     public function __destruct()
@@ -88,5 +103,32 @@ class Driver extends DriverAbstract implements DriverInterface
     {
         $this->connect();
         return $this->lnk->rollback();
+    }
+
+    public function table(string $table, bool $detectRelations = true) : Table
+    {
+        switch ($this->drv) {
+            case 'mysql':
+                return $this->mtable($table, $detectRelations);
+            case 'oci':
+                return $this->otable($table, $detectRelations);
+            case 'pgsql':
+                return $this->ptable($table, $detectRelations);
+            default:
+                return parent::table($table, $detectRelations);
+        }
+    }
+    public function tables() : array
+    {
+        switch ($this->drv) {
+            case 'mysql':
+                return $this->mtables();
+            case 'oci':
+                return $this->otables();
+            case 'pgsql':
+                return $this->ptables();
+            default:
+                return parent::tables();
+        }
     }
 }

@@ -1149,6 +1149,8 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         if ($own) {
             // if using own table - do not use max/min in order - that will prevent index usage
             $dst[] = $o[2] . ' orderbyfix___';
+        } else {
+            $dst[] = 'MAX(' . $o[2] . ') orderbyfix___';
         }
         $dst = array_unique($dst);
 

@@ -36,6 +36,11 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
         }
     }
 
+    public function testIDs() {
+        $books = $this->getDB()->book()->with('author')->order('author.name')->filter('author.name', 'Terry Pratchett')->ids();
+        $this->assertEquals($books, ['1']);
+    }
+
     public function testCollection() {
         $books = $this->getDB()->book();
         $this->assertEquals(count($books), 1);

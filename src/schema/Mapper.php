@@ -68,7 +68,8 @@ class Mapper
                 if (isset($this->initial[$property])) {
                     return $this->initial[$property];
                 }
-                return null;
+                $null = null;
+                return $null;
             }
             public function __set($property, $value)
             {

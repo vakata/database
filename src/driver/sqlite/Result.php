@@ -2,9 +2,8 @@
 
 namespace vakata\database\driver\sqlite;
 
-use \vakata\database\DriverInterface;
+use \vakata\database\DBException;
 use \vakata\database\ResultInterface;
-use \vakata\collection\Collection;
 
 class Result implements ResultInterface
 {

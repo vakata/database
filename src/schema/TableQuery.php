@@ -1250,7 +1250,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 $sql .= 'LIMIT ' . $this->li_of[0] . ' OFFSET ' . $this->li_of[1];
             }
         }
-        return array_map(function ($v) use ($own) {
+        return array_map(function ($v) {
             if (isset($v['orderbyfix___'])) {
                 unset($v['orderbyfix___']);
             }

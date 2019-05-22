@@ -35,7 +35,7 @@ class Mapper
                 return $this->objects[$definition->getName()][base64_encode(serialize($primary))];
             }
         }
-        $entity = new class ($this, $definition, $data) extends \StdClass {
+        $entity = new class ($this, $definition, $data) extends \stdClass {
             protected $mapper;
             protected $empty;
             protected $definition;
@@ -240,7 +240,7 @@ class Mapper
         $definition = $entity->definition();
         foreach ($definition->getColumns() as $column) {
             if (!isset($data[$column])) {
-                $entity->__lazyProperty($column, function () use ($entity, $definition, $primary, $column) {
+                $entity->__lazyProperty($column, function () use ($definition, $primary, $column) {
                     $query = $this->db->table($definition->getName());
                     foreach ($primary as $k => $v) {
                         $query->filter($k, $v);
@@ -259,7 +259,7 @@ class Mapper
                         }, $data[$name]) :
                         $this->entity($relation->table, $data[$name])
                     ) :
-                    function (array $columns = null) use ($entity, $definition, $primary, $relation, $data) {
+                    function (array $columns = null) use ($entity, $definition, $relation, $data) {
                         $query = $this->db->table($relation->table->getName(), true);
                         if ($columns !== null) {
                             $query->columns($columns);

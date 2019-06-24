@@ -35,7 +35,7 @@ class Mapper
                 return $this->objects[$definition->getName()][base64_encode(serialize($primary))];
             }
         }
-        $entity = new class ($this, $definition, $data) extends \stdClass {
+        $entity = new class ($this, $definition, $data) {
             protected $mapper;
             protected $empty;
             protected $definition;
@@ -56,16 +56,16 @@ class Mapper
             }
             public function &__get($property)
             {
-                if (isset($this->fetched[$property])) {
+                if (array_key_exists($property, $this->fetched)) {
                     if (is_callable($this->fetched[$property])) {
                         $this->fetched[$property] = call_user_func($this->fetched[$property]);
                     }
                     return $this->fetched[$property];
                 }
-                if (isset($this->changed[$property])) {
+                if (array_key_exists($property, $this->changed)) {
                     return $this->changed[$property];
                 }
-                if (isset($this->initial[$property])) {
+                if (array_key_exists($property, $this->initial)) {
                     return $this->initial[$property];
                 }
                 $null = null;
@@ -78,7 +78,7 @@ class Mapper
             public function __call($method, $args)
             {
                 if (isset($this->definition->getRelations()[$method])) {
-                    if (isset($this->fetched[$method])) {
+                    if (array_key_exists($method, $this->fetched)) {
                         return is_callable($this->fetched[$method]) ?
                             $this->fetched[$method] = call_user_func($this->fetched[$method], $args[0] ?? null) :
                             $this->fetched[$method];
@@ -94,7 +94,7 @@ class Mapper
             {
                 $data = [];
                 foreach ($this->definition->getColumns() as $k) {
-                    if (isset($this->fetched[$k])) {
+                    if (array_key_exists($k, $this->fetched)) {
                         if ($fetch) {
                             $this->fetched[$k] = call_user_func($this->fetched[$k]);
                         }
@@ -102,10 +102,10 @@ class Mapper
                             $data[$k] = $this->fetched[$k];
                         }
                     }
-                    if (isset($this->initial[$k])) {
+                    if (array_key_exists($k, $this->initial)) {
                         $data[$k] = $this->initial[$k];
                     }
-                    if (isset($this->changed[$k])) {
+                    if (array_key_exists($k, $this->changed)) {
                         $data[$k] = $this->changed[$k];
                     }
                 }
@@ -114,7 +114,7 @@ class Mapper
             public function fromArray(array $data)
             {
                 foreach ($this->definition->getColumns() as $k) {
-                    if (isset($data[$k])) {
+                    if (array_key_exists($k, $data)) {
                         $this->changed[$k] = $data[$k];
                     }
                 }
@@ -239,7 +239,7 @@ class Mapper
         $primary = $entity->id();
         $definition = $entity->definition();
         foreach ($definition->getColumns() as $column) {
-            if (!isset($data[$column])) {
+            if (!array_key_exists($column, $data)) {
                 $entity->__lazyProperty($column, function () use ($definition, $primary, $column) {
                     $query = $this->db->table($definition->getName());
                     foreach ($primary as $k => $v) {
@@ -252,7 +252,7 @@ class Mapper
         foreach ($definition->getRelations() as $name => $relation) {
             $entity->__lazyProperty(
                 $name,
-                isset($data[$name]) ?
+                array_key_exists($name, $data) ?
                     ($relation->many ? 
                         array_map(function ($v) use ($relation) {
                             return $this->entity($relation->table, $v);

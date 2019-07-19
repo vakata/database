@@ -431,6 +431,7 @@ class Table
     }
     public function toLowerCase()
     {
+        $this->data['name'] = strtolower($this->data['name']);
         $temp = [];
         foreach ($this->data['columns'] as $k => $v) {
             $temp[strtolower($k)] = $v;
@@ -452,6 +453,7 @@ class Table
                 }
                 $v->pivot_keymap = $t;
             }
+            $v->name = strtolower($v->name);
             $temp[strtolower($k)] = $v;
         }
         $this->relations = $temp;

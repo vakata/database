@@ -252,7 +252,7 @@ class Mapper
         foreach ($definition->getRelations() as $name => $relation) {
             $entity->__lazyProperty(
                 $name,
-                array_key_exists($name, $data) ?
+                array_key_exists($name, $data) && isset($data[$name]) ?
                     ($relation->many ? 
                         array_map(function ($v) use ($relation) {
                             return $this->entity($relation->table, $v);

@@ -70,11 +70,6 @@ class DB implements DBInterface
         if ($pos = strrpos($path, '?')) {
             $opt = substr($path, $pos + 1);
             parse_str($opt, $connection['opts']);
-            if ($connection['opts'] && count($connection['opts'])) {
-                $connectionString = substr($connectionString, 0, $pos);
-            } else {
-                $connection['opts'] = [];
-            }
             $connection['name'] = substr($path, 0, $pos);
         } else {
             $connection['name'] = $path;

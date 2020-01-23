@@ -56,24 +56,29 @@ class DB implements DBInterface
         $connectionString = array_pad(explode('://', $connectionString, 2), 2, '');
         $connection['type'] = $connectionString[0];
         $connectionString = $connectionString[1];
-        if (strpos($connectionString, '@') !== false) {
-            $connectionString = array_pad(explode('@', $connectionString, 2), 2, '');
-            list($connection['user'], $connection['pass']) = array_pad(explode(':', $connectionString[0], 2), 2, '');
-            $connectionString = $connectionString[1];
+
+        $host = substr($connectionString, 0, strrpos($connectionString, '/'));
+        $path = substr($connectionString, strrpos($connectionString, '/') + 1);
+
+        if (strpos($host, '@') !== false) {
+            $auth = substr($host, 0, strrpos($host, '@'));
+            $host = substr($host, strrpos($host, '@') + 1);
+            list($connection['user'], $connection['pass']) = array_pad(explode(':', $auth, 2), 2, '');
         }
-        $connectionString = array_pad(explode('/', $connectionString, 2), 2, '');
-        list($connection['host'], $connection['port']) = array_pad(explode(':', $connectionString[0], 2), 2, null);
-        $connectionString = $connectionString[1];
-        if ($pos = strrpos($connectionString, '?')) {
-            $opt = substr($connectionString, $pos + 1);
+        list($connection['host'], $connection['port']) = array_pad(explode(':', $host, 2), 2, null);
+
+        if ($pos = strrpos($path, '?')) {
+            $opt = substr($path, $pos + 1);
             parse_str($opt, $connection['opts']);
             if ($connection['opts'] && count($connection['opts'])) {
                 $connectionString = substr($connectionString, 0, $pos);
             } else {
                 $connection['opts'] = [];
             }
+            $connection['name'] = substr($path, 0, $pos);
+        } else {
+            $connection['name'] = $path;
         }
-        $connection['name'] = $connectionString;
         $connection['type'] = isset($aliases[$connection['type']]) ?
             $aliases[$connection['type']] :
             $connection['type'];

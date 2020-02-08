@@ -20,8 +20,7 @@ trait Schema
     public function table(
         string $table,
         bool $detectRelations = true
-    ) : Table
-    {
+    ) : Table {
         static $tables = [];
         if (isset($tables[$table])) {
             return $tables[$table];
@@ -39,7 +38,9 @@ trait Schema
                 }
                 return $new;
             })
-            ->mapKey(function ($v) { return $v['COLUMN_NAME']; })
+            ->mapKey(function ($v) {
+                return $v['COLUMN_NAME'];
+            })
             ->map(function ($v) {
                 $v['length'] = null;
                 if (!isset($v['DATA_TYPE'])) {
@@ -126,7 +127,8 @@ trait Schema
                  as $relation
             ) {
                 $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_NAME'];
-                $relations[$relation['CONSTRAINT_NAME']]['keymap'][$primary[(int)$relation['POSITION']-1]] = $relation['COLUMN_NAME'];
+                $relations[$relation['CONSTRAINT_NAME']]['keymap'][$primary[(int)$relation['POSITION']-1]] =
+                    $relation['COLUMN_NAME'];
             }
             foreach ($relations as $data) {
                 $rtable = $this->table($data['table'], true);
@@ -142,10 +144,15 @@ trait Schema
                     foreach (Collection::from($this
                         ->query(
                             "SELECT
-                                cc.COLUMN_NAME, ac.CONSTRAINT_NAME, rc.TABLE_NAME AS REFERENCED_TABLE_NAME, ac.R_CONSTRAINT_NAME
+                                cc.COLUMN_NAME,
+                                ac.CONSTRAINT_NAME,
+                                rc.TABLE_NAME AS REFERENCED_TABLE_NAME,
+                                ac.R_CONSTRAINT_NAME
                             FROM all_constraints ac
-                            JOIN all_constraints rc ON rc.CONSTRAINT_NAME = ac.R_CONSTRAINT_NAME AND rc.OWNER = ac.OWNER
-                            LEFT JOIN all_cons_columns cc ON cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
+                            JOIN all_constraints rc ON
+                                rc.CONSTRAINT_NAME = ac.R_CONSTRAINT_NAME AND rc.OWNER = ac.OWNER
+                            LEFT JOIN all_cons_columns cc ON
+                                cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
                             WHERE
                                 ac.OWNER = ? AND ac.R_OWNER = ? AND ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ? AND
                                 cc.COLUMN_NAME IN (??)
@@ -161,7 +168,8 @@ trait Schema
                         }) as $relation
                     ) {
                         $foreign[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
-                        $foreign[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['R_CONSTRAINT_NAME'];
+                        $foreign[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] =
+                            $relation['R_CONSTRAINT_NAME'];
                         $usedcol[] = $relation['COLUMN_NAME'];
                     }
                 }
@@ -169,7 +177,8 @@ trait Schema
                     $foreign = current($foreign);
                     $rcolumns = Collection::from($this
                         ->query(
-                            "SELECT COLUMN_NAME FROM all_cons_columns WHERE OWNER = ? AND CONSTRAINT_NAME = ? ORDER BY POSITION",
+                            "SELECT COLUMN_NAME FROM all_cons_columns
+                             WHERE OWNER = ? AND CONSTRAINT_NAME = ? ORDER BY POSITION",
                             [ $owner, current($foreign['keymap']) ]
                         ))
                         ->map(function ($v) {
@@ -221,7 +230,11 @@ trait Schema
             $relations = [];
             foreach (Collection::from($this
                 ->query(
-                    "SELECT ac.CONSTRAINT_NAME, cc.COLUMN_NAME, rc.TABLE_NAME AS REFERENCED_TABLE_NAME, ac.R_CONSTRAINT_NAME
+                    "SELECT
+                        ac.CONSTRAINT_NAME,
+                        cc.COLUMN_NAME,
+                        rc.TABLE_NAME AS REFERENCED_TABLE_NAME,
+                        ac.R_CONSTRAINT_NAME
                     FROM all_constraints ac
                     JOIN all_constraints rc ON rc.CONSTRAINT_NAME = ac.R_CONSTRAINT_NAME AND rc.OWNER = ac.OWNER
                     LEFT JOIN all_cons_columns cc ON cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
@@ -239,12 +252,14 @@ trait Schema
                 as $relation
             ) {
                 $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
-                $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['R_CONSTRAINT_NAME'];
+                $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] =
+                    $relation['R_CONSTRAINT_NAME'];
             }
             foreach ($relations as $name => $data) {
                 $rcolumns = Collection::from($this
                     ->query(
-                        "SELECT COLUMN_NAME FROM all_cons_columns WHERE OWNER = ? AND CONSTRAINT_NAME = ? ORDER BY POSITION",
+                        "SELECT COLUMN_NAME FROM all_cons_columns
+                         WHERE OWNER = ? AND CONSTRAINT_NAME = ? ORDER BY POSITION",
                         [ $owner, current($data['keymap']) ]
                     ))
                     ->map(function ($v) {

@@ -45,7 +45,10 @@ class Statement implements StatementInterface
                     break;
             }
         }
-        $temp = \oci_execute($this->statement, $this->driver->isTransaction() ? \OCI_NO_AUTO_COMMIT : \OCI_COMMIT_ON_SUCCESS);
+        $temp = \oci_execute(
+            $this->statement,
+            $this->driver->isTransaction() ? \OCI_NO_AUTO_COMMIT : \OCI_COMMIT_ON_SUCCESS
+        );
         if (!$temp) {
             $err = \oci_error($this->statement);
             if (!is_array($err)) {

@@ -20,7 +20,10 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
         if (!static::$db) {
             $connection = $this->getConnectionString();
             static::$db = new DBI($connection);
-            $this->importFile(static::$db, __DIR__ . '/data/' . basename(explode('://', $connection)[0]) . '_schema.sql');
+            $this->importFile(
+                static::$db,
+                __DIR__ . '/data/' . basename(explode('://', $connection)[0]) . '_schema.sql'
+            );
         }
         return static::$db;
     }
@@ -36,35 +39,42 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testIDs() {
-        $books = $this->getDB()->book()->with('author')->order('author.name')->filter('author.name', 'Terry Pratchett')->ids();
+    public function testIDs()
+    {
+        $books = $this->getDB()->book()
+            ->with('author')->order('author.name')->filter('author.name', 'Terry Pratchett')->ids();
         $this->assertEquals($books, ['1']);
     }
 
-    public function testCollection() {
+    public function testCollection()
+    {
         $books = $this->getDB()->book();
         $this->assertEquals(count($books), 1);
         $this->assertEquals($books[0]['name'], 'Equal rites');
     }
-    public function testRelations() {
+    public function testRelations()
+    {
         $books = $this->getDB()->book()->with('author')->with('tag');
         $this->assertEquals($books[0]['author']['name'], 'Terry Pratchett');
         $this->assertEquals(count($books[0]['tag']), 2);
     }
-    public function testRemoteRelations() {
+    public function testRemoteRelations()
+    {
         $author = $this->getDB()->author()->with('book')->with('book.tag');
         $this->assertEquals(count($author[0]['book'][0]['tag']), 2);
         $this->assertEquals(count($author[2]['book']), 0);
     }
 
-    public function testSerialize() {
+    public function testSerialize()
+    {
         $this->getDB()->getSchema($this->getDB()->getSchema());
         $books = $this->getDB()->book()->with('author')->with('tag');
         $this->assertEquals($books[0]['author']['name'], 'Terry Pratchett');
         $this->assertEquals(count($books[0]['tag']), 2);
     }
 
-    public function testFilter() {
+    public function testFilter()
+    {
         $this->assertEquals(count($this->getDB()->book()->filter('name', 'Equal rites')), 1);
         $this->assertEquals(count($this->getDB()->book()->filter('name', 'Not found')), 0);
         $this->assertEquals(count($this->getDB()->book()->filter('author.name', 'Terry Pratchett')), 1);
@@ -86,31 +96,36 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
         $this->assertEquals(count($this->getDB()->book()->filter('author_id', ['lte' => 1], true)), 0);
     }
 
-    public function testReadLoop() {
+    public function testReadLoop()
+    {
         $author = $this->getDB()->author();
-        foreach($author as $k => $a) {
+        foreach ($author as $k => $a) {
             $this->assertEquals($k + 1, $a['id']);
         }
-        foreach($author as $k => $a) {
+        foreach ($author as $k => $a) {
             $this->assertEquals($k + 1, $a['id']);
         }
     }
-    public function testReadIndex() {
+    public function testReadIndex()
+    {
         $author = $this->getDB()->author();
         $this->assertEquals($author[0]['name'], 'Terry Pratchett');
         $this->assertEquals($author[2]['name'], 'Douglas Adams');
     }
-    public function testReadRelations() {
+    public function testReadRelations()
+    {
         $author = $this->getDB()->author()->with('book');
         $this->assertEquals($author[0]['book'][0]['name'], 'Equal rites');
     }
-    public function testReadChanges() {
+    public function testReadChanges()
+    {
         $this->getDB()->query('INSERT INTO author (name) VALUES (?)', ['Stephen King']);
         $author = $this->getDB()->author();
         $this->assertEquals($author[3]['name'], 'Stephen King');
     }
 
-    public function testMappedCollection() {
+    public function testMappedCollection()
+    {
         $books = $this->getDB()->book(true);
         foreach ($books as $book) {
             $this->assertEquals($book->name, 'Equal rites');
@@ -122,20 +137,23 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
             $this->assertEquals($book->name, 'Equal rites');
         }
     }
-    public function testMappedRelations() {
+    public function testMappedRelations()
+    {
         $books = $this->getDB()->book(true);
         $this->assertEquals('Terry Pratchett', $books[0]->author->name);
         $this->assertEquals(2, count($books[0]->tag));
         $this->assertEquals('Terry Pratchett', $books[0]->author->book[0]->tag[0]->book[0]->author->name);
     }
 
-    public function testMappedRelationsWith() {
+    public function testMappedRelationsWith()
+    {
         $books = $this->getDB()->table('book', true)->with('author');
         $this->assertEquals($books[0]->author->name, 'Terry Pratchett');
         $this->assertEquals(count($books[0]->tag), 2);
     }
 
-    public function testMappedFilter() {
+    public function testMappedFilter()
+    {
         $this->assertEquals(count($this->getDB()->book(true)->filter('name', 'Equal rites')), 1);
         $this->assertEquals(count($this->getDB()->book(true)->filter('name', 'Not found')), 0);
         $this->assertEquals(count($this->getDB()->book(true)->filter('author.name', 'Terry Pratchett')), 1);
@@ -143,33 +161,57 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
         $this->assertEquals(count($this->getDB()->book(true)->filter('tag.name', 'Escarina')), 1);
         $this->assertEquals(count($this->getDB()->book(true)->filter('tag.name', 'Discworld')), 1);
         $this->assertEquals(count($this->getDB()->book(true)->filter('tag.name', 'None')), 0);
-        $this->assertEquals(count($this->getDB()->book(true)->any([['author.name', 'Terry Pratchett'],['author.name', 'Douglas Adams']])), 1);
-        $this->assertEquals(count($this->getDB()->book(true)->all([['author.name', 'Terry Pratchett'],['author.name', 'Douglas Adams']])), 0);
-        $this->assertEquals(count($this->getDB()->book(true)->all([['tag.name', 'Discworld'],['author.name', 'Douglas Adams']])), 0);
-        $this->assertEquals(count($this->getDB()->book(true)->any([['tag.name', 'Discworld'],['author.name', 'Douglas Adams']])), 1);
+        $this->assertEquals(
+            count(
+                $this->getDB()->book(true)->any([['author.name', 'Terry Pratchett'],['author.name', 'Douglas Adams']])
+            ),
+            1
+        );
+        $this->assertEquals(
+            count(
+                $this->getDB()->book(true)->all([['author.name', 'Terry Pratchett'],['author.name', 'Douglas Adams']])
+            ),
+            0
+        );
+        $this->assertEquals(
+            count(
+                $this->getDB()->book(true)->all([['tag.name', 'Discworld'],['author.name', 'Douglas Adams']])
+            ),
+            0
+        );
+        $this->assertEquals(
+            count(
+                $this->getDB()->book(true)->any([['tag.name', 'Discworld'],['author.name', 'Douglas Adams']])
+            ),
+            1
+        );
     }
 
-    public function testMappedReadLoop() {
+    public function testMappedReadLoop()
+    {
         $author = $this->getDB()->author(true);
-        foreach($author as $k => $a) {
+        foreach ($author as $k => $a) {
             $this->assertEquals($k + 1, $a->id);
         }
-        foreach($author as $k => $a) {
+        foreach ($author as $k => $a) {
             $this->assertEquals($k + 1, $a->id);
         }
     }
-    public function testMappedReadIndex() {
+    public function testMappedReadIndex()
+    {
         $author = $this->getDB()->author(true);
         $this->assertEquals($author[0]->name, 'Terry Pratchett');
         $this->assertEquals($author[2]->name, 'Douglas Adams');
     }
-    public function testMappedReadRelations() {
+    public function testMappedReadRelations()
+    {
         $author = $this->getDB()->author(true);
         $this->assertEquals($author[0]->book[0]->name, 'Equal rites');
         $this->assertEquals($author[0]->book[0]->tag[1]->name, 'Escarina');
     }
 
-    public function testJoins() {
+    public function testJoins()
+    {
         $this->assertEquals(
             $this->getDB()->author()
                 ->join('book', [ 'author_id' => 'id' ], 'books')
@@ -195,30 +237,35 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
     }
 
 
-    public function testCreate() {
+    public function testCreate()
+    {
         $author = $this->getDB()->author();
         $res = $author->insert(['name' => 'John Resig' ]);
         $this->assertEquals($res, ['id' => 5]);
         $this->assertEquals($author[4]['name'], 'John Resig');
     }
-    public function testUpdate() {
+    public function testUpdate()
+    {
         $author = $this->getDB()->author();
         $author->where('id = 1')->update(['name' => 'Terry Pratchett, Sir']);
         $this->assertEquals($this->getDB()->author()[0]['name'], 'Terry Pratchett, Sir');
         $this->assertEquals($this->getDB()->one('SELECT name FROM author WHERE id = 1'), 'Terry Pratchett, Sir');
     }
-    public function testDelete() {
+    public function testDelete()
+    {
         $author = $this->getDB()->author();
         $author->filter('id', 5)->delete();
         $this->assertEquals(count($this->getDB()->author()), 4);
         $this->assertEquals($this->getDB()->one('SELECT COUNT(id) FROM author'), 4);
     }
-    public function testAny() {
+    public function testAny()
+    {
         $author = $this->getDB()->author();
         $this->assertEquals(count($author->reset()->any([['id', 1], ['id', 2], ['id', [3,4]]])), 4);
         $this->assertEquals(count($author->reset()->any([['id', 1], ['id', 2]])), 2);
     }
-    public function testAll() {
+    public function testAll()
+    {
         $author = $this->getDB()->author();
         $this->assertEquals(count($author->reset()->all([['id', 1], ['id', 2], ['id', [3,4]]])), 0);
         $this->assertEquals(count($author->reset()->all([['id', 1], ['id', 2]])), 0);
@@ -226,12 +273,16 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
         $this->assertEquals(count($author->reset()->all([['id', 1], ['id', ['not'=>2]]])), 1);
         $this->assertEquals(count($author->reset()->all([['id', 2], ['id', ['not'=>2]]])), 0);
     }
-    public function testLike() {
+    public function testLike()
+    {
         $author = $this->getDB()->author();
         $this->assertEquals(count($author->reset()->filter('name', ['like'=>'Brad'])), 0);
         $this->assertEquals(count($author->reset()->filter('name', ['like'=>'%Brad%'])), 1);
         $this->assertEquals(count($author->reset()->filter('name', ['like'=>'%Ivan%'])), 0);
-        $this->assertEquals(count($author->reset()->any([['name', ['like'=>'%Ivan%']], ['name', ['like'=>'%Brad%']]])), 1);
+        $this->assertEquals(
+            count($author->reset()->any([['name', ['like'=>'%Ivan%']], ['name', ['like'=>'%Brad%']]])),
+            1
+        );
     }
     public function testStrictDisabled()
     {

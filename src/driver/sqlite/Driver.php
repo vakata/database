@@ -19,10 +19,11 @@ class Driver extends DriverAbstract implements DriverInterface
         $temp = explode('://', $connection['orig'], 2)[1];
         $temp = array_pad(explode('?', $temp, 2), 2, '');
         $connection = [];
+        $connection['opts'] = [];
         parse_str($temp[1], $connection['opts']);
         $connection['name'] = $temp[0];
         if (!is_file($connection['name']) && is_file('/'.$connection['name'])) {
-           $connection['name'] = '/'.$connection['name'];
+            $connection['name'] = '/'.$connection['name'];
         }
         $this->connection = $connection;
     }

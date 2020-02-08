@@ -36,7 +36,7 @@ class Statement implements StatementInterface
         $iid = null;
         if (preg_match('@^\s*(INSERT|REPLACE)\s+INTO@i', $this->sql)) {
             $iid = \odbc_exec($this->driver, 'SELECT @@IDENTITY');
-            if ($iid && \odbc_fetch_row($iid)) {
+            if ($iid !== false && \odbc_fetch_row($iid)) {
                 $iid = \odbc_result($iid, 1);
             } else {
                 $iid = null;

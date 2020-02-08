@@ -31,6 +31,7 @@ class Driver extends DriverAbstract implements DriverInterface
         $temp = explode('://', $connection['orig'], 2)[1];
         $temp = array_pad(explode('?', $temp, 2), 2, '');
         $connection = [];
+        $connection['opts'] = [];
         parse_str($temp[1], $connection['opts']);
         $temp = $temp[0];
         if (strpos($temp, '@') !== false) {

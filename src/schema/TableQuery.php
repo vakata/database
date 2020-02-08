@@ -114,7 +114,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                     if (!$col) {
                         throw new DBException('Invalid column name in related table');
                     }
-                } else if (isset($this->joins[$column[0]])) {
+                } elseif (isset($this->joins[$column[0]])) {
                     $col = $this->joins[$column[0]]->table->getColumn($column[1]);
                     if (!$col) {
                         throw new DBException('Invalid column name in related table');
@@ -311,11 +311,15 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         return $negate ?
             [
                 $name . ' NOT IN (??)',
-                [ array_map(function ($v) use ($column) { return $this->normalizeValue($column, $v); }, $value) ]
+                [ array_map(function ($v) use ($column) {
+                    return $this->normalizeValue($column, $v);
+                }, $value) ]
             ] :
             [
                 $name . ' IN (??)',
-                [ array_map(function ($v) use ($column) { return $this->normalizeValue($column, $v); }, $value) ]
+                [ array_map(function ($v) use ($column) {
+                    return $this->normalizeValue($column, $v);
+                }, $value) ]
             ];
     }
     /**
@@ -445,9 +449,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     /**
      * Join a table to the query (no need to do this for relations defined with foreign keys)
      * @param  Table|string $table     the table to join
-     * @param  array        $fields    what to join on (joined_table_field => other_field) 
-     * @param  string|null  $name      alias for the join, defaults to the table name 
-     * @param  bool         $multiple  are multiple rows joined (results in a LEFT JOIN), default to true 
+     * @param  array        $fields    what to join on (joined_table_field => other_field)
+     * @param  string|null  $name      alias for the join, defaults to the table name
+     * @param  bool         $multiple  are multiple rows joined (results in a LEFT JOIN), default to true
      * @return $this
      */
     public function join($table, array $fields, string $name = null, bool $multiple = true)
@@ -545,7 +549,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $h = $this->having;
         $o = $this->order;
         $g = $this->group;
-        $j = array_map(function ($v) { return clone $v; }, $this->joins);
+        $j = array_map(function ($v) {
+            return clone $v;
+        }, $this->joins);
         foreach ($this->definition->getRelations() as $k => $v) {
             foreach ($w as $kk => $vv) {
                 if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv[0])) {
@@ -570,7 +576,8 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 foreach ($vv->keymap as $kkk => $vvv) {
                     if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vvv)) {
                         $relations[$k] = [ $v, $table ];
-                        $j[$kk]->keymap[$kkk] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vvv);
+                        $j[$kk]->keymap[$kkk] =
+                            preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vvv);
                     }
                 }
             }
@@ -652,11 +659,11 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 if (count($temp) === 1) {
                     $table = $this->definition->getName();
                     $cols = $this->definition->getColumns();
-                } else if (count($temp) === 2) {
+                } elseif (count($temp) === 2) {
                     $table = $temp[0];
                     if ($this->definition->hasRelation($table)) {
                         $cols = $this->definition->getRelation($table)->table->getColumns();
-                    } else if (isset($this->joins[$table])) {
+                    } elseif (isset($this->joins[$table])) {
                         $cols = $this->joins[$table]->table->getColumns();
                     } else {
                         throw new DBException('Invalid foreign table name');
@@ -699,7 +706,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     /**
      * Perform the actual fetch
      * @param  array|null $fields optional array of columns to select (related columns can be used too)
-     * @return TableQueryIterator               the query result as an iterator
+     * @return mixed               the query result as an iterator (with array access)
      */
     public function iterator(array $fields = null)
     {
@@ -725,7 +732,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $h = $this->having;
         $o = $this->order;
         $g = $this->group;
-        $j = array_map(function ($v) { return clone $v; }, $this->joins);
+        $j = array_map(function ($v) {
+            return clone $v;
+        }, $this->joins);
 
         $porder = [];
         foreach ($this->definition->getPrimaryKey() as $field) {
@@ -881,7 +890,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
         if (count($porder)) {
             $pdir = (count($o) && strpos($o[0], 'DESC') !== false) ? 'DESC' : 'ASC';
-            $porder = array_map(function ($v) use ($pdir) { return $v . ' ' . $pdir; }, $porder);
+            $porder = array_map(function ($v) use ($pdir) {
+                return $v . ' ' . $pdir;
+            }, $porder);
             $sql .= (count($o) ? ', ' : 'ORDER BY ') . implode(', ', $porder) . ' ';
         }
         if ((!$many || $this->li_of[2] === 0 || !count($porder)) && $this->li_of[0]) {
@@ -891,7 +902,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 } else {
                     $f = array_map(function ($v) {
                         $v = explode(' ', trim($v), 2);
-                        if (count($v) === 2) { return $v[1]; }
+                        if (count($v) === 2) {
+                            return $v[1];
+                        }
                         $v = explode('.', $v[0], 2);
                         return count($v) === 2 ? $v[1] : $v[0];
                     }, $select);
@@ -908,7 +921,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
         }
         return $this->qiterator = new TableQueryIterator(
-            $this->db->get($sql, $par, null, false, false), 
+            $this->db->get($sql, $par, null, false, false),
             $this->pkey,
             $this->withr,
             $aliases
@@ -954,7 +967,8 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 $ret[$k] = str_repeat(' ', 255);
                 $par[] = &$ret[$k];
             }
-            $sql .= ' RETURNING ' . implode(',', $primary) . ' INTO ' . implode(',', array_fill(0, count($primary), '?'));
+            $sql .= ' RETURNING ' . implode(',', $primary) .
+                ' INTO ' . implode(',', array_fill(0, count($primary), '?'));
             $this->db->query($sql, $par);
             return $ret;
         } else {
@@ -986,7 +1000,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
         $sql = 'UPDATE '.$table.' SET ';
         $par = [];
-        $sql .= implode(', ', array_map(function ($v) { return $v . ' = ?'; }, array_keys($update))) . ' ';
+        $sql .= implode(', ', array_map(function ($v) {
+            return $v . ' = ?';
+        }, array_keys($update))) . ' ';
         $par = array_merge($par, array_values($update));
         if (count($this->where)) {
             $sql .= 'WHERE ';
@@ -1068,11 +1084,11 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     }
     public function offsetUnset($offset)
     {
-        return $this->iterator()->offsetUnset($offset);
+        $this->iterator()->offsetUnset($offset);
     }
     public function offsetSet($offset, $value)
     {
-        return $this->iterator()->offsetSet($offset, $value);
+        $this->iterator()->offsetSet($offset, $value);
     }
 
     public function collection(array $fields = null) : Collection
@@ -1104,7 +1120,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $h = $this->having;
         $o = $this->order;
         $g = $this->group;
-        $j = array_map(function ($v) { return clone $v; }, $this->joins);
+        $j = array_map(function ($v) {
+            return clone $v;
+        }, $this->joins);
         foreach ($this->definition->getRelations() as $k => $v) {
             foreach ($w as $kk => $vv) {
                 if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv[0])) {
@@ -1131,13 +1149,16 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 foreach ($vv->keymap as $kkk => $vvv) {
                     if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vvv)) {
                         $relations[$k] = [ $v, $table ];
-                        $j[$kk]->keymap[$kkk] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vvv);
+                        $j[$kk]->keymap[$kkk] =
+                            preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vvv);
                     }
                 }
             }
         }
 
-        $key = array_map(function ($v) use ($table) { return $table . '.' . $v; }, $this->pkey);
+        $key = array_map(function ($v) use ($table) {
+            return $table . '.' . $v;
+        }, $this->pkey);
         $own = false;
         $dir = 'ASC';
         if (count($o)) {

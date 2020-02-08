@@ -20,7 +20,10 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
         if (!static::$db) {
             $connection = $this->getConnectionString();
             static::$db = new DBI($connection);
-            $this->importFile(static::$db, __DIR__ . '/data/' . basename(explode('://', $connection)[0]) . '_schema.sql');
+            $this->importFile(
+                static::$db,
+                __DIR__ . '/data/' . basename(explode('://', $connection)[0]) . '_schema.sql'
+            );
         }
         return static::$db;
     }
@@ -36,7 +39,8 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function testMappedCollection() {
+    public function testMappedCollection()
+    {
         $books = $this->getDB()->book(true);
         foreach ($books as $book) {
             $this->assertEquals($book->name, 'Equal rites');
@@ -48,20 +52,23 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
             $this->assertEquals($book->name, 'Equal rites');
         }
     }
-    public function testMappedRelations() {
+    public function testMappedRelations()
+    {
         $books = $this->getDB()->book(true);
         $this->assertEquals('Terry Pratchett', $books[0]->author->name);
         $this->assertEquals(2, count($books[0]->tag));
         $this->assertEquals('Terry Pratchett', $books[0]->author->book[0]->tag[0]->book[0]->author->name);
     }
 
-    public function testMappedRelationsWith() {
+    public function testMappedRelationsWith()
+    {
         $books = $this->getDB()->table('book', true)->with('author');
         $this->assertEquals($books[0]->author->name, 'Terry Pratchett');
         $this->assertEquals(count($books[0]->tag), 2);
     }
 
-    public function testMappedFilter() {
+    public function testMappedFilter()
+    {
         $this->assertEquals(count($this->getDB()->book(true)->filter('name', 'Equal rites')), 1);
         $this->assertEquals(count($this->getDB()->book(true)->filter('name', 'Not found')), 0);
         $this->assertEquals(count($this->getDB()->book(true)->filter('author.name', 'Terry Pratchett')), 1);
@@ -69,39 +76,62 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
         $this->assertEquals(count($this->getDB()->book(true)->filter('tag.name', 'Escarina')), 1);
         $this->assertEquals(count($this->getDB()->book(true)->filter('tag.name', 'Discworld')), 1);
         $this->assertEquals(count($this->getDB()->book(true)->filter('tag.name', 'None')), 0);
-        $this->assertEquals(count($this->getDB()->book(true)->any([['author.name', 'Terry Pratchett'],['author.name', 'Douglas Adams']])), 1);
-        $this->assertEquals(count($this->getDB()->book(true)->all([['author.name', 'Terry Pratchett'],['author.name', 'Douglas Adams']])), 0);
-        $this->assertEquals(count($this->getDB()->book(true)->all([['tag.name', 'Discworld'],['author.name', 'Douglas Adams']])), 0);
-        $this->assertEquals(count($this->getDB()->book(true)->any([['tag.name', 'Discworld'],['author.name', 'Douglas Adams']])), 1);
+        $this->assertEquals(
+            count(
+                $this->getDB()->book(true)->any([['author.name', 'Terry Pratchett'],['author.name', 'Douglas Adams']])
+            ),
+            1
+        );
+        $this->assertEquals(
+            count(
+                $this->getDB()->book(true)->all([['author.name', 'Terry Pratchett'],['author.name', 'Douglas Adams']])
+            ),
+            0
+        );
+        $this->assertEquals(
+            count(
+                $this->getDB()->book(true)->all([['tag.name', 'Discworld'],['author.name', 'Douglas Adams']])
+            ),
+            0
+        );
+        $this->assertEquals(
+            count($this->getDB()->book(true)->any([['tag.name', 'Discworld'],['author.name', 'Douglas Adams']])),
+            1
+        );
     }
 
-    public function testMappedReadLoop() {
+    public function testMappedReadLoop()
+    {
         $author = $this->getDB()->author(true);
-        foreach($author as $k => $a) {
+        foreach ($author as $k => $a) {
             $this->assertEquals($k + 1, $a->id);
         }
-        foreach($author as $k => $a) {
+        foreach ($author as $k => $a) {
             $this->assertEquals($k + 1, $a->id);
         }
     }
-    public function testMappedReadIndex() {
+    public function testMappedReadIndex()
+    {
         $author = $this->getDB()->author(true);
         $this->assertEquals($author[0]->name, 'Terry Pratchett');
         $this->assertEquals($author[2]->name, 'Douglas Adams');
     }
-    public function testMappedReadRelations() {
+    public function testMappedReadRelations()
+    {
         $author = $this->getDB()->author(true);
         $this->assertEquals($author[0]->book[0]->name, 'Equal rites');
         $this->assertEquals($author[0]->book[0]->tag[1]->name, 'Escarina');
     }
 
-    public function testReadChanges() {
+    public function testReadChanges()
+    {
         self::$db->query('INSERT INTO author (name) VALUES(?)', ['Stephen King']);
         $author = $this->getDB()->author(true);
         $this->assertEquals($author[3]->name, 'Stephen King');
     }
 
-    public function testCreate() {
+    public function testCreate()
+    {
         $author = $this->getDB()->author(true);
         
         $resig = $author->create();
@@ -113,21 +143,24 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
         $this->assertEquals($author[0]->book[0]->name, 'Equal rites');
         $this->assertEquals($author[0]->book[0]->tag[1]->name, 'Escarina');
     }
-    public function testUpdate() {
+    public function testUpdate()
+    {
         $author = $this->getDB()->author(true);
         $author[0]->name = 'Terry Pratchett, Sir';
         $author[0]->save();
         $this->assertEquals($author[0]->name, 'Terry Pratchett, Sir');
         $this->assertEquals(self::$db->one('SELECT name FROM author WHERE id = 1'), 'Terry Pratchett, Sir');
     }
-    public function testDelete() {
+    public function testDelete()
+    {
         $author = $this->getDB()->author(true);
         $author[4]->delete();
         $author = $this->getDB()->author(true);
         $this->assertEquals(count($author), 4);
         $this->assertEquals(self::$db->one('SELECT COUNT(id) FROM author'), 4);
     }
-    public function testChangePK() {
+    public function testChangePK()
+    {
         $author = $this->getDB()->author(true);
         $this->assertEquals($author[2]->name, 'Douglas Adams');
         $this->assertEquals($author[2]->id, 3);
@@ -137,9 +170,13 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
         $this->assertEquals(42, $this->getDB()->author(true)[3]->id);
         $this->assertEquals(self::$db->one('SELECT name FROM author WHERE id = 42'), 'Douglas Adams');
     }
-    public function testCreateRelationFromDB() {
+    public function testCreateRelationFromDB()
+    {
         $author = $this->getDB()->author(true);
-        self::$db->query('INSERT INTO book (name, author_id) VALUES(?, ?)', ['The Hitchhiker\'s Guide to the Galaxy', 42]);
+        self::$db->query(
+            'INSERT INTO book (name, author_id) VALUES(?, ?)',
+            ['The Hitchhiker\'s Guide to the Galaxy', 42]
+        );
         $this->assertEquals('The Hitchhiker\'s Guide to the Galaxy', $author[3]->book[0]->name);
     }
 }

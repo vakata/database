@@ -133,7 +133,7 @@ class Table
      * @param  string|null       $name          the name of the relation (defaults to the related table name)
      * @param  string|array|null $toTableColumn the remote columns pointing to the PK in the current table
      * @param  string|null       $sql           additional where clauses to use, default to null
-     * @param  array|null        $par           parameters for the above statement, defaults to null
+     * @param  array             $par           parameters for the above statement, defaults to []
      * @return $this
      */
     public function hasOne(
@@ -187,7 +187,7 @@ class Table
      * @param  string|null       $name          the name of the relation (defaults to the related table name)
      * @param  string|array|null $toTableColumn the remote columns pointing to the PK in the current table
      * @param  string|null       $sql           additional where clauses to use, default to null
-     * @param  array|null        $par           parameters for the above statement, defaults to null
+     * @param  array             $par           parameters for the above statement, defaults to []
      * @return $this
      */
     public function hasMany(
@@ -241,7 +241,7 @@ class Table
      * @param  string|null       $name          the name of the relation (defaults to the related table name)
      * @param  string|array|null $localColumn   the local columns pointing to the PK of the related table
      * @param  string|null       $sql           additional where clauses to use, default to null
-     * @param  array|null        $par           parameters for the above statement, defaults to null
+     * @param  array             $par           parameters for the above statement, defaults to []
      * @return $this
      */
     public function belongsTo(
@@ -413,9 +413,9 @@ class Table
      * Rename a relation
      * @param  string      $name the name to search for
      * @param  string      $new  the new name for the relation
-     * @return TableRelation     the relation definition
+     * @return mixed       the relation definition
      */
-    public function renameRelation(string $name, string $new) : array
+    public function renameRelation(string $name, string $new)
     {
         if (!isset($this->relations[$name])) {
             throw new DBException("Relation not found");

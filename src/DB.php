@@ -27,7 +27,8 @@ class DB implements DBInterface
      *
      * @param DriverInterface|string $driver a driver instance or a connection string
      */
-    public function __construct($driver) {
+    public function __construct($driver)
+    {
         $this->driver = $driver instanceof DriverInterface ? $driver : static::getDriver($driver);
     }
     /**
@@ -128,7 +129,7 @@ class DB implements DBInterface
     /**
      * Run a query (prepare & execute).
      * @param string      $sql  SQL query
-     * @param array|null  $par parameters (optional)
+     * @param mixed  $par parameters (optional)
      * @return ResultInterface the result of the execution
      */
     public function query(string $sql, $par = null) : ResultInterface
@@ -164,13 +165,20 @@ class DB implements DBInterface
             });
         }
         if ($key !== null) {
-            $coll->mapKey(function ($v) use ($key) { return $v[$key]; });
+            $coll->mapKey(function ($v) use ($key) {
+                return $v[$key];
+            });
         }
         if ($skip) {
-            $coll->map(function ($v) use ($key) { unset($v[$key]); return $v; });
+            $coll->map(function ($v) use ($key) {
+                unset($v[$key]);
+                return $v;
+            });
         }
         if ($opti) {
-            $coll->map(function ($v) { return count($v) === 1 ? current($v) : $v; });
+            $coll->map(function ($v) {
+                return count($v) === 1 ? current($v) : $v;
+            });
         }
         return $coll;
     }
@@ -192,7 +200,7 @@ class DB implements DBInterface
      * @param string   $key      column name to use as the array index
      * @param bool     $skip     do not include the column used as index in the value (defaults to `false`)
      * @param bool     $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
-     * @return Collection the result of the execution
+     * @return array the result of the execution
      */
     public function all(string $sql, $par = null, string $key = null, bool $skip = false, bool $opti = true) : array
     {
@@ -290,11 +298,12 @@ class DB implements DBInterface
                 }, $table->getFullColumns()),
                 'relations' => array_map(function ($rel) {
                     $relation = clone $rel;
-                    $relation->table = $relation->table->getName();
-                    if ($relation->pivot) {
-                        $relation->pivot = $relation->pivot->getName();
+                    $relation = (array)$relation;
+                    $relation['table'] = $rel->table->getName();
+                    if ($rel->pivot) {
+                        $relation['pivot'] = $rel->pivot->getName();
                     }
-                    return (array)$relation;
+                    return $relation;
                 }, $table->getRelations())
             ];
         }, $this->tables);

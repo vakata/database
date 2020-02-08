@@ -158,7 +158,7 @@ class Mapper
     /**
      * Get a collection of entities
      *
-     * @param TableQuery $iterator
+     * @param TableQueryIterator $iterator
      * @param Table $definition
      * @return Collection
      */
@@ -253,7 +253,7 @@ class Mapper
             $entity->__lazyProperty(
                 $name,
                 array_key_exists($name, $data) && isset($data[$name]) ?
-                    ($relation->many ? 
+                    ($relation->many ?
                         array_map(function ($v) use ($relation) {
                             return $this->entity($relation->table, $v);
                         }, $data[$name]) :

@@ -22,7 +22,7 @@ class TableColumn
 
     public static function fromArray(string $name, array $data = [])
     {
-        $instance = new static($name);
+        $instance = new self($name);
         if (isset($data['Type'])) {
             $instance->setType($data['Type']);
         }
@@ -114,7 +114,10 @@ class TableColumn
             $this->btype = 'text';
         } elseif (strpos($type, 'int') !== false || strpos($type, 'bit') !== false) {
             $this->btype = 'int';
-        } elseif (strpos($type, 'float') !== false || strpos($type, 'double') !== false || strpos($type, 'decimal') !== false) {
+        } elseif (strpos($type, 'float') !== false ||
+            strpos($type, 'double') !== false ||
+            strpos($type, 'decimal') !== false
+        ) {
             $this->btype = 'float';
         } elseif (strpos($type, 'datetime') !== false || strpos($type, 'timestamp') !== false) {
             $this->btype = 'datetime';

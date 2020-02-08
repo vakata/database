@@ -10,7 +10,13 @@ interface DBInterface
     public static function getDriver(string $connectionString);
     public function prepare(string $sql) : StatementInterface;
     public function query(string $sql, $par = null);
-    public function get(string $sql, $par = null, string $key = null, bool $skip = false, bool $opti = true) : Collection;
+    public function get(
+        string $sql,
+        $par = null,
+        string $key = null,
+        bool $skip = false,
+        bool $opti = true
+    ) : Collection;
     public function one(string $sql, $par = null, bool $opti = true);
     public function all(string $sql, $par = null, string $key = null, bool $skip = false, bool $opti = true) : array;
 

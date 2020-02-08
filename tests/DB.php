@@ -64,8 +64,19 @@ abstract class DB extends \PHPUnit\Framework\TestCase
     {
         $this->assertEquals(2, count($this->getDB()->query('SELECT * FROM log WHERE id IN (??)', [[1,2,3]])));
         $this->assertEquals(1, count($this->getDB()->query('SELECT * FROM log WHERE id IN (??)', [1,3])));
-        $this->assertEquals(2, count($this->getDB()->query('SELECT * FROM log WHERE id > ? AND id IN (??) AND id < ?', [0, [1,2,3], 4])));
-        $this->assertEquals(2, count($this->getDB()->query('SELECT * FROM log WHERE id > ? AND (id IN (??) OR id IN (??)) AND id < ?', [0, [1,2,3], [1,2,3], 4])));
+        $this->assertEquals(
+            2,
+            count($this->getDB()->query('SELECT * FROM log WHERE id > ? AND id IN (??) AND id < ?', [0, [1,2,3], 4]))
+        );
+        $this->assertEquals(
+            2,
+            count(
+                $this->getDB()->query(
+                    'SELECT * FROM log WHERE id > ? AND (id IN (??) OR id IN (??)) AND id < ?',
+                    [0, [1,2,3], [1,2,3], 4]
+                )
+            )
+        );
     }
     public function testPrepare()
     {
@@ -96,11 +107,11 @@ abstract class DB extends \PHPUnit\Framework\TestCase
             $this->getDB()->query('SELECT id, lvl FROM log WHERE id IN (??)', [[1]])->toArray()
         );
         $this->assertEquals(
-            [['id' => 1, 'lvl' => 'error'], ['id' => 2, 'lvl' => 'debug']], 
+            [['id' => 1, 'lvl' => 'error'], ['id' => 2, 'lvl' => 'debug']],
             $this->getDB()->query('SELECT id, lvl FROM log WHERE id IN (??)', [[1, 2]])->toArray()
         );
         $this->assertEquals(
-            [['id' => 1], ['id' => 2]], 
+            [['id' => 1], ['id' => 2]],
             $this->getDB()->query('SELECT id FROM log WHERE id IN (??)', [[1, 2]])->toArray()
         );
     }
@@ -115,23 +126,23 @@ abstract class DB extends \PHPUnit\Framework\TestCase
             $this->getDB()->all('SELECT id, lvl FROM log WHERE id IN (??)', [[1]])
         );
         $this->assertEquals(
-            [['id' => 1, 'lvl' => 'error'], ['id' => 2, 'lvl' => 'debug']], 
+            [['id' => 1, 'lvl' => 'error'], ['id' => 2, 'lvl' => 'debug']],
             $this->getDB()->all('SELECT id, lvl FROM log WHERE id IN (??)', [[1, 2]])
         );
         $this->assertEquals(
-            [ 1 => ['id' => 1, 'lvl' => 'error'], 2 => ['id' => 2, 'lvl' => 'debug']], 
+            [ 1 => ['id' => 1, 'lvl' => 'error'], 2 => ['id' => 2, 'lvl' => 'debug']],
             $this->getDB()->all('SELECT id, lvl FROM log WHERE id IN (??)', [[1, 2]], 'id')
         );
         $this->assertEquals(
-            [1 => 'error', 2 => 'debug'], 
+            [1 => 'error', 2 => 'debug'],
             $this->getDB()->all('SELECT id, lvl FROM log WHERE id IN (??)', [[1, 2]], 'id', true)
         );
         $this->assertEquals(
-            [1, 2], 
+            [1, 2],
             $this->getDB()->all('SELECT id FROM log WHERE id IN (??)', [[1, 2]])
         );
         $this->assertEquals(
-            [['id' => 1 ], ['id' => 2]], 
+            [['id' => 1 ], ['id' => 2]],
             $this->getDB()->all('SELECT id FROM log WHERE id IN (??)', [[1, 2]], null, false, false)
         );
     }
@@ -146,11 +157,11 @@ abstract class DB extends \PHPUnit\Framework\TestCase
             $this->getDB()->one('SELECT id, lvl FROM log WHERE id IN (??)', [[1]])
         );
         $this->assertEquals(
-            ['id' => 1, 'lvl' => 'error'], 
+            ['id' => 1, 'lvl' => 'error'],
             $this->getDB()->one('SELECT id, lvl FROM log WHERE id IN (??)', [[1, 2]])
         );
         $this->assertEquals(
-            1, 
+            1,
             $this->getDB()->one('SELECT id FROM log WHERE id IN (??)', [[1, 2]])
         );
         $this->assertEquals(
@@ -163,7 +174,7 @@ abstract class DB extends \PHPUnit\Framework\TestCase
         $connection = $this->getConnectionString();
         $connection .= (strpos($connection, '?') ? '&' : '?') . 'mode=strtoupper';
         $this->assertEquals(
-            [ ['ID' => 1 ], ['ID' => 2] ], 
+            [ ['ID' => 1 ], ['ID' => 2] ],
             (new DBI($connection))->all('SELECT id FROM log WHERE id IN (??)', [[1, 2]], null, false, false)
         );
     }
@@ -188,7 +199,7 @@ abstract class DB extends \PHPUnit\Framework\TestCase
     public function testGetSingle()
     {
         $temp = [];
-        foreach(self::$db->get('SELECT id FROM log WHERE id IN (1,2)') as $v) {
+        foreach (self::$db->get('SELECT id FROM log WHERE id IN (1,2)') as $v) {
             $temp[] = $v;
         }
         $this->assertEquals([1,2], $temp);

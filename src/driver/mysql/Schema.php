@@ -71,7 +71,9 @@ trait Schema
             ->addColumns(
                 $columns
                     ->clone()
-                    ->mapKey(function ($v) { return $v['Field']; })
+                    ->mapKey(function ($v) {
+                        return $v['Field'];
+                    })
                     ->map(function ($v) {
                         $v['length'] = null;
                         if (!isset($v['Type'])) {
@@ -106,7 +108,9 @@ trait Schema
             ->setPrimaryKey(
                 $columns
                     ->clone()
-                    ->filter(function ($v) { return $v['Key'] === 'PRI'; })
+                    ->filter(function ($v) {
+                        return $v['Key'] === 'PRI';
+                    })
                     ->pluck('Field')
                     ->toArray()
             )
@@ -119,7 +123,8 @@ trait Schema
             $relations = [];
             foreach ($relationsR[$table] ?? [] as $relation) {
                 $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_NAME'];
-                $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['REFERENCED_COLUMN_NAME']] = $relation['COLUMN_NAME'];
+                $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['REFERENCED_COLUMN_NAME']] =
+                    $relation['COLUMN_NAME'];
             }
             foreach ($relations as $data) {
                 $rtable = $this->table($data['table'], true);
@@ -145,7 +150,8 @@ trait Schema
                         }) as $relation
                     ) {
                         $foreign[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
-                        $foreign[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['REFERENCED_COLUMN_NAME'];
+                        $foreign[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] =
+                            $relation['REFERENCED_COLUMN_NAME'];
                         $usedcol[] = $relation['COLUMN_NAME'];
                     }
                 }
@@ -196,7 +202,8 @@ trait Schema
                 }) as $relation
             ) {
                 $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
-                $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] = $relation['REFERENCED_COLUMN_NAME'];
+                $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] =
+                    $relation['REFERENCED_COLUMN_NAME'];
             }
             foreach ($relations as $name => $data) {
                 $relname = $data['table'];

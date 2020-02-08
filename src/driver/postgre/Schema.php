@@ -41,9 +41,12 @@ trait Schema
                          LIMIT 1 OFFSET kc.position_in_unique_constraint - 1
                         ) AS referenced_column_name
                      FROM information_schema.key_column_usage kc
-                     JOIN information_schema.constraint_table_usage ct ON kc.constraint_name = ct.constraint_name AND ct.table_schema = kc.table_schema
+                     JOIN information_schema.constraint_table_usage ct ON
+                        kc.constraint_name = ct.constraint_name AND ct.table_schema = kc.table_schema
                      WHERE
-                        kc.table_schema = ? AND kc.table_name IS NOT NULL AND kc.position_in_unique_constraint IS NOT NULL",
+                        kc.table_schema = ? AND
+                        kc.table_name IS NOT NULL AND
+                        kc.position_in_unique_constraint IS NOT NULL",
                     [ $this->connection['opts']['schema'] ?? $this->connection['name'] ]
                 )
             )->toArray();
@@ -58,7 +61,9 @@ trait Schema
                 "SELECT * FROM information_schema.columns WHERE table_name = ? AND table_schema = ?",
                 [ $table, $this->connection['opts']['schema'] ?? $this->connection['name'] ]
             ))
-            ->mapKey(function ($v) { return $v['column_name']; })
+            ->mapKey(function ($v) {
+                return $v['column_name'];
+            })
             ->map(function ($v) {
                 $v['length'] = null;
                 if (!isset($v['data_type'])) {
@@ -107,7 +112,8 @@ trait Schema
             $relations = [];
             foreach ($relationsR[$table] ?? [] as $relation) {
                 $relations[$relation['constraint_name']]['table'] = $relation['table_name'];
-                $relations[$relation['constraint_name']]['keymap'][$relation['referenced_column_name']] = $relation['column_name'];
+                $relations[$relation['constraint_name']]['keymap'][$relation['referenced_column_name']] =
+                    $relation['column_name'];
             }
             foreach ($relations as $data) {
                 $rtable = $this->table($data['table'], true);
@@ -126,7 +132,8 @@ trait Schema
                         }) as $relation
                     ) {
                         $foreign[$relation['constraint_name']]['table'] = $relation['referenced_table_name'];
-                        $foreign[$relation['constraint_name']]['keymap'][$relation['column_name']] = $relation['referenced_column_name'];
+                        $foreign[$relation['constraint_name']]['keymap'][$relation['column_name']] =
+                            $relation['referenced_column_name'];
                         $usedcol[] = $relation['column_name'];
                     }
                 }
@@ -169,7 +176,8 @@ trait Schema
             $relations = [];
             foreach ($relationsT[$table] ?? [] as $relation) {
                 $relations[$relation['constraint_name']]['table'] = $relation['referenced_table_name'];
-                $relations[$relation['constraint_name']]['keymap'][$relation['column_name']] = $relation['referenced_column_name'];
+                $relations[$relation['constraint_name']]['keymap'][$relation['column_name']] =
+                    $relation['referenced_column_name'];
             }
             foreach ($relations as $name => $data) {
                 $relname = $data['table'];

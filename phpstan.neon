@@ -1,0 +1,8 @@
+parameters:
+	checkMissingIterableValueType: false
+	checkGenericClassInNonGenericObjectType: false
+	ignoreErrors:
+		- '#no typehint specified.$#'
+		- '#no return typehint specified.$#'
+	excludes_analyse:
+		- src/driver/ibase/Driver.php

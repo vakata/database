@@ -29,7 +29,9 @@ class Result implements ResultInterface
                 if ($temp) {
                     $temp = $temp->fetch_fields();
                     if ($temp) {
-                        $columns = array_map(function ($v) { return $v->name; }, $temp);
+                        $columns = array_map(function ($v) {
+                            return $v->name;
+                        }, $temp);
                     }
                 }
                 if (count($columns)) {
@@ -41,7 +43,8 @@ class Result implements ResultInterface
                     call_user_func_array(array($this->statement, 'bind_result'), $temp);
                 }
             }
-        } catch (\Exception $ignore) { }
+        } catch (\Exception $ignore) {
+        }
     }
     public function affected() : int
     {
@@ -67,7 +70,9 @@ class Result implements ResultInterface
     }
     public function current()
     {
-        return $this->nativeDriver ? $this->last : array_map(function ($v) { return $v; }, $this->row);
+        return $this->nativeDriver ? $this->last : array_map(function ($v) {
+            return $v;
+        }, $this->row);
     }
     public function rewind()
     {

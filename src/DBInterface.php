@@ -7,7 +7,6 @@ use \vakata\database\schema\Table;
 
 interface DBInterface
 {
-    public static function getDriver(string $connectionString);
     public function prepare(string $sql) : StatementInterface;
     public function query(string $sql, $par = null);
     public function get(
@@ -30,5 +29,5 @@ interface DBInterface
     public function parseSchema();
     public function getSchema($asPlainArray = true);
     public function setSchema(array $data);
-    public function table($table, bool $mapped = false);
+    public function table(string $table, bool $mapped = false);
 }

@@ -25,18 +25,9 @@ class DB implements DBInterface
     /**
      * Create an instance.
      *
-     * @param DriverInterface|string $driver a driver instance or a connection string
+     * @param string $connectionString a driver instance or a connection string
      */
-    public function __construct($driver)
-    {
-        $this->driver = $driver instanceof DriverInterface ? $driver : static::getDriver($driver);
-    }
-    /**
-     * Create a driver instance from a connection string
-     * @param string $connectionString the connection string
-     * @return DriverInterface
-     */
-    public static function getDriver(string $connectionString)
+    public function __construct(string $connectionString)
     {
         $connection = [
             'orig' => $connectionString,
@@ -87,8 +78,9 @@ class DB implements DBInterface
         if (!class_exists($tmp)) {
             throw new DBException('Unknown DB backend');
         }
-        return new $tmp($connection);
+        $this->driver = new $tmp($connection);
     }
+
     /**
      * Prepare a statement.
      * Use only if you need a single query to be performed multiple times with different parameters.
@@ -356,7 +348,7 @@ class DB implements DBInterface
      * @param string $table the table to query
      * @return TableQuery
      */
-    public function table($table, bool $mapped = false)
+    public function table(string $table, bool $mapped = false)
     {
         return $mapped ?
             new TableQueryMapped($this, $this->definition($table)) :

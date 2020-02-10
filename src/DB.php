@@ -76,7 +76,7 @@ class DB implements DBInterface
         $connection['user'] = isset($temp['user']) && strlen($temp['user']) ? $temp['user'] : null;
         $connection['pass'] = isset($temp['pass']) && strlen($temp['pass']) ? $temp['pass'] : null;
         $connection['host'] = isset($temp['host']) && strlen($temp['host']) ? $temp['host'] : null;
-        $connection['name'] = isset($temp['path']) && strlen($temp['path']) ? $temp['path'] : null;
+        $connection['name'] = isset($temp['path']) && strlen($temp['path']) ? trim($temp['path'], '/') : null;
         $connection['port'] = isset($temp['port']) && (int)$temp['port'] ? (int)$temp['port'] : null;
         if (isset($temp['query']) && strlen($temp['query'])) {
             parse_str($temp['query'], $connection['opts']);

@@ -68,7 +68,7 @@ class Statement implements StatementInterface
                         break;
                 }
             }
-            call_user_func_array(array($this->statement, 'bind_param'), $ref);
+            $this->statement->bind_param(...$ref);
             foreach ($lng as $index) {
                 if (is_resource($data[$index]) && get_resource_type($data[$index]) === 'stream') {
                     while (!feof($data[$index])) {

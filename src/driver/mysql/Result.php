@@ -36,11 +36,13 @@ class Result implements ResultInterface
                 }
                 if (count($columns)) {
                     $this->row = array_combine($columns, array_fill(0, count($columns), null));
-                    $temp = [];
-                    foreach ($this->row as $k => $v) {
-                        $temp[] = &$this->row[$k];
+                    if ($this->row !== false) {
+                        $temp = [];
+                        foreach ($this->row as $k => $v) {
+                            $temp[] = &$this->row[$k];
+                        }
+                        call_user_func_array(array($this->statement, 'bind_result'), $temp);
                     }
-                    call_user_func_array(array($this->statement, 'bind_result'), $temp);
                 }
             }
         } catch (\Exception $ignore) {

@@ -23,7 +23,7 @@ class Result implements ResultInterface
     }
     public function affected() : int
     {
-        return \oci_num_rows($this->statement);
+        return (int)\oci_num_rows($this->statement);
     }
     public function insertID()
     {

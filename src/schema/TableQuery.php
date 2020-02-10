@@ -207,9 +207,11 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 }
                 return $value;
             case 'int':
-                return (int)preg_replace('([^+\-0-9]+)', '', $value);
+                $temp = preg_replace('([^+\-0-9]+)', '', $value);
+                return is_string($temp) ? (int)$temp : 0;
             case 'float':
-                return (float)preg_replace('([^+\-0-9.]+)', '', str_replace(',', '.', $value));
+                $temp = preg_replace('([^+\-0-9.]+)', '', str_replace(',', '.', $value));
+                return is_string($temp) ? (float)$temp : 0;
             case 'text':
                 // check using strlen first, in order to avoid hitting mb_ functions which might be polyfilled
                 // because the polyfill is quite slow

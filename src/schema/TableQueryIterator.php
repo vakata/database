@@ -58,6 +58,9 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
                 $pk[$field] = $row[$field];
             }
             $pk = json_encode($pk);
+            if ($pk === false) {
+                throw new DBException('Invalid PK');
+            }
             if ($this->primary !== null && $pk !== $this->primary) {
                 break;
             }
@@ -156,7 +159,11 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
                 foreach ($this->pkey as $field) {
                     $temp[$field] = $row[$field];
                 }
-                $this->primary = json_encode($temp);
+                $pk = json_encode($temp);
+                if ($pk === false) {
+                    throw new DBException('Invalid PK');
+                }
+                $this->primary = $pk;
                 return;
             }
         }
@@ -168,6 +175,9 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
                 $pk[$field] = $row[$field];
             }
             $pk = json_encode($pk);
+            if ($pk === false) {
+                throw new DBException('Invalid PK');
+            }
             if ($this->primary !== $pk) {
                 $this->primary = $pk;
                 break;

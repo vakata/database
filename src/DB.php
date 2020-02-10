@@ -49,36 +49,44 @@ class DB implements DBInterface
             'opts' => []
         ];
         $aliases = [
-            'mysqli' => 'mysql',
-            'pg' => 'postgre',
-            'oci' => 'oracle',
-            'firebird' => 'ibase'
+            'my'        => 'mysql',
+            'mysqli'    => 'mysql',
+            'pg'        => 'postgre',
+            'oci'       => 'oracle',
+            'firebird'  => 'ibase'
         ];
-        $connectionString = array_pad(explode('://', $connectionString, 2), 2, '');
-        $connection['type'] = $connectionString[0];
-        $connectionString = $connectionString[1];
-
-        $host = substr($connectionString, 0, strrpos($connectionString, '/'));
-        $path = substr($connectionString, strrpos($connectionString, '/') + 1);
-
-        if (strpos($host, '@') !== false) {
-            $auth = substr($host, 0, strrpos($host, '@'));
-            $host = substr($host, strrpos($host, '@') + 1);
-            list($connection['user'], $connection['pass']) = array_pad(explode(':', $auth, 2), 2, '');
+        $temp = parse_url($connectionString);
+        if ($temp === false || (isset($temp['query']) && strpos($temp['query'], 'regexparser=1') !== false)) {
+            if (!preg_match(
+                '(^
+                    (?<scheme>.*?)://
+                    (?:(?<user>.*?)(?:\:(?<pass>.*))?@)?
+                    (?<host>[a-zа-я.\-_0-9=();:]+?) # added =();: for oracle and pdo configs
+                    (?:\:(?<port>\d+))?
+                    (?<path>/.+?)? # path is optional for oracle and pdo configs
+                    (?:\?(?<query>.*))?
+                $)xui',
+                $connectionString,
+                $temp
+            )) {
+                throw new DBException('Could not parse connection string');
+            }
         }
-        list($connection['host'], $connection['port']) = array_pad(explode(':', $host, 2), 2, null);
-
-        if ($pos = strrpos($path, '?')) {
-            $opt = substr($path, $pos + 1);
-            parse_str($opt, $connection['opts']);
-            $connection['name'] = substr($path, 0, $pos);
-        } else {
-            $connection['name'] = $path;
+        $connection['type'] = isset($temp['scheme']) && strlen($temp['scheme']) ? $temp['scheme'] : null;
+        $connection['user'] = isset($temp['user']) && strlen($temp['user']) ? $temp['user'] : null;
+        $connection['pass'] = isset($temp['pass']) && strlen($temp['pass']) ? $temp['pass'] : null;
+        $connection['host'] = isset($temp['host']) && strlen($temp['host']) ? $temp['host'] : null;
+        $connection['name'] = isset($temp['path']) && strlen($temp['path']) ? $temp['path'] : null;
+        $connection['port'] = isset($temp['port']) && (int)$temp['port'] ? (int)$temp['port'] : null;
+        if (isset($temp['query']) && strlen($temp['query'])) {
+            parse_str($temp['query'], $connection['opts']);
         }
-        $connection['type'] = isset($aliases[$connection['type']]) ?
-            $aliases[$connection['type']] :
-            $connection['type'];
+        // create the driver
+        $connection['type'] = $aliases[$connection['type']] ?? $connection['type'];
         $tmp = '\\vakata\\database\\driver\\'.strtolower($connection['type']).'\\Driver';
+        if (!class_exists($tmp)) {
+            throw new DBException('Unknown DB backend');
+        }
         return new $tmp($connection);
     }
     /**

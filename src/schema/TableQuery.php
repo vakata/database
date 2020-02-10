@@ -508,6 +508,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         if (!count($params)) {
             $name = preg_replace('(\s+(ASC|DESC)\s*$)i', '', $sql);
             try {
+                if ($name === null) {
+                    throw new \Exception();
+                }
                 $name = $this->getColumn(trim($name))['name'];
             } catch (\Exception $e) {
                 $name = null;
@@ -1058,10 +1061,10 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         array_reduce(
             $parts,
             function ($carry, $item) use (&$table) {
-                $relation = $table->getRelation($item);
-                if (!$relation) {
+                if (!$table->hasRelation($item)) {
                     throw new DBException('Invalid relation name');
                 }
+                $relation = $table->getRelation($item);
                 $name = $carry ? $carry . static::SEP . $item : $item;
                 $this->withr[$name] = [ $relation, $carry ?? $table->getName() ];
                 $table = $relation->table;

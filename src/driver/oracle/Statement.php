@@ -57,7 +57,7 @@ class Statement implements StatementInterface
             throw new DBException('Could not execute query : '.implode(',', $err));
         }
         if ($lob) {
-            while (!feof($ldt) && ($ltmp = fread($ldt, 8192)) !== false) {
+            while ($ldt !== null && !feof($ldt) && ($ltmp = fread($ldt, 8192)) !== false) {
                 $lob->write($ltmp);
                 $lob->flush();
             }

@@ -42,6 +42,6 @@
         "phpcs": "phpcs --standard=PSR2 --extensions=php --ignore=*/vendor/* ./",
         "phpcsfix": "phpcbf --standard=PSR2 --extensions=php --ignore=*/vendor/* ./",
         "phpdoc": "phpdoc-md generate src > api.md",
-        "phpstan": "phpstan analyze -c phpstan.neon -l 7 src"
+        "phpstan": "phpstan analyze -c phpstan.neon -l max src"
     }
 }

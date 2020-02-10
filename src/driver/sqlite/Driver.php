@@ -38,7 +38,11 @@ class Driver extends DriverAbstract implements DriverInterface
                 $this->lnk = new \SQLite3($this->connection['name']);
                 $this->lnk->exec('PRAGMA encoding = "'.$this->option('charset', 'utf-8'));
             } catch (\Exception $e) {
-                throw new DBException('Connect error: '.$this->lnk->lastErrorMsg());
+                if ($this->lnk !== null) {
+                    throw new DBException('Connect error: '.$this->lnk->lastErrorMsg());
+                } else {
+                    throw new DBException('Connect error');
+                }
             }
         }
     }

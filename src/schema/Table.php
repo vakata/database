@@ -403,11 +403,11 @@ class Table
     /**
      * Get a relation by name
      * @param  string      $name      the name to search for
-     * @return TableRelation|null     the relation definition
+     * @return TableRelation          the relation definition
      */
     public function getRelation(string $name)
     {
-        return $this->relations[$name] ?? null;
+        return $this->relations[$name];
     }
     /**
      * Rename a relation

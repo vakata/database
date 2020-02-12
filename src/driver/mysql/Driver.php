@@ -54,6 +54,9 @@ class Driver extends DriverAbstract implements DriverInterface
             if (isset($this->connection['opts']['timezone'])) {
                 $this->lnk->query("SET time_zone = '".addslashes($this->connection['opts']['timezone'])."'");
             }
+            if (isset($this->connection['opts']['sql_mode'])) {
+                $this->lnk->query("SET sql_mode = '".addslashes($this->connection['opts']['sql_mode'])."'");
+            }
         }
     }
     public function test() : bool

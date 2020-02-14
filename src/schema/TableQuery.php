@@ -588,14 +588,6 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
         }
 
-        foreach ($j as $k => $v) {
-            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getName().' '.$k.' ON ';
-            $tmp = [];
-            foreach ($v->keymap as $kk => $vv) {
-                $tmp[] = $kk.' = '.$vv;
-            }
-            $sql .= implode(' AND ', $tmp) . ' ';
-        }
         foreach ($relations as $k => $v) {
             $table = $v[1] !== $this->definition->getName() ? $getAlias($v[1]) : $v[1];
             $v = $v[0];
@@ -626,6 +618,14 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 }
                 $sql .= implode(' AND ', $tmp) . ' ';
             }
+        }
+        foreach ($j as $k => $v) {
+            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getName().' '.$k.' ON ';
+            $tmp = [];
+            foreach ($v->keymap as $kk => $vv) {
+                $tmp[] = $kk.' = '.$vv;
+            }
+            $sql .= implode(' AND ', $tmp) . ' ';
         }
         if (count($w)) {
             $sql .= 'WHERE ';
@@ -777,7 +777,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 foreach ($v->keymap as $kkk => $vv) {
                     if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv)) {
                         $relations[$k] = [ $relation, $table ];
-                        $j[$k]->keymap[$kkk] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv);
+                        $j[$kk]->keymap[$kkk] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv);
                     }
                 }
             }
@@ -794,17 +794,6 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $sql = 'SELECT '.implode(', ', $select).' FROM '.$table.' ';
         $par = [];
         $many = false;
-        foreach ($j as $k => $v) {
-            if ($v->many) {
-                $many = true;
-            }
-            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getName().' '.$k.' ON ';
-            $tmp = [];
-            foreach ($v->keymap as $kk => $vv) {
-                $tmp[] = $kk.' = '.$vv;
-            }
-            $sql .= implode(' AND ', $tmp) . ' ';
-        }
         foreach ($relations as $relation => $v) {
             $table = $v[1] !== $this->definition->getName() ? $getAlias($v[1]) : $v[1];
             $v = $v[0];
@@ -840,7 +829,17 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 $sql .= implode(' AND ', $tmp) . ' ';
             }
         }
-
+        foreach ($j as $k => $v) {
+            if ($v->many) {
+                $many = true;
+            }
+            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getName().' '.$k.' ON ';
+            $tmp = [];
+            foreach ($v->keymap as $kk => $vv) {
+                $tmp[] = $kk.' = '.$vv;
+            }
+            $sql .= implode(' AND ', $tmp) . ' ';
+        }
         if ($many && count($porder) && $this->li_of[2] === 1) {
             $ids = $this->ids();
             if (count($ids)) {
@@ -1182,14 +1181,6 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
 
         $par = [];
         $sql  = 'SELECT DISTINCT '.implode(', ', $dst).' FROM '.$table.' ';
-        foreach ($j as $k => $v) {
-            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getName().' '.$k.' ON ';
-            $tmp = [];
-            foreach ($v->keymap as $kk => $vv) {
-                $tmp[] = $kk.' = '.$vv;
-            }
-            $sql .= implode(' AND ', $tmp) . ' ';
-        }
         foreach ($relations as $k => $v) {
             $table = $v[1] !== $this->definition->getName() ? $getAlias($v[1]) : $v[1];
             $v = $v[0];
@@ -1220,6 +1211,14 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 }
                 $sql .= implode(' AND ', $tmp) . ' ';
             }
+        }
+        foreach ($j as $k => $v) {
+            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getName().' '.$k.' ON ';
+            $tmp = [];
+            foreach ($v->keymap as $kk => $vv) {
+                $tmp[] = $kk.' = '.$vv;
+            }
+            $sql .= implode(' AND ', $tmp) . ' ';
         }
         if (count($w)) {
             $sql .= 'WHERE ';

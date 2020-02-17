@@ -27,7 +27,7 @@ class Driver extends DriverAbstract implements DriverInterface
     {
         $this->disconnect();
     }
-    protected function connect()
+    public function connect()
     {
         $this->lnk = call_user_func(
             $this->option('persist') ? '\ibase_pconnect' : '\ibase_connect',
@@ -53,7 +53,7 @@ class Driver extends DriverAbstract implements DriverInterface
             return false;
         }
     }
-    protected function disconnect()
+    public function disconnect()
     {
         if (is_resource($this->lnk)) {
             \ibase_close($this->lnk);

@@ -86,9 +86,12 @@ abstract class DriverAbstract implements DriverInterface
         }
     }
     
-    abstract protected function connect();
+    abstract public function connect();
     abstract public function prepare(string $sql) : StatementInterface;
     abstract public function test() : bool;
+    public function disconnect()
+    {
+    }
 
     public function table(string $table, bool $detectRelations = true) : Table
     {

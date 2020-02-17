@@ -12,6 +12,9 @@ interface DriverInterface
     public function commit() : bool;
     public function rollback() : bool;
 
+    public function connect();
+    public function disconnect();
+
     public function name() : string;
     public function option(string $key, $default = null);
 

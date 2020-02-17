@@ -777,7 +777,11 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 foreach ($v->keymap as $kkk => $vv) {
                     if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv)) {
                         $relations[$k] = [ $relation, $table ];
-                        $j[$kk]->keymap[$kkk] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv);
+                        $j[$kk]->keymap[$kkk] = preg_replace(
+                            '(\b'.preg_quote($k . '.'). ')i',
+                            $getAlias($k) . '.',
+                            $vv
+                        );
                     }
                 }
             }

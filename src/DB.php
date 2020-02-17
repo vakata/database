@@ -81,6 +81,11 @@ class DB implements DBInterface
         $this->driver = new $tmp($connection);
     }
 
+    public function driver(): DriverInterface
+    {
+        return $this->driver;
+    }
+
     /**
      * Prepare a statement.
      * Use only if you need a single query to be performed multiple times with different parameters.

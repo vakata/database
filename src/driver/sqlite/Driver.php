@@ -31,7 +31,7 @@ class Driver extends DriverAbstract implements DriverInterface
     {
         $this->disconnect();
     }
-    protected function connect()
+    public function connect()
     {
         if ($this->lnk === null) {
             try {
@@ -59,7 +59,7 @@ class Driver extends DriverAbstract implements DriverInterface
             return false;
         }
     }
-    protected function disconnect()
+    public function disconnect()
     {
         if ($this->lnk !== null && $this->lnk !== false) {
             $this->lnk->close();

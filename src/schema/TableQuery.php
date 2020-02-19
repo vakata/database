@@ -1303,6 +1303,6 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
             $this->filter($k, $primary[$k]);
         }
-        return $this->iterator()[0];
+        return $this->iterator()[0] ?? null;
     }
 }

@@ -1175,11 +1175,13 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
 
         $dst = $key;
-        if ($own) {
-            // if using own table - do not use max/min in order - that will prevent index usage
-            $dst[] = $o[2] . ' orderbyfix___';
-        } else {
-            $dst[] = 'MAX(' . $o[2] . ') orderbyfix___';
+        if (count($o)) {
+            if ($own) {
+                // if using own table - do not use max/min in order - that will prevent index usage
+                $dst[] = $o[2] . ' orderbyfix___';
+            } else {
+                $dst[] = 'MAX(' . $o[2] . ') orderbyfix___';
+            }
         }
         $dst = array_unique($dst);
 
@@ -1280,7 +1282,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
         }
         return array_map(function ($v) {
-            if (isset($v['orderbyfix___'])) {
+            if (array_key_exists('orderbyfix___', $v)) {
                 unset($v['orderbyfix___']);
             }
             return count($v) === 1 ? array_values($v)[0] : $v;

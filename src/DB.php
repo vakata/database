@@ -60,7 +60,13 @@ class DB implements DBInterface
                 $connectionString,
                 $temp
             )) {
-                throw new DBException('Could not parse connection string');
+                $temp = explode('://', $connectionString, 2);
+                if (!preg_match('(^[a-z0-9_]+$)i', $temp[0])) {
+                    throw new DBException('Could not parse connection string');
+                }
+                $temp = [
+                    'scheme' => $temp[0]
+                ];
             }
         }
         $connection['type'] = isset($temp['scheme']) && strlen($temp['scheme']) ? $temp['scheme'] : null;

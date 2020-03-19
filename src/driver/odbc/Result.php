@@ -28,7 +28,7 @@ class Result implements ResultInterface
         $this->columns = [];
         $i = 0;
         try {
-            while ($temp = \odbc_field_name($this->statement, ++$i)) {
+            while ($temp = @\odbc_field_name($this->statement, ++$i)) {
                 $this->columns[] = $temp;
             }
         } catch (\Exception $ignore) {

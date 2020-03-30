@@ -7,7 +7,7 @@ use \vakata\database\schema\Table;
 interface DriverInterface
 {
     public function prepare(string $sql) : StatementInterface;
-    public function query(string $sql, $par = null) : ResultInterface;
+    public function query(string $sql, $par = null, bool $buff = true) : ResultInterface;
     public function begin() : bool;
     public function commit() : bool;
     public function rollback() : bool;

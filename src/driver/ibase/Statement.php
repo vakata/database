@@ -17,7 +17,7 @@ class Statement implements StatementInterface
         $this->statement = $statement;
         $this->driver = $driver;
     }
-    public function execute(array $data = []) : ResultInterface
+    public function execute(array $data = [], bool $buff = true) : ResultInterface
     {
         $data = array_values($data);
         foreach ($data as $i => $v) {

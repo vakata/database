@@ -14,7 +14,7 @@ use \vakata\collection\Collection;
 trait Schema
 {
     protected $connection;
-    abstract public function query(string $sql, $par = null) : ResultInterface;
+    abstract public function query(string $sql, $par = null, bool $buff = true) : ResultInterface;
 
     public function table(string $table, bool $detectRelations = true) : Table
     {

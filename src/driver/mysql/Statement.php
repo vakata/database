@@ -19,7 +19,7 @@ class Statement implements StatementInterface
     {
         // used to close statement here
     }
-    public function execute(array $data = []) : ResultInterface
+    public function execute(array $data = [], bool $buff = true) : ResultInterface
     {
         $data = array_values($data);
         $this->statement->reset();
@@ -85,6 +85,6 @@ class Statement implements StatementInterface
         if (!$this->statement->execute()) {
             throw new DBException('Prepared execute error: ' . $this->statement->error);
         }
-        return new Result($this->statement);
+        return new Result($this->statement, $buff);
     }
 }

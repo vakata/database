@@ -40,13 +40,13 @@ abstract class DriverAbstract implements DriverInterface
      * @param mixed  $par  parameters (optional)
      * @return ResultInterface the result of the execution
      */
-    public function query(string $sql, $par = null) : ResultInterface
+    public function query(string $sql, $par = null, bool $buff = true) : ResultInterface
     {
         $par = isset($par) ? (is_array($par) ? $par : [$par]) : [];
         if (strpos($sql, '??') && count($par)) {
             list($sql, $par) = $this->expand($sql, $par);
         }
-        return $this->prepare($sql)->execute($par);
+        return $this->prepare($sql)->execute($par, $buff);
     }
     public function name() : string
     {

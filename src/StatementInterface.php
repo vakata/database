@@ -4,5 +4,5 @@ namespace vakata\database;
 
 interface StatementInterface
 {
-    public function execute(array $par = []) : ResultInterface;
+    public function execute(array $par = [], bool $buff = true) : ResultInterface;
 }

@@ -23,7 +23,7 @@ class Statement implements StatementInterface
         $this->charOut = $charOut;
         $this->statement = \odbc_prepare($this->driver, $statement);
     }
-    public function execute(array $data = []) : ResultInterface
+    public function execute(array $data = [], bool $buff = true) : ResultInterface
     {
         if (!is_array($data)) {
             $data = array();

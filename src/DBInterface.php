@@ -8,16 +8,24 @@ use \vakata\database\schema\Table;
 interface DBInterface
 {
     public function prepare(string $sql) : StatementInterface;
-    public function query(string $sql, $par = null);
+    public function query(string $sql, $par = null, bool $buff = true);
     public function get(
+        string $sql,
+        $par = null,
+        string $key = null,
+        bool $skip = false,
+        bool $opti = true,
+        bool $buff = true
+    ) : Collection;
+    public function one(string $sql, $par = null, bool $opti = true);
+    public function all(string $sql, $par = null, string $key = null, bool $skip = false, bool $opti = true) : array;
+    public function unbuffered(
         string $sql,
         $par = null,
         string $key = null,
         bool $skip = false,
         bool $opti = true
     ) : Collection;
-    public function one(string $sql, $par = null, bool $opti = true);
-    public function all(string $sql, $par = null, string $key = null, bool $skip = false, bool $opti = true) : array;
 
     public function begin() : DBInterface;
     public function commit() : DBInterface;

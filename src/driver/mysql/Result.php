@@ -15,15 +15,17 @@ class Result implements ResultInterface
     protected $result = null;
     protected $nativeDriver = false;
 
-    public function __construct(\mysqli_stmt $statement)
+    public function __construct(\mysqli_stmt $statement, bool $buff = true)
     {
-        $this->nativeDriver = function_exists('\mysqli_fetch_all');
+        $this->nativeDriver = $buff && function_exists('\mysqli_fetch_all');
         $this->statement = $statement;
         try {
             if ($this->nativeDriver) {
                 $this->result = $this->statement->get_result();
             } else {
-                $this->statement->store_result();
+                if ($buff) {
+                    $this->statement->store_result();
+                }
                 $columns = [];
                 $temp = $this->statement->result_metadata();
                 if ($temp) {

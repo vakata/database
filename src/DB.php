@@ -139,17 +139,18 @@ class DB implements DBInterface
     }
     /**
      * Run a query (prepare & execute).
-     * @param string      $sql  SQL query
-     * @param mixed  $par parameters (optional)
+     * @param string   $sql   SQL query
+     * @param mixed    $par   parameters (optional)
+     * @param bool     $buff  should the results be buffered (defaults to true)
      * @return ResultInterface the result of the execution
      */
-    public function query(string $sql, $par = null) : ResultInterface
+    public function query(string $sql, $par = null, bool $buff = true) : ResultInterface
     {
         $par = isset($par) ? (is_array($par) ? $par : [$par]) : [];
         if (strpos($sql, '??') && count($par)) {
             list($sql, $par) = $this->expand($sql, $par);
         }
-        return $this->driver->prepare($sql)->execute($par);
+        return $this->driver->prepare($sql)->execute($par, $buff);
     }
     /**
      * Run a SELECT query and get an array-like result.
@@ -160,12 +161,19 @@ class DB implements DBInterface
      * @param string   $key      column name to use as the array index
      * @param bool     $skip     do not include the column used as index in the value (defaults to `false`)
      * @param bool     $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
+     * @param bool     $buff     should the results be buffered (defaults to `false`)
      *
      * @return Collection the result of the execution
      */
-    public function get(string $sql, $par = null, string $key = null, bool $skip = false, bool $opti = true): Collection
-    {
-        $coll = Collection::from($this->query($sql, $par));
+    public function get(
+        string $sql,
+        $par = null,
+        string $key = null,
+        bool $skip = false,
+        bool $opti = true,
+        bool $buff = true
+    ): Collection {
+        $coll = Collection::from($this->query($sql, $par, $buff));
         if (($keys = $this->driver->option('mode')) && in_array($keys, ['strtoupper', 'strtolower'])) {
             $coll->map(function ($v) use ($keys) {
                 $new = [];
@@ -202,7 +210,7 @@ class DB implements DBInterface
      */
     public function one(string $sql, $par = null, bool $opti = true)
     {
-        return $this->get($sql, $par, null, false, $opti)->value();
+        return $this->get($sql, $par, null, false, $opti, true)->value();
     }
     /**
      * Run a SELECT query and get an array
@@ -215,7 +223,16 @@ class DB implements DBInterface
      */
     public function all(string $sql, $par = null, string $key = null, bool $skip = false, bool $opti = true) : array
     {
-        return $this->get($sql, $par, $key, $skip, $opti)->toArray();
+        return $this->get($sql, $par, $key, $skip, $opti, true)->toArray();
+    }
+    public function unbuffered(
+        string $sql,
+        $par = null,
+        string $key = null,
+        bool $skip = false,
+        bool $opti = true
+    ) : Collection {
+        return $this->get($sql, $par, $key, $skip, $opti, false);
     }
     /**
      * Begin a transaction.

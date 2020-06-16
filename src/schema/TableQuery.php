@@ -656,7 +656,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array $fields optional array of columns to select (related columns can be used too)
      * @return $this
      */
-    public function columns(array $fields) : self
+    public function columns(array $fields, bool $addPrimary = true) : self
     {
         foreach ($fields as $k => $v) {
             if (strpos($v, '*') !== false) {
@@ -699,10 +699,12 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 $fields[$k] = $v;
             }
         }
-        foreach ($primary as $field) {
-            $field = $this->getColumn($field)['name'];
-            if (!in_array($field, $fields)) {
-                $fields[] = $field;
+        if ($addPrimary) {
+            foreach ($primary as $field) {
+                $field = $this->getColumn($field)['name'];
+                if (!in_array($field, $fields)) {
+                    $fields[] = $field;
+                }
             }
         }
         $this->fields = $fields;
@@ -713,7 +715,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array|null $fields optional array of columns to select (related columns can be used too)
      * @return mixed               the query result as an iterator (with array access)
      */
-    public function iterator(array $fields = null)
+    public function iterator(array $fields = null, array $collectionKey = null)
     {
         if ($this->qiterator) {
             return $this->qiterator;
@@ -896,7 +898,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $sql .= 'ORDER BY ' . $o[0] . ' ';
             $par = array_merge($par, $o[1]);
         }
-        if (count($porder)) {
+        if (!count($g) && count($porder)) {
             $pdir = (count($o) && strpos($o[0], 'DESC') !== false) ? 'DESC' : 'ASC';
             $porder = array_map(function ($v) use ($pdir) {
                 return $v . ' ' . $pdir;
@@ -930,7 +932,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
         return $this->qiterator = new TableQueryIterator(
             $this->db->get($sql, $par, null, false, false),
-            $this->pkey,
+            $collectionKey ?? $this->pkey,
             $this->withr,
             $aliases
         );
@@ -940,9 +942,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array|null $fields optional array of columns to select (related columns can be used too)
      * @return array               the query result as an array
      */
-    public function select(array $fields = null) : array
+    public function select(array $fields = null, array $collectionKey = null) : array
     {
-        return iterator_to_array($this->iterator($fields));
+        return iterator_to_array($this->iterator($fields, $collectionKey));
     }
     /**
      * Insert a new row in the table

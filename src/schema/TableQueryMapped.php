@@ -27,9 +27,9 @@ class TableQueryMapped extends TableQuery
      * @param  array|null $fields optional array of columns to select (related columns can be used too)
      * @return Collection               the query result as a mapped Collection
      */
-    public function iterator(array $fields = null)
+    public function iterator(array $fields = null, array $collectionKey = null)
     {
-        return $this->mapper->collection(parent::iterator($fields), $this->definition);
+        return $this->mapper->collection(parent::iterator($fields, $collectionKey), $this->definition);
     }
     /**
      * Create an empty entity for the queried table.

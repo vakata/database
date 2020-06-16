@@ -10,7 +10,7 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
 
     abstract protected function getConnectionString();
 
-    public static function tearDownAfterClass()
+    public static function tearDownAfterClass(): void
     {
         static::$db = null;
     }

@@ -62,6 +62,10 @@ class Driver extends DriverAbstract implements DriverInterface
             \pg_close($this->lnk);
         }
     }
+    public function raw(string $sql)
+    {
+        return \pg_query($this->lnk, $sql);
+    }
     public function prepare(string $sql) : StatementInterface
     {
         $this->connect();

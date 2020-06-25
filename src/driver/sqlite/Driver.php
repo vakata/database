@@ -65,6 +65,10 @@ class Driver extends DriverAbstract implements DriverInterface
             $this->lnk->close();
         }
     }
+    public function raw(string $sql)
+    {
+        return $this->lnk->query($sql);
+    }
     public function prepare(string $sql) : StatementInterface
     {
         $this->connect();

@@ -931,7 +931,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
         }
         return $this->qiterator = new TableQueryIterator(
-            $this->db->get($sql, $par, null, false, false),
+            $this->db->get($sql, $par, null, false, false, true),
             $collectionKey ?? $this->pkey,
             $this->withr,
             $aliases

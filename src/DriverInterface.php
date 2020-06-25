@@ -8,6 +8,7 @@ interface DriverInterface
 {
     public function prepare(string $sql) : StatementInterface;
     public function query(string $sql, $par = null, bool $buff = true) : ResultInterface;
+    public function raw(string $raw);
     public function begin() : bool;
     public function commit() : bool;
     public function rollback() : bool;

@@ -85,6 +85,10 @@ abstract class DriverAbstract implements DriverInterface
             return false;
         }
     }
+    public function raw(string $sql)
+    {
+        return $this->query($sql);
+    }
     
     abstract public function connect();
     abstract public function prepare(string $sql) : StatementInterface;

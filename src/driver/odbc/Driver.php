@@ -77,7 +77,10 @@ class Driver extends DriverAbstract implements DriverInterface
             $this->connection['opts']['charset_out'] ?? null
         );
     }
-
+    public function raw(string $sql)
+    {
+        return \odbc_exec($this->lnk, $sql);
+    }
     public function begin() : bool
     {
         $this->connect();

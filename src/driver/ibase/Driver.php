@@ -59,6 +59,10 @@ class Driver extends DriverAbstract implements DriverInterface
             \ibase_close($this->lnk);
         }
     }
+    public function raw(string $sql)
+    {
+        return \ibase_query($this->lnk, $sql);
+    }
     public function prepare(string $sql) : StatementInterface
     {
         $this->connect();

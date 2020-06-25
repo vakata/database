@@ -153,6 +153,15 @@ class DB implements DBInterface
         return $this->driver->prepare($sql)->execute($par, $buff);
     }
     /**
+     * Run a query.
+     * @param string   $sql   SQL query
+     * @return mixed the result of the execution
+     */
+    public function raw(string $sql)
+    {
+        return $this->driver->raw($sql);
+    }
+    /**
      * Run a SELECT query and get an array-like result.
      * When using `get` the data is kept in the database client and fetched as needed (not in PHP memory as with `all`)
      *

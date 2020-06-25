@@ -65,6 +65,7 @@ class Driver extends DriverAbstract implements DriverInterface
     }
     public function raw(string $sql)
     {
+        $this->connect();
         return \oci_execute(\oci_parse($this->lnk, $sql));
     }
     public function prepare(string $sql) : StatementInterface

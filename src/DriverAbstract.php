@@ -87,6 +87,7 @@ abstract class DriverAbstract implements DriverInterface
     }
     public function raw(string $sql)
     {
+        $this->connect();
         return $this->query($sql);
     }
     

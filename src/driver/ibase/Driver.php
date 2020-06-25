@@ -61,6 +61,7 @@ class Driver extends DriverAbstract implements DriverInterface
     }
     public function raw(string $sql)
     {
+        $this->connect();
         return \ibase_query($this->lnk, $sql);
     }
     public function prepare(string $sql) : StatementInterface

@@ -79,6 +79,7 @@ class Driver extends DriverAbstract implements DriverInterface
     }
     public function raw(string $sql)
     {
+        $this->connect();
         return \odbc_exec($this->lnk, $sql);
     }
     public function begin() : bool

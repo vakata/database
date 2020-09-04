@@ -127,15 +127,15 @@ trait Schema
                  as $relation
             ) {
                 $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_NAME'];
-                $relations[$relation['CONSTRAINT_NAME']]['keymap'][$primary[(int)$relation['POSITION']-1]] =
-                    $relation['COLUMN_NAME'];
+                $relations[$relation['CONSTRAINT_NAME']]['keymap'][strtoupper($primary[(int)$relation['POSITION']-1])] =
+                    strtoupper($relation['COLUMN_NAME']);
             }
             foreach ($relations as $data) {
                 $rtable = $this->table($data['table'], true);
                 $columns = [];
                 foreach ($rtable->getColumns() as $column) {
-                    if (!in_array($column, $data['keymap'])) {
-                        $columns[] = $column;
+                    if (!in_array(strtoupper($column), $data['keymap'])) {
+                        $columns[] = strtoupper($column);
                     }
                 }
                 $foreign = [];

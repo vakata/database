@@ -130,7 +130,7 @@ trait Schema
             })
             ->toArray();
         if (!count($columns)) {
-            throw new DBException('Table not found by name: '.$schema.'.'.$table.' '.implode(', ', array_keys($tables)));
+            throw new DBException('Table not found by name');
         }
         $pkname = Collection::from($this
             ->query(
@@ -161,8 +161,8 @@ trait Schema
             // assuming current table is on the "one" end having "many" records in the referencing table
             // resulting in a "hasMany" or "manyToMany" relationship (if a pivot table is detected)
             $relations = [];
-            foreach ($relationsR[$table] ?? [] as $relation) {
-                $relations[$relation['constraint_name']]['table'] = $relation['table_schema'] . $relation['table_name'];
+            foreach ($relationsR[$schema . '.' . $table] ?? [] as $relation) {
+                $relations[$relation['constraint_name']]['table'] = $relation['table_schema'] . '.' . $relation['table_name'];
                 $relations[$relation['constraint_name']]['keymap'][$relation['referenced_column_name']] =
                     $relation['column_name'];
             }

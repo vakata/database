@@ -41,6 +41,9 @@ class Driver extends DriverAbstract implements DriverInterface
         }
         $connection['dsn'] = $temp;
         $connection['name'] = '';
+        if (strpos($temp, 'dbname=')) {
+            $connection['name'] = explode(';', explode('dbname=', $temp)[1])[0];
+        }
         $this->drv = explode(':', $temp)[0];
         $this->connection = $connection;
     }

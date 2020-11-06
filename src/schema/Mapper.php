@@ -31,8 +31,8 @@ class Mapper
             foreach ($definition->getPrimaryKey() as $column) {
                 $primary[$column] = $data[$column];
             }
-            if (isset($this->objects[$definition->getName()][base64_encode(serialize($primary))])) {
-                return $this->objects[$definition->getName()][base64_encode(serialize($primary))];
+            if (isset($this->objects[$definition->getFullName()][base64_encode(serialize($primary))])) {
+                return $this->objects[$definition->getFullName()][base64_encode(serialize($primary))];
             }
         }
         $entity = new Entity($this, $definition, $data);
@@ -40,7 +40,7 @@ class Mapper
             return $entity;
         }
         $this->lazy($entity, $data);
-        return $this->objects[$definition->getName()][base64_encode(serialize($primary))] = $entity;
+        return $this->objects[$definition->getFullName()][base64_encode(serialize($primary))] = $entity;
     }
     /**
      * Get a collection of entities
@@ -64,12 +64,12 @@ class Mapper
      */
     public function save(Entity $entity)
     {
-        $query = $this->db->table($entity->definition()->getName());
+        $query = $this->db->table($entity->definition()->getFullName());
         $primary = $entity->id();
-        if (!isset($this->objects[$entity->definition()->getName()][base64_encode(serialize($primary))])) {
+        if (!isset($this->objects[$entity->definition()->getFullName()][base64_encode(serialize($primary))])) {
             $new = $query->insert($entity->toArray());
             $entity->fromArray($new);
-            $this->objects[$entity->definition()->getName()][base64_encode(serialize($new))] = $entity;
+            $this->objects[$entity->definition()->getFullName()][base64_encode(serialize($new))] = $entity;
         } else {
             foreach ($primary as $k => $v) {
                 $query->filter($k, $v);
@@ -80,8 +80,8 @@ class Mapper
                 $new[$k] = $entity->{$k};
             }
             if (base64_encode(serialize($new)) !== base64_encode(serialize($primary))) {
-                unset($this->objects[$entity->definition()->getName()][base64_encode(serialize($primary))]);
-                $this->objects[$entity->definition()->getName()][base64_encode(serialize($new))] = $entity;
+                unset($this->objects[$entity->definition()->getFullName()][base64_encode(serialize($primary))]);
+                $this->objects[$entity->definition()->getFullName()][base64_encode(serialize($new))] = $entity;
             }
         }
         return $this->lazy($entity, $entity->toArray());
@@ -94,14 +94,14 @@ class Mapper
      */
     public function delete(Entity $entity)
     {
-        $query = $this->db->table($entity->definition()->getName());
+        $query = $this->db->table($entity->definition()->getFullName());
         $primary = $entity->id();
-        if (isset($this->objects[$entity->definition()->getName()][base64_encode(serialize($primary))])) {
+        if (isset($this->objects[$entity->definition()->getFullName()][base64_encode(serialize($primary))])) {
             foreach ($primary as $k => $v) {
                 $query->filter($k, $v);
             }
             $query->delete();
-            unset($this->objects[$entity->definition()->getName()][base64_encode(serialize($primary))]);
+            unset($this->objects[$entity->definition()->getFullName()][base64_encode(serialize($primary))]);
         }
     }
     /**
@@ -112,7 +112,7 @@ class Mapper
      */
     public function refresh(Entity $entity)
     {
-        $query = $this->db->table($entity->definition()->getName());
+        $query = $this->db->table($entity->definition()->getFullName());
         $primary = $entity->id();
         foreach ($primary as $k => $v) {
             $query->filter($k, $v);
@@ -128,7 +128,7 @@ class Mapper
         foreach ($definition->getColumns() as $column) {
             if (!array_key_exists($column, $data)) {
                 $entity->__lazyProperty($column, function () use ($definition, $primary, $column) {
-                    $query = $this->db->table($definition->getName());
+                    $query = $this->db->table($definition->getFullName());
                     foreach ($primary as $k => $v) {
                         $query->filter($k, $v);
                     }
@@ -147,7 +147,7 @@ class Mapper
                         $this->entity($relation->table, $data[$name])
                     ) :
                     function (array $columns = null) use ($entity, $definition, $relation, $data) {
-                        $query = $this->db->table($relation->table->getName(), true);
+                        $query = $this->db->table($relation->table->getFullName(), true);
                         if ($columns !== null) {
                             $query->columns($columns);
                         }
@@ -157,14 +157,14 @@ class Mapper
                         if ($relation->pivot) {
                             $nm = null;
                             foreach ($relation->table->getRelations() as $rname => $rdata) {
-                                if ($rdata->pivot && $rdata->pivot->getName() === $relation->pivot->getName()) {
+                                if ($rdata->pivot && $rdata->pivot->getFullName() === $relation->pivot->getFullName()) {
                                     $nm = $rname;
                                 }
                             }
                             if (!$nm) {
                                 $nm = $definition->getName();
                                 $relation->table->manyToMany(
-                                    $this->db->table($definition->getName()),
+                                    $this->db->table($definition->getFullName()),
                                     $relation->pivot,
                                     $nm,
                                     array_flip($relation->keymap),

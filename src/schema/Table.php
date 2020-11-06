@@ -19,10 +19,11 @@ class Table
      * Create a new instance
      * @param  string      $name the table name
      */
-    public function __construct(string $name)
+    public function __construct(string $name, string $schema = '')
     {
         $this->data = [
             'name'    => $name,
+            'schema'  => $schema,
             'columns' => [],
             'primary' => [],
             'comment' => ''
@@ -87,12 +88,28 @@ class Table
         return $this;
     }
     /**
+     * Get the table schema
+     * @return string  the table name
+     */
+    public function getSchema()
+    {
+        return $this->data['schema'];
+    }
+    /**
      * Get the table name
      * @return string  the table name
      */
     public function getName()
     {
         return $this->data['name'];
+    }
+    /**
+     * Get the table name with the schema if available
+     * @return string  the table name
+     */
+    public function getFullName()
+    {
+        return ($this->data['schema'] ? $this->data['schema'] . '.' : '') . $this->data['name'];
     }
     /**
      * Get a column definition

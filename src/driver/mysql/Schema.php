@@ -19,16 +19,25 @@ trait Schema
     public function table(string $table, bool $detectRelations = true) : Table
     {
         static $tables = [];
-        if (isset($tables[$table])) {
-            return $tables[$table];
+
+        $main = $this->connection['opts']['schema'] ?? $this->connection['name'];
+        $schema = $main;
+        if (strpos($table, '.')) {
+            $temp = explode('.', $table, 2);
+            $schema = $temp[0];
+            $table = $temp[1];
         }
 
-        static $comments = null;
-        if (!isset($comments)) {
-            $comments = Collection::from(
+        if (isset($tables[$schema . '.' . $table])) {
+            return $tables[$schema . '.' . $table];
+        }
+
+        static $comments = [];
+        if (!isset($comments[$schema])) {
+            $comments[$schema] = Collection::from(
                 $this->query(
                     "SELECT TABLE_NAME, TABLE_COMMENT FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ?",
-                    [ $this->connection['opts']['schema'] ?? $this->connection['name'] ]
+                    [ $schema ]
                 )
             )
             ->mapKey(function ($v) {
@@ -43,31 +52,50 @@ trait Schema
         if (!isset($relationsT) || !isset($relationsR)) {
             $relationsT = [];
             $relationsR = [];
+            $additional = [];
             $col = Collection::from(
                 $this->query(
-                    "SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
+                    "SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_TABLE_SCHEMA, REFERENCED_COLUMN_NAME
                      FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
                      WHERE
-                        TABLE_SCHEMA = ? AND TABLE_NAME IS NOT NULL AND
-                        REFERENCED_TABLE_SCHEMA = ? AND REFERENCED_TABLE_NAME IS NOT NULL",
-                    [
-                        $this->connection['opts']['schema'] ?? $this->connection['name'],
-                        $this->connection['opts']['schema'] ?? $this->connection['name']
-                    ]
+                        (TABLE_SCHEMA = ? OR REFERENCED_TABLE_SCHEMA = ?) AND
+                        TABLE_NAME IS NOT NULL AND REFERENCED_TABLE_NAME IS NOT NULL",
+                    [ $main, $main ]
                 )
             )->toArray();
             foreach ($col as $row) {
-                $relationsT[$row['TABLE_NAME']][] = $row;
-                $relationsR[$row['REFERENCED_TABLE_NAME']][] = $row;
+                if ($row['TABLE_SCHEMA'] !== $main) {
+                    $additional[] = $row['TABLE_SCHEMA'];
+                }
+                if ($row['REFERENCED_TABLE_SCHEMA'] !== $main) {
+                    $additional[] = $row['REFERENCED_TABLE_SCHEMA'];
+                }
+                $relationsT[$row['TABLE_SCHEMA'] . '.' . $row['TABLE_NAME']][] = $row;
+                $relationsR[$row['REFERENCED_TABLE_SCHEMA'] . '.' . $row['REFERENCED_TABLE_NAME']][] = $row;
+            }
+            foreach (array_filter(array_unique($additional)) as $s) {
+                $col = Collection::from(
+                    $this->query(
+                        "SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_TABLE_SCHEMA, REFERENCED_COLUMN_NAME
+                        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+                        WHERE
+                            TABLE_SCHEMA = ? AND REFERENCED_TABLE_SCHEMA = ? AND
+                            TABLE_NAME IS NOT NULL AND REFERENCED_TABLE_NAME IS NOT NULL",
+                        [ $s, $s ]
+                    )
+                )->toArray();
+                foreach ($col as $row) {
+                    $relationsT[$row['TABLE_SCHEMA'] . '.' . $row['TABLE_NAME']][] = $row;
+                    $relationsR[$row['REFERENCED_TABLE_SCHEMA'] . '.' . $row['REFERENCED_TABLE_NAME']][] = $row;
+                }
             }
         }
 
-        
-        $columns = Collection::from($this->query("SHOW FULL COLUMNS FROM {$table}"));
+        $columns = Collection::from($this->query("SHOW FULL COLUMNS FROM {$schema}.{$table}"));
         if (!count($columns)) {
             throw new DBException('Table not found by name');
         }
-        $tables[$table] = $definition = (new Table($table))
+        $tables[$schema . '.' . $table] = $definition = (new Table($table, $schema))
             ->addColumns(
                 $columns
                     ->clone()
@@ -114,15 +142,15 @@ trait Schema
                     ->pluck('Field')
                     ->toArray()
             )
-            ->setComment($comments[$table] ?? '');
+            ->setComment($comments[$schema][$table] ?? '');
 
         if ($detectRelations) {
             // relations where the current table is referenced
             // assuming current table is on the "one" end having "many" records in the referencing table
             // resulting in a "hasMany" or "manyToMany" relationship (if a pivot table is detected)
             $relations = [];
-            foreach ($relationsR[$table] ?? [] as $relation) {
-                $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_NAME'];
+            foreach ($relationsR[$schema . '.' . $table] ?? [] as $relation) {
+                $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_SCHEMA'] . '.' . $relation['TABLE_NAME'];
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['REFERENCED_COLUMN_NAME']] =
                     $relation['COLUMN_NAME'];
             }
@@ -149,7 +177,7 @@ trait Schema
                             return $new;
                         }) as $relation
                     ) {
-                        $foreign[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
+                        $foreign[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_SCHEMA'] . '.' . $relation['REFERENCED_TABLE_NAME'];
                         $foreign[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] =
                             $relation['REFERENCED_COLUMN_NAME'];
                         $usedcol[] = $relation['COLUMN_NAME'];
@@ -158,9 +186,14 @@ trait Schema
                 if (count($foreign) === 1 && !count(array_diff($columns, $usedcol))) {
                     $foreign = current($foreign);
                     $relname = $foreign['table'];
+                    $temp = explode('.', $relname, 2);
+                    if ($temp[0] == $main) {
+                        $relname = $temp[1];
+                    }
+                    $orig = $relname;
                     $cntr = 1;
                     while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
-                        $relname = $foreign['table'] . '_' . (++ $cntr);
+                        $relname = $orig . '_' . (++ $cntr);
                     }
                     $definition->addRelation(
                         new TableRelation(
@@ -174,9 +207,14 @@ trait Schema
                     );
                 } else {
                     $relname = $data['table'];
+                    $temp = explode('.', $relname, 2);
+                    if ($temp[0] == $main) {
+                        $relname = $temp[1];
+                    }
+                    $orig = $relname;
                     $cntr = 1;
                     while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
-                        $relname = $data['table'] . '_' . (++ $cntr);
+                        $relname = $orig . '_' . (++ $cntr);
                     }
                     $definition->addRelation(
                         new TableRelation(
@@ -192,7 +230,7 @@ trait Schema
             // assuming current table is linked to "one" record in the referenced table
             // resulting in a "belongsTo" relationship
             $relations = [];
-            foreach (Collection::from($relationsT[$table] ?? [])
+            foreach (Collection::from($relationsT[$schema . '.' . $table] ?? [])
                 ->map(function ($v) {
                     $new = [];
                     foreach ($v as $kk => $vv) {
@@ -201,15 +239,20 @@ trait Schema
                     return $new;
                 }) as $relation
             ) {
-                $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
+                $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_SCHEMA'] . '.' . $relation['REFERENCED_TABLE_NAME'];
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] =
                     $relation['REFERENCED_COLUMN_NAME'];
             }
             foreach ($relations as $name => $data) {
                 $relname = $data['table'];
+                $temp = explode('.', $relname, 2);
+                if ($temp[0] == $main) {
+                    $relname = $temp[1];
+                }
+                $orig = $relname;
                 $cntr = 1;
                 while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
-                    $relname = $data['table'] . '_' . (++ $cntr);
+                    $relname = $orig . '_' . (++ $cntr);
                 }
                 $definition->addRelation(
                     new TableRelation(

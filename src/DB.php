@@ -320,6 +320,7 @@ class DB implements DBInterface
         return !$asPlainArray ? $this->tables : array_map(function ($table) {
             return [
                 'name' => $table->getName(),
+                'schema' => $table->getSchema(),
                 'pkey' => $table->getPrimaryKey(),
                 'comment' => $table->getComment(),
                 'columns' => array_map(function ($column) {
@@ -353,7 +354,7 @@ class DB implements DBInterface
     public function setSchema(array $data)
     {
         foreach ($data as $tableData) {
-            $this->tables[$tableData['name']] = (new Table($tableData['name']))
+            $this->tables[$tableData['name']] = (new Table($tableData['name'], $tableData['schema']))
                         ->setPrimaryKey($tableData['pkey'])
                         ->setComment($tableData['comment'])
                         ->addColumns($tableData['columns']);

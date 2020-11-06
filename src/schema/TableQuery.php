@@ -97,7 +97,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     {
         $column = explode('.', $column);
         if (count($column) === 1) {
-            $column = [ $this->definition->getName(), $column[0] ];
+            $column = [ $this->definition->getFullName(), $column[0] ];
             $col = $this->definition->getColumn($column[1]);
             if (!$col) {
                 throw new DBException('Invalid column name in own table');
@@ -125,17 +125,23 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
         } else {
             $name = array_pop($column);
-            $this->with(implode('.', $column));
-            $table = $this->definition;
-            $table = array_reduce(
-                $column,
-                function ($carry, $item) use (&$table) {
-                    $table = $table->getRelation($item)->table;
-                    return $table;
-                }
-            );
-            $col = $table->getColumn($name);
-            $column = [ implode(static::SEP, $column), $name ];
+            if ($this->definition->hasRelation(implode('.', $column))) {
+                $this->with(implode('.', $column));
+                $col = $this->definition->getRelation(implode('.', $column))->table->getColumn($name);
+                $column = [ implode('.', $column), $name ];
+            } else {
+                $this->with(implode('.', $column));
+                $table = $this->definition;
+                $table = array_reduce(
+                    $column,
+                    function ($carry, $item) use (&$table) {
+                        $table = $table->getRelation($item)->table;
+                        return $table;
+                    }
+                );
+                $col = $table->getColumn($name);
+                $column = [ implode(static::SEP, $column), $name ];
+            }
         }
         return [ 'name' => implode('.', $column), 'data' => $col ];
     }
@@ -542,7 +548,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             // to bypass use: return $name;
             return $aliases[$name] = $aliases[$name] ?? 'alias' . static::SEP . count($aliases);
         };
-        $table = $this->definition->getName();
+        $table = $this->definition->getFullName();
         $sql = 'SELECT COUNT(DISTINCT '.$table.'.'.implode(', '.$table.'.', $this->pkey).') FROM '.$table.' ';
         $par = [];
         
@@ -589,17 +595,17 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
 
         foreach ($relations as $k => $v) {
-            $table = $v[1] !== $this->definition->getName() ? $getAlias($v[1]) : $v[1];
+            $table = $v[1] !== $this->definition->getName() && $v[1] !== $this->definition->getFullName() ? $getAlias($v[1]) : $v[1];
             $v = $v[0];
             if ($v->pivot) {
                 $alias = $getAlias($k.'_pivot');
-                $sql .= 'LEFT JOIN '.$v->pivot->getName().' '.$alias.' ON ';
+                $sql .= 'LEFT JOIN '.$v->pivot->getFullName().' '.$alias.' ON ';
                 $tmp = [];
                 foreach ($v->keymap as $kk => $vv) {
                     $tmp[] = $table.'.'.$kk.' = '.$alias.'.'.$vv.' ';
                 }
                 $sql .= implode(' AND ', $tmp) . ' ';
-                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$getAlias($k).' ON ';
+                $sql .= 'LEFT JOIN '.$v->table->getFullName().' '.$getAlias($k).' ON ';
                 $tmp = [];
                 foreach ($v->pivot_keymap as $kk => $vv) {
                     $tmp[] = $getAlias($k).'.'.$vv.' = '.$alias.'.'.$kk.' ';
@@ -607,7 +613,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 $sql .= implode(' AND ', $tmp) . ' ';
             } else {
                 $alias = $getAlias($k);
-                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$alias.' ON ';
+                $sql .= 'LEFT JOIN '.$v->table->getFullName().' '.$alias.' ON ';
                 $tmp = [];
                 foreach ($v->keymap as $kk => $vv) {
                     $tmp[] = $table.'.'.$kk.' = '.$alias.'.'.$vv.' ';
@@ -620,7 +626,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
         }
         foreach ($j as $k => $v) {
-            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getName().' '.$k.' ON ';
+            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getFullName().' '.$k.' ON ';
             $tmp = [];
             foreach ($v->keymap as $kk => $vv) {
                 $tmp[] = $kk.' = '.$vv;
@@ -797,24 +803,24 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 $select[] = $getAlias($name) . '.' . $column . ' ' . $getAlias($name . static::SEP . $column);
             }
         }
-        $sql = 'SELECT '.implode(', ', $select).' FROM '.$table.' ';
+        $sql = 'SELECT '.implode(', ', $select).' FROM '.$this->definition->getFullName().' ';
         $par = [];
         $many = false;
         foreach ($relations as $relation => $v) {
-            $table = $v[1] !== $this->definition->getName() ? $getAlias($v[1]) : $v[1];
+            $table = $v[1] !== $this->definition->getName() && $v[1] !== $this->definition->getFullName() ? $getAlias($v[1]) : $v[1];
             $v = $v[0];
             if ($v->many || $v->pivot) {
                 $many = true;
             }
             if ($v->pivot) {
                 $alias = $getAlias($relation.'_pivot');
-                $sql .= 'LEFT JOIN '.$v->pivot->getName().' '.$alias.' ON ';
+                $sql .= 'LEFT JOIN '.$v->pivot->getFullName().' '.$alias.' ON ';
                 $tmp = [];
                 foreach ($v->keymap as $kk => $vv) {
                     $tmp[] = $table.'.'.$kk.' = '.$alias.'.'.$vv.' ';
                 }
                 $sql .= implode(' AND ', $tmp) . ' ';
-                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$getAlias($relation).' ON ';
+                $sql .= 'LEFT JOIN '.$v->table->getFullName().' '.$getAlias($relation).' ON ';
                 $tmp = [];
                 foreach ($v->pivot_keymap as $kk => $vv) {
                     $tmp[] = $getAlias($relation).'.'.$vv.' = '.$alias.'.'.$kk.' ';
@@ -823,7 +829,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             } else {
                 $alias = $getAlias($relation);
 
-                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$alias.' ON ';
+                $sql .= 'LEFT JOIN '.$v->table->getFullName().' '.$alias.' ON ';
                 $tmp = [];
                 foreach ($v->keymap as $kk => $vv) {
                     $tmp[] = $table.'.'.$kk.' = '.$alias.'.'.$vv.' ';
@@ -953,7 +959,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      */
     public function insert(array $data) : array
     {
-        $table = $this->definition->getName();
+        $table = $this->definition->getFullName();
         $columns = $this->definition->getFullColumns();
         $insert = [];
         foreach ($data as $column => $value) {
@@ -1035,7 +1041,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      */
     public function delete() : int
     {
-        $table = $this->definition->getName();
+        $table = $this->definition->getFullName();
         $sql = 'DELETE FROM '.$table.' ';
         $par = [];
         if (count($this->where)) {
@@ -1061,21 +1067,26 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     public function with(string $relation) : self
     {
         $this->qiterator = null;
-        $parts = explode('.', $relation);
         $table = $this->definition;
-        array_reduce(
-            $parts,
-            function ($carry, $item) use (&$table) {
-                if (!$table->hasRelation($item)) {
-                    throw new DBException('Invalid relation name');
+        if ($table->hasRelation($relation)) {
+            $temp = $table->getRelation($relation);
+            $this->withr[$relation] = [ $temp, $table->getName() ];
+        } else {
+            $parts = explode('.', $relation);
+            array_reduce(
+                $parts,
+                function ($carry, $item) use (&$table) {
+                    if (!$table->hasRelation($item)) {
+                        throw new DBException('Invalid relation name: '.$table->getName().' -> ' . $item);
+                    }
+                    $relation = $table->getRelation($item);
+                    $name = $carry ? $carry . static::SEP . $item : $item;
+                    $this->withr[$name] = [ $relation, $carry ?? $table->getName() ];
+                    $table = $relation->table;
+                    return $name;
                 }
-                $relation = $table->getRelation($item);
-                $name = $carry ? $carry . static::SEP . $item : $item;
-                $this->withr[$name] = [ $relation, $carry ?? $table->getName() ];
-                $table = $relation->table;
-                return $name;
-            }
-        );
+            );
+        }
         return $this;
     }
 
@@ -1188,7 +1199,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $dst = array_unique($dst);
 
         $par = [];
-        $sql  = 'SELECT DISTINCT '.implode(', ', $dst).' FROM '.$table.' ';
+        $sql  = 'SELECT DISTINCT '.implode(', ', $dst).' FROM '.$this->definition->getFullName().' ';
         foreach ($relations as $k => $v) {
             $table = $v[1] !== $this->definition->getName() ? $getAlias($v[1]) : $v[1];
             $v = $v[0];

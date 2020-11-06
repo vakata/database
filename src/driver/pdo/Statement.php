@@ -20,7 +20,6 @@ class Statement implements StatementInterface
     public function execute(array $data = [], bool $buff = true) : ResultInterface
     {
         $data = array_values($data);
-        //var_dump($data);
         foreach ($data as $i => $v) {
             switch (gettype($v)) {
                 case 'boolean':

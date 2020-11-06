@@ -19,8 +19,18 @@ trait Schema
     public function table(string $table, bool $detectRelations = true) : Table
     {
         static $tables = [];
-        if (isset($tables[$table])) {
-            return $tables[$table];
+
+        $catalog = $this->connection['name'];
+        $main = $this->connection['opts']['schema'] ?? 'public';
+        $schema = $main;
+        if (strpos($table, '.')) {
+            $temp = explode('.', $table, 2);
+            $schema = $temp[0];
+            $table = $temp[1];
+        }
+
+        if (isset($tables[$schema . '.' . $table])) {
+            return $tables[$schema . '.' . $table];
         }
 
         static $relationsT = null;
@@ -28,38 +38,79 @@ trait Schema
         if (!isset($relationsT) || !isset($relationsR)) {
             $relationsT = [];
             $relationsR = [];
+            $additional = [];
             $col = Collection::from(
                 $this->query(
                     "SELECT
+                        kc.table_schema,
                         kc.table_name,
                         kc.column_name,
                         kc.constraint_name,
                         ct.table_name AS referenced_table_name,
+                        ct.table_schema AS referenced_table_schema,
                         (SELECT column_name
-                         FROM information_schema.constraint_column_usage
-                         WHERE constraint_name = kc.constraint_name AND table_name = ct.table_name
-                         LIMIT 1 OFFSET kc.position_in_unique_constraint - 1
+                        FROM information_schema.constraint_column_usage
+                        WHERE constraint_name = kc.constraint_name AND table_name = ct.table_name
+                        LIMIT 1 OFFSET kc.position_in_unique_constraint - 1
                         ) AS referenced_column_name
-                     FROM information_schema.key_column_usage kc
-                     JOIN information_schema.constraint_table_usage ct ON
-                        kc.constraint_name = ct.constraint_name AND ct.table_schema = kc.table_schema
-                     WHERE
-                        kc.table_schema = ? AND
+                    FROM information_schema.key_column_usage kc
+                    JOIN information_schema.constraint_table_usage ct ON
+                        kc.constraint_name = ct.constraint_name AND ct.table_catalog = kc.table_catalog
+                    WHERE
+                        kc.table_catalog = ? AND
+                        (kc.table_schema = ? OR ct.table_schema = ?) AND
                         kc.table_name IS NOT NULL AND
                         kc.position_in_unique_constraint IS NOT NULL",
-                    [ $this->connection['opts']['schema'] ?? $this->connection['name'] ]
+                    [ $catalog, $main, $main ]
                 )
             )->toArray();
             foreach ($col as $row) {
-                $relationsT[$row['table_name']][] = $row;
-                $relationsR[$row['referenced_table_name']][] = $row;
+                if ($row['table_schema'] !== $main) {
+                    $additional[] = $row['table_schema'];
+                }
+                if ($row['referenced_table_schema'] !== $main) {
+                    $additional[] = $row['referenced_table_schema'];
+                }
+                $relationsT[$row['table_schema'] . '.' . $row['table_name']][] = $row;
+                $relationsR[$row['referenced_table_schema'] . '.' . $row['referenced_table_name']][] = $row;
+            }
+            foreach (array_filter(array_unique($additional)) as $s) {
+                $col = Collection::from(
+                    $this->query(
+                        "SELECT
+                            kc.table_schema,
+                            kc.table_name,
+                            kc.column_name,
+                            kc.constraint_name,
+                            ct.table_name AS referenced_table_name,
+                            ct.table_schema AS referenced_table_schema,
+                            (SELECT column_name
+                            FROM information_schema.constraint_column_usage
+                            WHERE constraint_name = kc.constraint_name AND table_name = ct.table_name
+                            LIMIT 1 OFFSET kc.position_in_unique_constraint - 1
+                            ) AS referenced_column_name
+                        FROM information_schema.key_column_usage kc
+                        JOIN information_schema.constraint_table_usage ct ON
+                            kc.constraint_name = ct.constraint_name AND ct.table_catalog = kc.table_catalog
+                        WHERE
+                            kc.table_catalog = ? AND
+                            (kc.table_schema = ? AND ct.table_schema = ?) AND
+                            kc.table_name IS NOT NULL AND
+                            kc.position_in_unique_constraint IS NOT NULL",
+                        [ $catalog, $s, $s ]
+                    )
+                )->toArray();
+                foreach ($col as $row) {
+                    $relationsT[$row['table_schema'] . '.' . $row['table_name']][] = $row;
+                    $relationsR[$row['referenced_table_schema'] . '.' . $row['referenced_table_name']][] = $row;
+                }
             }
         }
 
         $columns = Collection::from($this
             ->query(
-                "SELECT * FROM information_schema.columns WHERE table_name = ? AND table_schema = ?",
-                [ $table, $this->connection['opts']['schema'] ?? $this->connection['name'] ]
+                "SELECT * FROM information_schema.columns WHERE table_name = ? AND table_schema = ? AND table_catalog = ?",
+                [ $table, $schema, $catalog ]
             ))
             ->mapKey(function ($v) {
                 return $v['column_name'];
@@ -84,8 +135,8 @@ trait Schema
         $pkname = Collection::from($this
             ->query(
                 "SELECT constraint_name FROM information_schema.table_constraints
-                WHERE table_name = ? AND constraint_type = ? AND table_schema = ?",
-                [ $table, 'PRIMARY KEY', $this->connection['opts']['schema'] ?? $this->connection['name'] ]
+                WHERE table_name = ? AND constraint_type = ? AND table_schema = ? AND table_catalog = ?",
+                [ $table, 'PRIMARY KEY', $schema, $catalog ]
             ))
             ->pluck('constraint_name')
             ->value();
@@ -94,13 +145,13 @@ trait Schema
             $primary = Collection::from($this
                 ->query(
                     "SELECT column_name FROM information_schema.constraint_column_usage
-                     WHERE table_name = ? AND constraint_name = ? AND table_schema = ?",
-                    [ $table, $pkname, $this->connection['opts']['schema'] ?? $this->connection['name'] ]
+                     WHERE table_name = ? AND constraint_name = ? AND table_schema = ? AND table_catalog = ?",
+                    [ $table, $pkname, $schema, $catalog ]
                 ))
                 ->pluck('column_name')
                 ->toArray();
         }
-        $tables[$table] = $definition = (new Table($table))
+        $tables[$schema . '.' .$table] = $definition = (new Table($table, $schema))
             ->addColumns($columns)
             ->setPrimaryKey($primary)
             ->setComment('');
@@ -111,7 +162,7 @@ trait Schema
             // resulting in a "hasMany" or "manyToMany" relationship (if a pivot table is detected)
             $relations = [];
             foreach ($relationsR[$table] ?? [] as $relation) {
-                $relations[$relation['constraint_name']]['table'] = $relation['table_name'];
+                $relations[$relation['constraint_name']]['table'] = $relation['table_schema'] . $relation['table_name'];
                 $relations[$relation['constraint_name']]['keymap'][$relation['referenced_column_name']] =
                     $relation['column_name'];
             }
@@ -131,7 +182,7 @@ trait Schema
                             return in_array($v['column_name'], $columns);
                         }) as $relation
                     ) {
-                        $foreign[$relation['constraint_name']]['table'] = $relation['referenced_table_name'];
+                        $foreign[$relation['constraint_name']]['table'] = $relation['referenced_table_schema'] . '.' . $relation['referenced_table_name'];
                         $foreign[$relation['constraint_name']]['keymap'][$relation['column_name']] =
                             $relation['referenced_column_name'];
                         $usedcol[] = $relation['column_name'];
@@ -140,9 +191,14 @@ trait Schema
                 if (count($foreign) === 1 && !count(array_diff($columns, $usedcol))) {
                     $foreign = current($foreign);
                     $relname = $foreign['table'];
+                    $temp = explode('.', $relname, 2);
+                    if ($temp[0] == $main) {
+                        $relname = $temp[1];
+                    }
+                    $orig = $relname;
                     $cntr = 1;
                     while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
-                        $relname = $foreign['table'] . '_' . (++ $cntr);
+                        $relname = $orig . '_' . (++ $cntr);
                     }
                     $definition->addRelation(
                         new TableRelation(
@@ -156,9 +212,14 @@ trait Schema
                     );
                 } else {
                     $relname = $data['table'];
+                    $temp = explode('.', $relname, 2);
+                    if ($temp[0] == $main) {
+                        $relname = $temp[1];
+                    }
+                    $orig = $relname;
                     $cntr = 1;
                     while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
-                        $relname = $data['table'] . '_' . (++ $cntr);
+                        $relname = $orig . '_' . (++ $cntr);
                     }
                     $definition->addRelation(
                         new TableRelation(
@@ -174,16 +235,21 @@ trait Schema
             // assuming current table is linked to "one" record in the referenced table
             // resulting in a "belongsTo" relationship
             $relations = [];
-            foreach ($relationsT[$table] ?? [] as $relation) {
-                $relations[$relation['constraint_name']]['table'] = $relation['referenced_table_name'];
+            foreach ($relationsT[$schema . '.' . $table] ?? [] as $relation) {
+                $relations[$relation['constraint_name']]['table'] = $relation['referenced_table_schema'] . '.' . $relation['referenced_table_name'];
                 $relations[$relation['constraint_name']]['keymap'][$relation['column_name']] =
                     $relation['referenced_column_name'];
             }
             foreach ($relations as $name => $data) {
                 $relname = $data['table'];
+                $temp = explode('.', $relname, 2);
+                if ($temp[0] == $main) {
+                    $relname = $temp[1];
+                }
+                $orig = $relname;
                 $cntr = 1;
                 while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
-                    $relname = $data['table'] . '_' . (++ $cntr);
+                    $relname = $orig . '_' . (++ $cntr);
                 }
                 $definition->addRelation(
                     new TableRelation(
@@ -201,8 +267,8 @@ trait Schema
     {
         return Collection::from($this
             ->query(
-                "SELECT table_name FROM information_schema.tables where table_schema = ?",
-                [ $this->connection['opts']['schema'] ?? $this->connection['name'] ]
+                "SELECT table_name FROM information_schema.tables where table_schema = ? AND table_catalog = ?",
+                [ $this->connection['opts']['schema'] ?? 'public', $this->connection['name'] ]
             ))
             ->pluck('table_name')
             ->map(function ($v) {

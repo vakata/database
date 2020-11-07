@@ -30,13 +30,13 @@ class Driver extends DriverAbstract implements DriverInterface
         if ($this->lnk === null) {
             $this->lnk = call_user_func(
                 $this->option('persist') ? '\pg_pconnect' : '\pg_connect',
-                implode(" ", [
+                implode(" ", array_filter([
                     'host='.$this->connection['host'],
                     'user='.$this->connection['user'],
-                    'password='.$this->connection['pass'],
+                    ($this->connection['pass'] ? 'password='.$this->connection['pass'] : null),
                     'dbname='.$this->connection['name'],
                     "options='--client_encoding=".$this->option('charset', 'utf8')."'"
-                ])
+                ]))
             );
             if ($this->lnk === false) {
                 throw new DBException('Connect error');

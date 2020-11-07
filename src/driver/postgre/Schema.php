@@ -130,7 +130,7 @@ trait Schema
             })
             ->toArray();
         if (!count($columns)) {
-            throw new DBException('Table not found by name: ' . implode('.', [$catalog,$schema,$table]));
+            throw new DBException('Table not found by name: ' . implode('.', [$schema,$table]));
         }
         $pkname = Collection::from($this
             ->query(

@@ -6,5 +6,5 @@ interface ResultInterface extends \Iterator, \Countable
 {
     public function affected() : int;
     public function toArray() : array;
-    public function insertID();
+    public function insertID(string $sequence = null);
 }

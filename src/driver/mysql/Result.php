@@ -54,7 +54,7 @@ class Result implements ResultInterface
     {
         return $this->statement->affected_rows;
     }
-    public function insertID()
+    public function insertID(string $sequence = null)
     {
         return $this->statement->insert_id;
     }

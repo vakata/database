@@ -22,9 +22,9 @@ class Result implements ResultInterface
     {
         return $this->statement->rowCount();
     }
-    public function insertID()
+    public function insertID(string $sequence = null)
     {
-        return $this->driver->lastInsertId();
+        return $this->driver->lastInsertId($sequence);
     }
     public function toArray() : array
     {

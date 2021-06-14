@@ -12,13 +12,14 @@ class Result implements ResultInterface
     protected $statement;
     protected $last = null;
     protected $fetched = -1;
+    protected $driver = null;
     protected $iid = null;
     protected $aff = 0;
 
-    public function __construct($statement, $iid, $aff)
+    public function __construct($statement, $driver, $aff)
     {
         $this->statement = $statement;
-        $this->iid = $iid;
+        $this->driver = $driver;
         $this->aff = $aff;
     }
     public function __destruct()
@@ -29,8 +30,20 @@ class Result implements ResultInterface
     {
         return $this->aff;
     }
-    public function insertID()
+    public function insertID(string $sequence = null)
     {
+        if ($this->iid === null) {
+            $temp = @\pg_query(
+                $this->driver,
+                $sequence ?
+                    'SELECT currval('.@\pg_escape_string($this->driver, $sequence).')' :
+                    'SELECT lastval()'
+            );
+            if ($temp) {
+                $res = \pg_fetch_row($temp);
+                $this->iid = $res[0];
+            }
+        }
         return $this->iid;
     }
     public function toArray() : array

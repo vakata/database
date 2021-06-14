@@ -42,7 +42,7 @@ class Result implements ResultInterface
     {
         return \odbc_num_rows($this->statement);
     }
-    public function insertID()
+    public function insertID(string $sequence = null)
     {
         return $this->iid;
     }

@@ -316,19 +316,24 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 $par
             ];
         }
-        return $negate ?
-            [
-                $name . ' NOT IN (??)',
-                [ array_map(function ($v) use ($column) {
-                    return $this->normalizeValue($column, $v);
-                }, $value) ]
-            ] :
-            [
-                $name . ' IN (??)',
-                [ array_map(function ($v) use ($column) {
-                    return $this->normalizeValue($column, $v);
-                }, $value) ]
-            ];
+
+        $value = array_values(array_map(function ($v) use ($column) {
+            return $this->normalizeValue($column, $v);
+        }, $value));
+        if ($this->db->driverName() === 'oracle') {
+            $sql = [];
+            $par = [];
+            for ($i = 0; $i < count($value); $i += 500) {
+                $sql[] = $negate ? $name . ' NOT IN (??)' : $name . ' IN (??)';
+                $par[] = array_slice($value, $i, 500);
+            }
+            $sql = '(' . implode($negate ? ' AND ' : ' OR ', $sql) . ')';
+            return [ $sql, $par ];
+        }
+        return [
+            $negate ? $name . ' NOT IN (??)' : $name . ' IN (??)',
+            $value
+        ];
     }
     /**
      * Filter the results by a column and a value

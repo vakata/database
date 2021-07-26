@@ -328,11 +328,11 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 $par[] = array_slice($value, $i, 500);
             }
             $sql = '(' . implode($negate ? ' AND ' : ' OR ', $sql) . ')';
-            return [ $sql, $par ];
+            return [ $sql, [$par] ];
         }
         return [
             $negate ? $name . ' NOT IN (??)' : $name . ' IN (??)',
-            $value
+            [$value]
         ];
     }
     /**

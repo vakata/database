@@ -68,6 +68,18 @@ class TableColumn
         if (isset($data['DATA_DEFAULT'])) {
             $instance->setDefault($data['DATA_DEFAULT']);
         }
+        if (isset($data['data_type'])) {
+            $instance->setType($data['data_type']);
+        }
+        if (isset($data['column_default'])) {
+            $instance->setDefault(trim("'", explode('::', $data['DATA_DEFAULT'])[0]));
+        }
+        if (isset($data['is_nullable']) && $data['is_nullable'] == 'YES') {
+            $instance->setNullable(true);
+            if (!isset($data['column_default'])) {
+                $instance->setDefault(null);
+            }
+        }
         return $instance;
     }
 

@@ -28,7 +28,7 @@ trait Schema
 
         $columns = Collection::from($this
             ->query(
-                "SELECT * FROM all_tab_cols WHERE table_name = ? AND owner = ?",
+                "SELECT * FROM all_tab_cols WHERE table_name = ? AND owner = ? and hidden_column = 'NO'",
                 [ strtoupper($table), $this->name() ]
             ))
             ->map(function ($v) {

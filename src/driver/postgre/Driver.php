@@ -41,6 +41,7 @@ class Driver extends DriverAbstract implements DriverInterface
             if ($this->lnk === false) {
                 throw new DBException('Connect error');
             }
+            @\pg_query($this->lnk, 'SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL REPEATABLE READ');
         }
     }
     public function test() : bool

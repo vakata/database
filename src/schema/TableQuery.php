@@ -992,6 +992,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 ' INTO ' . implode(',', array_fill(0, count($primary), '?'));
             $this->db->query($sql, $par);
             return $ret;
+        } elseif ($this->db->driverName() === 'postgre') {
+            $sql .= ' RETURNING ' . implode(',', $primary);
+            return $this->db->one($sql, $par, false);
         } else {
             $ret = [];
             $ins = $this->db->query($sql, $par)->insertID();

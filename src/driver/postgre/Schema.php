@@ -270,6 +270,9 @@ trait Schema
                 "SELECT table_name FROM information_schema.tables where table_schema = ? AND table_catalog = ?",
                 [ $this->connection['opts']['schema'] ?? 'public', $this->connection['name'] ]
             ))
+            ->mapKey(function ($v) {
+                return $v['table_name'];
+            })
             ->pluck('table_name')
             ->map(function ($v) {
                 return $this->table($v);

@@ -84,7 +84,7 @@ class Table
         if (!is_array($column)) {
             $column = [ $column ];
         }
-        $this->data['primary'] = $column;
+        $this->data['primary'] = array_values($column);
         return $this;
     }
     /**

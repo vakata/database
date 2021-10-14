@@ -140,6 +140,7 @@ trait Schema
                         return $v['Key'] === 'PRI';
                     })
                     ->pluck('Field')
+                    ->values()
                     ->toArray()
             )
             ->setComment($comments[$schema][$table] ?? '');

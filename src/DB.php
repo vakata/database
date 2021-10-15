@@ -348,11 +348,15 @@ class DB implements DBInterface
     }
     /**
      * Load the schema data from a schema definition array (obtained from getSchema)
-     * @param  array        $data the schema definition
+     * @param  mixed        $data the schema definition
      * @return $this
      */
-    public function setSchema(array $data)
+    public function setSchema($data)
     {
+        if (!is_array($data)) {
+            $this->tables = \unserialize($data);
+            return $this;
+        }
         foreach ($data as $tableData) {
             $this->tables[$tableData['name']] = (new Table($tableData['name'], $tableData['schema']))
                         ->setPrimaryKey($tableData['pkey'])

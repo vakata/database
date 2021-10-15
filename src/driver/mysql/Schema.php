@@ -281,6 +281,9 @@ trait Schema
                 }
                 return $new;
             })
+            ->mapKey(function ($v) {
+                return $v['TABLE_NAME'];
+            })
             ->pluck('TABLE_NAME')
             ->map(function ($v) {
                 return $this->table($v);

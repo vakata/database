@@ -126,11 +126,11 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         } else {
             $name = array_pop($column);
             if ($this->definition->hasRelation(implode('.', $column))) {
-                $this->with(implode('.', $column));
+                $this->with(implode('.', $column), false);
                 $col = $this->definition->getRelation(implode('.', $column))->table->getColumn($name);
                 $column = [ implode('.', $column), $name ];
             } else {
-                $this->with(implode('.', $column));
+                $this->with(implode('.', $column), false);
                 $table = $this->definition;
                 $table = array_reduce(
                     $column,
@@ -759,6 +759,43 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $porder[] = $this->getColumn($field)['name'];
         }
 
+        foreach ($this->withr as $k => $relation) {
+            if ($this->definition->hasRelation($k)) {
+                continue;
+            }
+            foreach ($f as $kk => $field) {
+                if (strpos($field, $k . '.') === 0) {
+                    $f[$kk] = str_replace($k . '.', $getAlias($k) . '.', $field);
+                }
+            }
+            foreach ($w as $kk => $v) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
+                    $w[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $v[0]);
+                }
+            }
+            foreach ($h as $kk => $v) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
+                    $h[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $v[0]);
+                }
+            }
+            if (isset($o[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $o[0])) {
+                $o[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $o[0]);
+            }
+            if (isset($g[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $g[0])) {
+                $g[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $g[0]);
+            }
+            foreach ($j as $kk => $v) {
+                foreach ($v->keymap as $kkk => $vv) {
+                    if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv)) {
+                        $j[$kk]->keymap[$kkk] = preg_replace(
+                            '(\b'.preg_quote($k . '.'). ')i',
+                            $getAlias($k) . '.',
+                            $vv
+                        );
+                    }
+                }
+            }
+        }
         foreach ($this->definition->getRelations() as $k => $relation) {
             foreach ($f as $kk => $field) {
                 if (strpos($field, $k . '.') === 0) {
@@ -804,8 +841,10 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $select[] = $field . (!is_numeric($k) ? ' ' . $k : '');
         }
         foreach ($this->withr as $name => $relation) {
-            foreach ($relation[0]->table->getColumns() as $column) {
-                $select[] = $getAlias($name) . '.' . $column . ' ' . $getAlias($name . static::SEP . $column);
+            if ($relation[2]) {
+                foreach ($relation[0]->table->getColumns() as $column) {
+                    $select[] = $getAlias($name) . '.' . $column . ' ' . $getAlias($name . static::SEP . $column);
+                }
             }
         }
         $sql = 'SELECT '.implode(', ', $select).' FROM '.$this->definition->getFullName().' ';
@@ -1072,24 +1111,28 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  string $relation the relation name to fetch along with the data
      * @return $this
      */
-    public function with(string $relation) : self
+    public function with(string $relation, bool $select = true) : self
     {
         $this->qiterator = null;
         $table = $this->definition;
         if ($table->hasRelation($relation)) {
             $temp = $table->getRelation($relation);
-            $this->withr[$relation] = [ $temp, $table->getName() ];
+            $this->withr[$relation] = [ $temp, $table->getName(), $select || ($this->withr[$relation][2] ?? false) ];
         } else {
             $parts = explode('.', $relation);
             array_reduce(
                 $parts,
-                function ($carry, $item) use (&$table) {
+                function ($carry, $item) use (&$table, $select) {
                     if (!$table->hasRelation($item)) {
                         throw new DBException('Invalid relation name: '.$table->getName().' -> ' . $item);
                     }
                     $relation = $table->getRelation($item);
                     $name = $carry ? $carry . static::SEP . $item : $item;
-                    $this->withr[$name] = [ $relation, $carry ?? $table->getName() ];
+                    $this->withr[$name] = [
+                        $relation,
+                        $carry ?? $table->getName(),
+                        $select || ($this->withr[$name][2] ?? false)
+                    ];
                     $table = $relation->table;
                     return $name;
                 }

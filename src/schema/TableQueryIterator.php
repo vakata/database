@@ -69,6 +69,9 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
                 $result = $row;
             }
             foreach ($this->relations as $name => $relation) {
+                if (!$relation[2]) {
+                    continue;
+                }
                 $relation = $relation[0];
                 $fields = [];
                 $exists = false;
@@ -94,15 +97,17 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
                     foreach ($parts as $item) {
                         $full = $full ? $full . static::SEP . $item : $item;
                         $temp = &$temp[$item];
-                        $rpk = [];
-                        foreach ($this->relations[$full][0]->table->getPrimaryKey() as $pkey) {
-                            $nm = $full . static::SEP . $pkey;
-                            if (isset($this->aliases[$nm])) {
-                                $nm = $this->aliases[$nm];
+                        if ($this->relations[$full][0]->many) {
+                            $rpk = [];
+                            foreach ($this->relations[$full][0]->table->getPrimaryKey() as $pkey) {
+                                $nm = $full . static::SEP . $pkey;
+                                if (isset($this->aliases[$nm])) {
+                                    $nm = $this->aliases[$nm];
+                                }
+                                $rpk[$pkey] = $row[$nm];
                             }
-                            $rpk[$pkey] = $row[$nm];
+                            $temp = &$temp[json_encode($rpk)];
                         }
-                        $temp = &$temp[json_encode($rpk)];
                     }
                     if (!isset($temp[$name])) {
                         $temp[$name] = $relation->many ? [ '___clean' => true ] : null;
@@ -132,11 +137,15 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
     protected function values(array $data)
     {
         foreach ($data as $k => $v) {
-            if (is_array($v) && isset($v['___clean']) && $v['___clean'] === true) {
-                unset($v['___clean']);
-                $data[$k] = array_values($v);
+            if (is_array($v)) {
+                if (isset($v['___clean']) && $v['___clean'] === true) {
+                    unset($v['___clean']);
+                    $data[$k] = array_values($v);
+                }
                 foreach ($data[$k] as $kk => $vv) {
-                    $data[$k][$kk] = $this->values($vv);
+                    if (is_array($vv)) {
+                        $data[$k][$kk] = $this->values($vv);
+                    }
                 }
             }
         }

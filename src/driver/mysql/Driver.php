@@ -26,7 +26,7 @@ class Driver extends DriverAbstract implements DriverInterface
             $this->connection['opts'] = [];
         }
         if (!isset($this->connection['opts']['charset'])) {
-            $this->connection['opts']['charset'] = 'UTF8';
+            $this->connection['opts']['charset'] = 'utf8mb4';
         }
     }
     public function __destruct()

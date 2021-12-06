@@ -41,6 +41,9 @@ class Driver extends DriverAbstract implements DriverInterface
             if ($this->lnk === false) {
                 throw new DBException('Connect error');
             }
+            if (isset($this->connection['opts']['timezone'])) {
+                @\pg_query($this->lnk, "SET TIME ZONE '".pg_escape_string($this->connection['opts']['timezone'])."'");
+            }
             @\pg_query($this->lnk, 'SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL REPEATABLE READ');
         }
     }

@@ -269,7 +269,7 @@ trait Schema
     }
     public function tables() : array
     {
-        return Collection::from($this
+        $tables = Collection::from($this
             ->query(
                 "SELECT table_name FROM information_schema.tables where table_schema = ?",
                 [$this->connection['opts']['schema'] ?? $this->connection['name']]
@@ -289,5 +289,9 @@ trait Schema
                 return $this->table($v);
             })
             ->toArray();
+        foreach (array_keys($tables) as $k) {
+            $tables[($this->connection['opts']['schema'] ?? $this->connection['name']) . '.' . $k] = &$tables[$k];
+        }
+        return $tables;
     }
 }

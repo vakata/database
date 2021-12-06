@@ -69,7 +69,24 @@ class Driver extends DriverAbstract implements DriverInterface
     public function raw(string $sql)
     {
         $this->connect();
-        return \pg_query($this->lnk, $sql);
+        $log = $this->option('log_file');
+        if ($log) {
+            $tm = microtime(true);
+        }
+        $res = \pg_query($this->lnk, $sql);
+        if ($log) {
+            $tm = microtime(true) - $tm;
+            if ($tm >= (float)$this->option('log_slow', 0)) {
+                @file_put_contents(
+                    $log,
+                    '--' . date('Y-m-d H:i:s') . ' ' . sprintf('%01.6f', $tm) . "s\r\n" .
+                    $sql . "\r\n" .
+                    "\r\n",
+                    FILE_APPEND
+                );
+            }
+        }
+        return $res;
     }
     public function prepare(string $sql) : StatementInterface
     {
@@ -85,7 +102,7 @@ class Driver extends DriverAbstract implements DriverInterface
                 }
             }
         }
-        return new Statement($sql, $this->lnk);
+        return new Statement($sql, $this->lnk, $this);
     }
 
     public function begin() : bool

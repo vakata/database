@@ -85,12 +85,29 @@ class Driver extends DriverAbstract implements DriverInterface
         if (!$temp) {
             throw new DBException('Could not prepare : '.$this->lnk->error.' <'.$sql.'>');
         }
-        return new Statement($temp);
+        return new Statement($temp, $this, $sql);
     }
     public function raw(string $sql)
     {
         $this->connect();
-        return $this->lnk->query($sql);
+        $log = $this->option('log_file');
+        if ($log) {
+            $tm = microtime(true);
+        }
+        $res = $this->lnk->query($sql);
+        if ($log) {
+            $tm = microtime(true) - $tm;
+            if ($tm >= (float)$this->option('log_slow', 0)) {
+                @file_put_contents(
+                    $log,
+                    '--' . date('Y-m-d H:i:s') . ' ' . sprintf('%01.6f', $tm) . "s\r\n" .
+                    $sql . "\r\n" .
+                    "\r\n",
+                    FILE_APPEND
+                );
+            }
+        }
+        return $res;
     }
     public function begin() : bool
     {

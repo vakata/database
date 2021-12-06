@@ -11,11 +11,13 @@ class Statement implements StatementInterface
 {
     protected $statement;
     protected $driver;
+    protected $sql;
 
-    public function __construct($statement, Driver $driver)
+    public function __construct($statement, Driver $driver, $sql = '')
     {
         $this->statement = $statement;
         $this->driver = $driver;
+        $this->sql = $sql;
     }
     public function execute(array $data = [], bool $buff = true) : ResultInterface
     {
@@ -45,6 +47,10 @@ class Statement implements StatementInterface
                     break;
             }
         }
+        $log = $this->driver->option('log_file');
+        if ($log) {
+            $tm = microtime(true);
+        }
         $temp = \oci_execute(
             $this->statement,
             $this->driver->isTransaction() ? \OCI_NO_AUTO_COMMIT : \OCI_COMMIT_ON_SUCCESS
@@ -54,7 +60,28 @@ class Statement implements StatementInterface
             if (!is_array($err)) {
                 $err = [];
             }
+            if ($log && (int)$this->driver->option('log_errors', 1)) {
+                @file_put_contents(
+                    $log,
+                    '--' . date('Y-m-d H:i:s') . ' ERROR: ' . implode(',', $err) . "\r\n" .
+                    $this->sql . "\r\n" .
+                    "\r\n",
+                    FILE_APPEND
+                );
+            }
             throw new DBException('Could not execute query : '.implode(',', $err));
+        }
+        if ($log) {
+            $tm = microtime(true) - $tm;
+            if ($tm >= (float)$this->driver->option('log_slow', 0)) {
+                @file_put_contents(
+                    $log,
+                    '--' . date('Y-m-d H:i:s') . ' ' . sprintf('%01.6f', $tm) . "s\r\n" .
+                    $this->sql . "\r\n" .
+                    "\r\n",
+                    FILE_APPEND
+                );
+            }
         }
         if ($lob) {
             while ($ldt !== null && !feof($ldt) && ($ltmp = fread($ldt, 8192)) !== false) {

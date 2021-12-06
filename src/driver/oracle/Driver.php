@@ -66,7 +66,24 @@ class Driver extends DriverAbstract implements DriverInterface
     public function raw(string $sql)
     {
         $this->connect();
-        return \oci_execute(\oci_parse($this->lnk, $sql));
+        $log = $this->option('log_file');
+        if ($log) {
+            $tm = microtime(true);
+        }
+        $res = \oci_execute(\oci_parse($this->lnk, $sql));
+        if ($log) {
+            $tm = microtime(true) - $tm;
+            if ($tm >= (float)$this->option('log_slow', 0)) {
+                @file_put_contents(
+                    $log,
+                    '--' . date('Y-m-d H:i:s') . ' ' . sprintf('%01.6f', $tm) . "s\r\n" .
+                    $sql . "\r\n" .
+                    "\r\n",
+                    FILE_APPEND
+                );
+            }
+        }
+        return $res;
     }
     public function prepare(string $sql) : StatementInterface
     {
@@ -90,7 +107,7 @@ class Driver extends DriverAbstract implements DriverInterface
             }
             throw new DBException('Could not prepare : '.implode(', ', $err).' <'.$sql.'>');
         }
-        return new Statement($temp, $this);
+        return new Statement($temp, $this, $sql);
     }
 
     public function begin() : bool

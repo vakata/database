@@ -1,0 +1,68 @@
+<?php
+
+namespace vakata\database\driver\sphinx;
+
+use \vakata\database\DBException;
+use \vakata\database\DriverInterface;
+use \vakata\database\StatementInterface;
+use \vakata\database\ResultInterface;
+
+class Statement implements StatementInterface
+{
+    protected $lnk;
+    protected $sql;
+
+    public function __construct($lnk, $sql = '')
+    {
+        $this->lnk = $lnk;
+        $this->sql = $sql;
+    }
+    public function __destruct()
+    {
+        // used to close statement here
+    }
+    public function execute(array $data = [], bool $buff = true) : ResultInterface
+    {
+        $data = array_values($data);
+        $binder = '?';
+        $sql = $this->sql;
+        if (strpos($this->sql, $binder) !== false) {
+            $tmp = explode($binder, $this->sql);
+            $sql = '';
+            foreach ($tmp as $i => $v) {
+                $sql .= $v;
+                if (isset($tmp[($i + 1)])) {
+                    $par = array_shift($data);
+                    switch (gettype($par)) {
+                        case 'boolean':
+                        case 'integer':
+                            $par = (int) $par;
+                            break;
+                        case 'array':
+                            $par = implode(',', $par);
+                            $par = "'" . $this->lnk->escape_string($par) . "'";
+                            break;
+                        case 'object':
+                            $par = serialize($par);
+                            $par = "'" . $this->lnk->escape_string($par) . "'";
+                            break;
+                        case 'resource':
+                            if (is_resource($v) && get_resource_type($v) === 'stream') {
+                                $par = stream_get_contents($par);
+                                $par = "'" . $this->lnk->escape_string($par) . "'";
+                            } else {
+                                $par = serialize($par);
+                                $par = "'" . $this->lnk->escape_string($par) . "'";
+                            }
+                            break;
+                        default:
+                            $par = "'" . $this->lnk->escape_string((string)$par) . "'";
+                            break;
+                    }
+                    $sql .= $par;
+                }
+            }
+        }
+        return new Result($this->lnk, $sql, $buff);
+    }
+}

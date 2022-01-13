@@ -391,7 +391,12 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      */
     public function sort(string $column, bool $desc = false) : self
     {
-        return $this->order($this->getColumn($column)['name'] . ' ' . ($desc ? 'DESC' : 'ASC'));
+        try {
+            $this->getColumn($column);
+        } catch (DBException $e) {
+            throw new DBException('Invalid sort column');
+        }
+        return $this->order($column . ' ' . ($desc ? 'DESC' : 'ASC'));
     }
     /**
      * Group by a column (or columns)
@@ -519,10 +524,11 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         if (!count($params)) {
             $name = preg_replace('(\s+(ASC|DESC)\s*$)i', '', $sql);
             try {
-                if ($name === null) {
+                if ($name === null || !preg_match('(^[a-z0-9_]+$)i', trim($name))) {
                     throw new \Exception();
                 }
                 $name = $this->getColumn(trim($name))['name'];
+                $sql = $name . ' ' . (strpos(strtolower($sql), ' desc') ? 'DESC' : 'ASC');
             } catch (\Exception $e) {
                 $name = null;
             }

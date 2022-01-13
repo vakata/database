@@ -128,7 +128,8 @@ class TableColumn
             $this->btype = 'int';
         } elseif (strpos($type, 'float') !== false ||
             strpos($type, 'double') !== false ||
-            strpos($type, 'decimal') !== false
+            strpos($type, 'decimal') !== false ||
+            strpos($type, 'numeric') !== false
         ) {
             $this->btype = 'float';
         } elseif (strpos($type, 'datetime') !== false || strpos($type, 'timestamp') !== false) {

@@ -156,7 +156,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
     {
         $this->fetched = 0;
         $this->primary = null;
-        return $this->result->rewind();
+        $this->result->rewind();
     }
     public function next(): void
     {

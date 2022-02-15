@@ -152,13 +152,13 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
         return $data;
     }
 
-    public function rewind()
+    public function rewind(): void
     {
         $this->fetched = 0;
         $this->primary = null;
         return $this->result->rewind();
     }
-    public function next()
+    public function next(): void
     {
         if ($this->primary === null) {
             $this->result->next();
@@ -194,7 +194,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
             $this->result->next();
         }
     }
-    public function valid()
+    public function valid(): bool
     {
         return $this->result->valid();
     }
@@ -215,7 +215,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
         }
         return $item;
     }
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         $index = $this->fetched;
         $exists = false;
@@ -231,11 +231,11 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
         }
         return $exists;
     }
-    public function offsetSet($offset, $value)
+    public function offsetSet($offset, $value): void
     {
         throw new DBException('Invalid call to offsetSet');
     }
-    public function offsetUnset($offset)
+    public function offsetUnset($offset): void
     {
         throw new DBException('Invalid call to offsetUnset');
     }

@@ -1,6 +1,7 @@
 <?php
 namespace vakata\database\schema;
 
+use Traversable;
 use vakata\collection\Collection;
 use vakata\database\DBInterface;
 use vakata\database\DBException;
@@ -1147,7 +1148,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         return $this;
     }
 
-    public function getIterator()
+    public function getIterator(): Traversable
     {
         return $this->iterator();
     }
@@ -1156,15 +1157,15 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     {
         return $this->iterator()->offsetGet($offset);
     }
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         return $this->iterator()->offsetExists($offset);
     }
-    public function offsetUnset($offset)
+    public function offsetUnset($offset): void
     {
         $this->iterator()->offsetUnset($offset);
     }
-    public function offsetSet($offset, $value)
+    public function offsetSet($offset, $value): void
     {
         $this->iterator()->offsetSet($offset, $value);
     }

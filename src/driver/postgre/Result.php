@@ -51,7 +51,7 @@ class Result implements ResultInterface
         return iterator_to_array($this);
     }
 
-    public function count()
+    public function count(): int
     {
         return \pg_num_rows($this->statement);
     }
@@ -64,7 +64,7 @@ class Result implements ResultInterface
     {
         return $this->last;
     }
-    public function rewind()
+    public function rewind(): void
     {
         if ($this->fetched >= 0) {
             \pg_result_seek($this->statement, 0);
@@ -73,12 +73,12 @@ class Result implements ResultInterface
         $this->fetched = -1;
         $this->next();
     }
-    public function next()
+    public function next(): void
     {
         $this->fetched ++;
         $this->last = \pg_fetch_array($this->statement, null, \PGSQL_ASSOC);
     }
-    public function valid()
+    public function valid(): bool
     {
         return !!$this->last;
     }

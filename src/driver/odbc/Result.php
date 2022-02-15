@@ -51,7 +51,7 @@ class Result implements ResultInterface
         return iterator_to_array($this);
     }
 
-    public function count()
+    public function count(): int
     {
         return \odbc_num_rows($this->statement);
     }
@@ -64,7 +64,7 @@ class Result implements ResultInterface
     {
         return $this->last;
     }
-    public function rewind()
+    public function rewind(): void
     {
         if ($this->fetched >= 0) {
             $temp = \odbc_execute($this->statement, $this->data);
@@ -76,7 +76,7 @@ class Result implements ResultInterface
         $this->fetched = -1;
         $this->next();
     }
-    public function next()
+    public function next(): void
     {
         $this->fetched ++;
         $temp = \odbc_fetch_row($this->statement);
@@ -90,7 +90,7 @@ class Result implements ResultInterface
             $this->last = $this->convert($this->last);
         }
     }
-    public function valid()
+    public function valid(): bool
     {
         return !!$this->last;
     }

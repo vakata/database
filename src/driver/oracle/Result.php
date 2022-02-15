@@ -34,7 +34,7 @@ class Result implements ResultInterface
         return iterator_to_array($this);
     }
 
-    public function count()
+    public function count(): int
     {
         return \oci_num_rows($this->statement);
     }
@@ -47,7 +47,7 @@ class Result implements ResultInterface
     {
         return $this->last;
     }
-    public function rewind()
+    public function rewind(): void
     {
         if ($this->fetched >= 0) {
             if (!\oci_execute($this->statement)) {
@@ -62,12 +62,12 @@ class Result implements ResultInterface
         $this->fetched = -1;
         $this->next();
     }
-    public function next()
+    public function next(): void
     {
         $this->fetched ++;
         $this->last = \oci_fetch_array($this->statement, \OCI_ASSOC + \OCI_RETURN_NULLS + \OCI_RETURN_LOBS);
     }
-    public function valid()
+    public function valid(): bool
     {
         return !!$this->last;
     }

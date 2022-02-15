@@ -40,7 +40,7 @@ class Result implements ResultInterface
         return iterator_to_array($this);
     }
 
-    public function count()
+    public function count(): int
     {
         throw new DBException('Not supported');
     }
@@ -53,7 +53,7 @@ class Result implements ResultInterface
     {
         return $this->last;
     }
-    public function rewind()
+    public function rewind(): void
     {
         if ($this->fetched >= 0) {
             $this->result = call_user_func_array("\ibase_execute", $this->data);
@@ -65,12 +65,12 @@ class Result implements ResultInterface
         $this->fetched = -1;
         $this->next();
     }
-    public function next()
+    public function next(): void
     {
         $this->fetched ++;
         $this->last = \ibase_fetch_assoc($this->result, \IBASE_TEXT);
     }
-    public function valid()
+    public function valid(): bool
     {
         return !!$this->last;
     }

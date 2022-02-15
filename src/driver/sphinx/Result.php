@@ -34,7 +34,7 @@ class Result implements ResultInterface
         return iterator_to_array($this);
     }
 
-    public function count()
+    public function count(): int
     {
         return $this->result->num_rows;
     }
@@ -47,7 +47,7 @@ class Result implements ResultInterface
     {
         return $this->last;
     }
-    public function rewind()
+    public function rewind(): void
     {
         if ($this->fetched >= 0) {
             $this->result->data_seek(0);
@@ -56,12 +56,12 @@ class Result implements ResultInterface
         $this->fetched = -1;
         $this->next();
     }
-    public function next()
+    public function next(): void
     {
         $this->fetched ++;
         $this->last = $this->result->fetch_assoc();
     }
-    public function valid()
+    public function valid(): bool
     {
         return !!$this->last;
     }

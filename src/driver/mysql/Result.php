@@ -63,7 +63,7 @@ class Result implements ResultInterface
         return iterator_to_array($this);
     }
 
-    public function count()
+    public function count(): int
     {
         return $this->nativeDriver && $this->result ? $this->result->num_rows : $this->statement->num_rows;
     }
@@ -78,7 +78,7 @@ class Result implements ResultInterface
             return $v;
         }, $this->row);
     }
-    public function rewind()
+    public function rewind(): void
     {
         if ($this->fetched >= 0) {
             if ($this->nativeDriver) {
@@ -91,12 +91,12 @@ class Result implements ResultInterface
         $this->fetched = -1;
         $this->next();
     }
-    public function next()
+    public function next(): void
     {
         $this->fetched ++;
         $this->last = $this->nativeDriver ? $this->result->fetch_assoc() : $this->statement->fetch();
     }
-    public function valid()
+    public function valid(): bool
     {
         return !!$this->last;
     }

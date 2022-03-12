@@ -68,11 +68,11 @@ class Result implements ResultInterface
         return $this->nativeDriver && $this->result ? $this->result->num_rows : $this->statement->num_rows;
     }
 
-    public function key()
+    public function key(): mixed
     {
         return $this->fetched;
     }
-    public function current()
+    public function current(): mixed
     {
         return $this->nativeDriver ? $this->last : array_map(function ($v) {
             return $v;

@@ -561,7 +561,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             return $aliases[$name] = $aliases[$name] ?? 'alias' . static::SEP . count($aliases);
         };
         $table = $this->definition->getFullName();
-        $sql = 'SELECT COUNT(DISTINCT '.$table.'.'.implode(', '.$table.'.', $this->pkey).') FROM '.$table.' ';
+        $sql = 'SELECT COUNT(DISTINCT ('.$table.'.'.implode(', '.$table.'.', $this->pkey).')) FROM '.$table.' ';
         $par = [];
         
         $relations = $this->withr;

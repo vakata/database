@@ -31,20 +31,20 @@ class Result implements ResultInterface
         return iterator_to_array($this);
     }
 
-    public function count()
+    public function count(): int
     {
         return $this->statement->rowCount();
     }
 
-    public function key()
+    public function key(): mixed
     {
         return $this->fetched;
     }
-    public function current()
+    public function current(): mixed
     {
         return $this->last;
     }
-    public function rewind()
+    public function rewind(): void
     {
         if ($this->fetched >= 0) {
             $this->statement->execute();
@@ -53,12 +53,12 @@ class Result implements ResultInterface
         $this->fetched = -1;
         $this->next();
     }
-    public function next()
+    public function next(): void
     {
         $this->fetched ++;
         $this->last = $this->statement->fetch(\PDO::FETCH_ASSOC);
     }
-    public function valid()
+    public function valid(): bool
     {
         return !!$this->last;
     }

@@ -56,11 +56,11 @@ class Result implements ResultInterface
         return \pg_num_rows($this->statement);
     }
 
-    public function key()
+    public function key(): mixed
     {
         return $this->fetched;
     }
-    public function current()
+    public function current(): mixed
     {
         return $this->last;
     }

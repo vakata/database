@@ -39,11 +39,11 @@ class Result implements ResultInterface
         return $this->result->num_rows;
     }
 
-    public function key()
+    public function key(): mixed
     {
         return $this->fetched;
     }
-    public function current()
+    public function current(): mixed
     {
         return $this->last;
     }

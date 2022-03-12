@@ -43,11 +43,11 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
         $this->aliases = $aliases;
     }
 
-    public function key()
+    public function key(): mixed
     {
         return $this->fetched;
     }
-    public function current()
+    public function current(): mixed
     {
         $result = null;
         $remove = [];
@@ -199,7 +199,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
         return $this->result->valid();
     }
 
-    public function offsetGet($offset)
+    public function offsetGet($offset): mixed
     {
         $index = $this->fetched;
         $item = null;

@@ -45,11 +45,11 @@ class Result implements ResultInterface
         throw new DBException('Not supported');
     }
 
-    public function key()
+    public function key(): mixed
     {
         return $this->fetched;
     }
-    public function current()
+    public function current(): mixed
     {
         return $this->last;
     }

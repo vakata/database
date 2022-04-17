@@ -951,16 +951,25 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
             $sql .= implode(' AND ', $tmp).' ';
         }
+        $ordered = false;
         if (count($o)) {
             $sql .= 'ORDER BY ' . $o[0] . ' ';
             $par = array_merge($par, $o[1]);
+            $ordered = true;
         }
         if (!count($g) && count($porder)) {
             $pdir = (count($o) && strpos($o[0], 'DESC') !== false) ? 'DESC' : 'ASC';
             $porder = array_map(function ($v) use ($pdir) {
                 return $v . ' ' . $pdir;
             }, $porder);
-            $sql .= (count($o) ? ', ' : 'ORDER BY ') . implode(', ', $porder) . ' ';
+            $sql .= ($ordered ? ', ' : 'ORDER BY ') . implode(', ', $porder) . ' ';
+            $ordered = true;
+        }
+        foreach ($this->withr as $k => $v) {
+            if (isset($v[3])) {
+                $sql .= ($ordered ? ', ' : 'ORDER BY ') . $getAlias($k) . '.' . $v[3] . ' ' . ($v[4] ? 'DESC' : 'ASC');
+                $ordered = true;
+            }
         }
         if ((!$many || $this->li_of[2] === 0 || !count($porder)) && $this->li_of[0]) {
             if ($this->db->driverName() === 'oracle') {
@@ -1118,16 +1127,16 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  string $relation the relation name to fetch along with the data
      * @return $this
      */
-    public function with(string $relation, bool $select = true) : self
+    public function with(string $relation, bool $select = true, string $order = null, bool $desc = false) : self
     {
         $this->qiterator = null;
         $table = $this->definition;
         if ($table->hasRelation($relation)) {
             $temp = $table->getRelation($relation);
-            $this->withr[$relation] = [ $temp, $table->getName(), $select || ($this->withr[$relation][2] ?? false) ];
+            $this->withr[$relation] = [ $temp, $table->getName(), $select || ($this->withr[$relation][2] ?? false), $order, $desc ];
         } else {
             $parts = explode('.', $relation);
-            array_reduce(
+            $name = array_reduce(
                 $parts,
                 function ($carry, $item) use (&$table, $select) {
                     if (!$table->hasRelation($item)) {
@@ -1144,6 +1153,8 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                     return $name;
                 }
             );
+            $this->withr[$name][3] = $order;
+            $this->withr[$name][4] = $desc;
         }
         return $this;
     }

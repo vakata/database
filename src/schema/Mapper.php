@@ -146,7 +146,7 @@ class Mapper
                         }, $data[$name]) :
                         $this->entity($relation->table, $data[$name])
                     ) :
-                    function (array $columns = null) use ($entity, $definition, $relation, $data) {
+                    function (array $columns = null, string $order = null, bool $desc = false) use ($entity, $definition, $relation, $data) {
                         $query = $this->db->table($relation->table->getFullName(), true);
                         if ($columns !== null) {
                             $query->columns($columns);
@@ -178,6 +178,9 @@ class Mapper
                             foreach ($relation->keymap as $k => $v) {
                                 $query->filter($v, $entity->{$k} ?? null);
                             }
+                        }
+                        if ($relation->many && $order) {
+                            $query->sort($order, $desc);
                         }
                         return $relation->many ?
                             $query->iterator() :

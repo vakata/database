@@ -34,8 +34,9 @@ class Driver extends DriverAbstract implements DriverInterface
                     'host='.$this->connection['host'],
                     'user='.$this->connection['user'],
                     ($this->connection['pass'] ? 'password='.$this->connection['pass'] : null),
+                    ($this->connection['port'] ? 'port='.$this->connection['port'] : null),
                     'dbname='.$this->connection['name'],
-                    "options='--client_encoding=".$this->option('charset', 'utf8')."'"
+                    //"options='--client_encoding=".$this->option('charset', 'utf8')."'"
                 ]))
             );
             if ($this->lnk === false) {

@@ -47,7 +47,7 @@ class Entity
         if (isset($this->definition->getRelations()[$method])) {
             if (array_key_exists($method, $this->fetched)) {
                 return is_callable($this->fetched[$method]) ?
-                    $this->fetched[$method] = call_user_func($this->fetched[$method], $args[0] ?? null) :
+                    $this->fetched[$method] = call_user_func_array($this->fetched[$method], $args) :
                     $this->fetched[$method];
             }
         }

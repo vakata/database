@@ -92,7 +92,7 @@ abstract class DriverAbstract implements DriverInterface
     }
     
     abstract public function connect();
-    abstract public function prepare(string $sql) : StatementInterface;
+    abstract public function prepare(string $sql, ?string $name = null) : StatementInterface;
     abstract public function test() : bool;
     public function disconnect()
     {

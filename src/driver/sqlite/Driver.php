@@ -70,7 +70,7 @@ class Driver extends DriverAbstract implements DriverInterface
         $this->connect();
         return $this->lnk->query($sql);
     }
-    public function prepare(string $sql) : StatementInterface
+    public function prepare(string $sql, ?string $name = null) : StatementInterface
     {
         $this->connect();
         $binder = '?';

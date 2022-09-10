@@ -99,9 +99,9 @@ class DB implements DBInterface
      * @param string $sql the query to prepare - use `?` for arguments
      * @return StatementInterface the prepared statement
      */
-    public function prepare(string $sql) : StatementInterface
+    public function prepare(string $sql, ?string $name = null) : StatementInterface
     {
-        return $this->driver->prepare($sql);
+        return $this->driver->prepare($sql, $name);
     }
     /**
      * Test the connection

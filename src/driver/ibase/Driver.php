@@ -64,7 +64,7 @@ class Driver extends DriverAbstract implements DriverInterface
         $this->connect();
         return \ibase_query($this->lnk, $sql);
     }
-    public function prepare(string $sql) : StatementInterface
+    public function prepare(string $sql, ?string $name = null) : StatementInterface
     {
         $this->connect();
         $statement = \ibase_prepare($this->transaction !== null ? $this->transaction : $this->lnk, $sql);

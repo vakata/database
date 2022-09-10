@@ -67,7 +67,7 @@ class Driver extends DriverAbstract implements DriverInterface
             \odbc_close($this->lnk);
         }
     }
-    public function prepare(string $sql) : StatementInterface
+    public function prepare(string $sql, ?string $name = null) : StatementInterface
     {
         $this->connect();
         return new Statement(

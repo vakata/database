@@ -12,12 +12,41 @@ class Statement implements StatementInterface
     protected $statement;
     protected $driver;
     protected $drv;
+    protected $name;
 
-    public function __construct(string $statement, $lnk, $drv)
+    public function __construct(string $statement, $lnk, $drv, ?string $name = null)
     {
         $this->statement = $statement;
         $this->driver = $lnk;
         $this->drv = $drv;
+        $this->name = $name;
+        if (strpos(strtolower($statement), 'prepare') === 0) {
+            $this->drv->raw($this->statement);
+            if (!isset($this->name)) {
+                $this->name = trim(preg_split('(\s+)', trim($this->statement))[1], '"');
+            }
+        } elseif ($this->name !== null) {
+            $temp = \pg_prepare($this->driver, $this->name, $this->statement);
+            if (!$temp) {
+                $log = $this->drv->option('log_file');
+                if ($log && (int)$this->drv->option('log_errors', 1)) {
+                    @file_put_contents(
+                        $log,
+                        '--' . date('Y-m-d H:i:s') . ' ERROR PREPARING: ' . \pg_last_error($this->driver) . "\r\n" .
+                        $this->statement . "\r\n" .
+                        "\r\n",
+                        FILE_APPEND
+                    );
+                }
+                throw new DBException('Could not prepare query : '.\pg_last_error($this->driver).' <'.$this->statement.'>');
+            }
+        }
+    }
+    public function __destruct()
+    {
+        if ($this->name !== null) {
+            @\pg_query('DEALLOCATE "'.\pg_escape_string($this->name).'"');
+        }
     }
     public function execute(array $data = [], bool $buff = true) : ResultInterface
     {
@@ -28,9 +57,15 @@ class Statement implements StatementInterface
         if ($log) {
             $tm = microtime(true);
         }
-        $temp = (is_array($data) && count($data)) ?
-            \pg_query_params($this->driver, $this->statement, $data) :
-            \pg_query_params($this->driver, $this->statement, array());
+        if ($this->name !== null) {
+            $temp = (is_array($data) && count($data)) ?
+                \pg_execute($this->driver, $this->name, $data) :
+                \pg_execute($this->driver, $this->name, array());
+        } else {
+            $temp = (is_array($data) && count($data)) ?
+                \pg_query_params($this->driver, $this->statement, $data) :
+                \pg_query_params($this->driver, $this->statement, array());
+        }
         if (!$temp) {
             if ($log && (int)$this->drv->option('log_errors', 1)) {
                 @file_put_contents(

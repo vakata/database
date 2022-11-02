@@ -1164,19 +1164,19 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         return $this->iterator();
     }
 
-    public function offsetGet($offset)
+    public function offsetGet(mixed $offset): mixed
     {
         return $this->iterator()->offsetGet($offset);
     }
-    public function offsetExists($offset): bool
+    public function offsetExists(mixed $offset): bool
     {
         return $this->iterator()->offsetExists($offset);
     }
-    public function offsetUnset($offset): void
+    public function offsetUnset(mixed $offset): void
     {
         $this->iterator()->offsetUnset($offset);
     }
-    public function offsetSet($offset, $value): void
+    public function offsetSet(mixed $offset, mixed $value): void
     {
         $this->iterator()->offsetSet($offset, $value);
     }

@@ -400,4 +400,94 @@ class DB implements DBInterface
     {
         return $this->table($method, $args[0] ?? false);
     }
+    public function findRelation(string $start, string $end): array
+    {
+        static $schema = null;
+
+        $start = $this->definition($start)->getName();
+        $end = $this->definition($end)->getName();
+
+        if (!$this->tables) {
+            $this->parseSchema();
+        }
+        if (!isset($schema)) {
+            foreach ($this->tables as $table) {
+                $name = $table->getName();
+
+                $relations = [];
+                foreach ($table->getRelations() as $relation) {
+                    $t = $relation->table->getName();
+                    $w = 10;
+                    if (strpos($name, '_') !== false || strpos($t, '_') !== false) {
+                        foreach (explode('_', $name) as $p1) {
+                            foreach (explode('_', $t) as $p2) {
+                                $w = min($w, levenshtein($p1, $p2));
+                            }
+                        }
+                    }
+                    $relations[$t] = $w;
+                }
+                if (!isset($schema[$name])) {
+                    $schema[$name] = [ 'edges' => [] ];
+                }
+                foreach ($relations as $t => $w) {
+                    $schema[$name]['edges'][$t] = $w;
+                    if (!isset($schema[$t])) {
+                        $schema[$t] = [ 'edges' => [] ];
+                    }
+                    $schema[$t]['edges'][$name] = $w;
+                }
+            }
+        }
+        $graph = $schema;
+        foreach ($graph as $k => $v) {
+            $graph[$k]['weight'] = 0;
+            $graph[$k]['from'] = false;
+            $graph[$k]['added'] = false;
+        }
+        $graph[$start]['weight'] = 0;
+        $graph[$start]['from'] = $start;
+    
+        // go through graph
+        $to_add = $start;
+        for ($i = 0; $i < count($graph); $i++) {
+            $graph[$to_add]['added'] = true;
+            foreach ($graph[$to_add]['edges'] as $k => $w) {
+                if ($graph[$k]['added']) {
+                    continue;
+                }
+                if ($graph[$k]['from'] === false || $graph[$to_add]['weight'] + $w < $graph[$k]['weight']) {
+                    $graph[$k]['from'] = $to_add;
+                    $graph[$k]['weight'] = $graph[$to_add]['weight'] + $w;
+                }
+            }
+            $to_add = false;
+            $min_weight = 0;
+            foreach ($graph as $k => $v) {
+                if ($v['added'] || $v['from'] === false) {
+                    continue;
+                }
+                if ($to_add === false || $v['weight'] < $min_weight) {
+                    $to_add = $k;
+                    $min_weight = $v['weight'];
+                }
+            }
+            if ($to_add === false) { 
+                break;
+            }
+            // also break here if $to_add === $end
+            // and set it to true
+        }
+        if ($graph[$end]['added'] === false) {
+            return [];
+        }
+        $path = array();
+        $i = $end;
+        while ($i != $start) {
+            $path[] = $i;
+            $i = $graph[$i]['from'];
+        }
+        $path[] = $start;
+        return array_reverse($path);
+    }
 }

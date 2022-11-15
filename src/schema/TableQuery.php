@@ -121,7 +121,25 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                         throw new DBException('Invalid column name in related table');
                     }
                 } else {
-                    throw new DBException('Invalid foreign table name: ' . implode(',', $column));
+                    $col = null;
+                    foreach ($this->withr as $k => $v) {
+                        $temp = array_reverse(array_values(explode(static::SEP, $k)))[0];
+                        if ($temp === $column[0]) {
+                            $col = $v[0]->table->getColumn($column[1]);
+                            if ($col) {
+                                break;
+                            }
+                        }
+                    }
+                    if (!$col) {
+                        $path = $this->db->findRelation($this->definition->getName(), $column[0]);
+                        if (!count($path)) {
+                            throw new DBException('Invalid foreign table / column name: ' . implode(',', $column));
+                        }
+                        unset($path[0]);
+                        $this->with(implode('.', $path), false);
+                        $col = $this->db->definition($column[0])->getColumn($column[1]);
+                    }
                 }
             }
         } else {
@@ -556,9 +574,16 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     public function count() : int
     {
         $aliases = [];
-        $getAlias = function ($name) use (&$aliases) {
+        $aliases_ext = [];
+        $getAlias = function ($name) use (&$aliases, &$aliases_ext) {
             // to bypass use: return $name;
-            return $aliases[$name] = $aliases[$name] ?? 'alias' . static::SEP . count($aliases);
+            $aliases[$name] = $aliases[$name] ?? 'alias' . static::SEP . count($aliases);
+            $temp = explode(static::SEP, $name);
+            $temp = $temp[count($temp) - 1];
+            if (!isset($aliases[$temp])) {
+                $aliases_ext[$temp] = $aliases[$name];
+            }
+            return $aliases[$name];
         };
         $table = $this->definition->getFullName();
         $sql = 'SELECT COUNT(DISTINCT ('.$table.'.'.implode(', '.$table.'.', $this->pkey).')) FROM '.$table.' ';
@@ -575,10 +600,46 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $j = array_map(function ($v) {
             return clone $v;
         }, $this->joins);
+
+        $used_relations = [];
+        foreach ($this->withr as $k => $relation) {
+            if ($this->definition->hasRelation($k)) {
+                continue;
+            }
+            foreach ($w as $kk => $v) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
+                    $used_relations[] = $k;
+                    $w[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $v[0]);
+                }
+            }
+            foreach ($h as $kk => $v) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
+                    $used_relations[] = $k;
+                    $h[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $v[0]);
+                }
+            }
+            if (isset($g[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $g[0])) {
+                $used_relations[] = $k;
+                $g[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $g[0]);
+            }
+            foreach ($j as $kk => $v) {
+                foreach ($v->keymap as $kkk => $vv) {
+                    if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv)) {
+                        $used_relations[] = $k;
+                        $j[$kk]->keymap[$kkk] = preg_replace(
+                            '(\b'.preg_quote($k . '.'). ')i',
+                            $getAlias($k) . '.',
+                            $vv
+                        );
+                    }
+                }
+            }
+        }
         foreach ($this->definition->getRelations() as $k => $v) {
             foreach ($w as $kk => $vv) {
                 if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv[0])) {
                     $relations[$k] = [ $v, $table ];
+                    $used_relations[] = $k;
                     $w[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv[0]);
                 }
             }
@@ -588,62 +649,101 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             foreach ($h as $kk => $vv) {
                 if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv[0])) {
                     $relations[$k] = [ $v, $table ];
+                    $used_relations[] = $k;
                     $h[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv[0]);
                 }
             }
             if (isset($g[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $g[0])) {
                 $relations[$k] = [ $v, $table ];
+                $used_relations[] = $k;
                 $g[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $g[0]);
             }
             foreach ($j as $kk => $vv) {
                 foreach ($vv->keymap as $kkk => $vvv) {
                     if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vvv)) {
                         $relations[$k] = [ $v, $table ];
+                        $used_relations[] = $k;
                         $j[$kk]->keymap[$kkk] =
                             preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vvv);
                     }
                 }
             }
         }
-
-        foreach ($relations as $k => $v) {
-            $table = $v[1] !== $this->definition->getName() && $v[1] !== $this->definition->getFullName() ? $getAlias($v[1]) : $v[1];
-            $v = $v[0];
-            if ($v->pivot) {
-                $alias = $getAlias($k.'_pivot');
-                $sql .= 'LEFT JOIN '.$v->pivot->getFullName().' '.$alias.' ON ';
-                $tmp = [];
-                foreach ($v->keymap as $kk => $vv) {
-                    $tmp[] = $table.'.'.$kk.' = '.$alias.'.'.$vv.' ';
+        foreach ($aliases_ext as $k => $alias) {
+            foreach ($w as $kk => $v) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
+                    $w[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $alias . '.', $v[0]);
+                    $used_relations[] = $k;
                 }
-                $sql .= implode(' AND ', $tmp) . ' ';
-                $sql .= 'LEFT JOIN '.$v->table->getFullName().' '.$getAlias($k).' ON ';
-                $tmp = [];
-                foreach ($v->pivot_keymap as $kk => $vv) {
-                    $tmp[] = $getAlias($k).'.'.$vv.' = '.$alias.'.'.$kk.' ';
+            }
+            foreach ($h as $kk => $v) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
+                    $h[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $alias . '.', $v[0]);
+                    $used_relations[] = $k;
                 }
-                $sql .= implode(' AND ', $tmp) . ' ';
-            } else {
-                $alias = $getAlias($k);
-                $sql .= 'LEFT JOIN '.$v->table->getFullName().' '.$alias.' ON ';
-                $tmp = [];
-                foreach ($v->keymap as $kk => $vv) {
-                    $tmp[] = $table.'.'.$kk.' = '.$alias.'.'.$vv.' ';
+            }
+            if (isset($o[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $o[0])) {
+                $used_relations[] = $k;
+            }
+            if (isset($g[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $g[0])) {
+                $g[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $alias . '.', $g[0]);
+                $used_relations[] = $k;
+            }
+            foreach ($j as $kk => $v) {
+                foreach ($v->keymap as $kkk => $vv) {
+                    if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv)) {
+                        $used_relations[] = $k;
+                        $j[$kk]->keymap[$kkk] = preg_replace(
+                            '(\b'.preg_quote($k . '.'). ')i',
+                            $alias . '.',
+                            $vv
+                        );
+                    }
                 }
-                if ($v->sql) {
-                    $tmp[] = $v->sql . ' ';
-                    $par = array_merge($par, $v->par ?? []);
-                }
-                $sql .= implode(' AND ', $tmp) . ' ';
             }
         }
-        foreach ($j as $k => $v) {
-            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getFullName().' '.$k.' ON ';
-            $tmp = [];
-            foreach ($v->keymap as $kk => $vv) {
-                $tmp[] = $kk.' = '.$vv;
+        if (count($used_relations)) {
+            foreach ($relations as $k => $v) {
+                $table = $v[1] !== $this->definition->getName() && $v[1] !== $this->definition->getFullName() ? $getAlias($v[1]) : $v[1];
+                $v = $v[0];
+                if ($v->pivot) {
+                    $alias = $getAlias($k.'_pivot');
+                    $sql .= 'LEFT JOIN '.$v->pivot->getFullName().' '.$alias.' ON ';
+                    $tmp = [];
+                    foreach ($v->keymap as $kk => $vv) {
+                        $tmp[] = $table.'.'.$kk.' = '.$alias.'.'.$vv.' ';
+                    }
+                    $sql .= implode(' AND ', $tmp) . ' ';
+                    $sql .= 'LEFT JOIN '.$v->table->getFullName().' '.$getAlias($k).' ON ';
+                    $tmp = [];
+                    foreach ($v->pivot_keymap as $kk => $vv) {
+                        $tmp[] = $getAlias($k).'.'.$vv.' = '.$alias.'.'.$kk.' ';
+                    }
+                    $sql .= implode(' AND ', $tmp) . ' ';
+                } else {
+                    $alias = $getAlias($k);
+                    $sql .= 'LEFT JOIN '.$v->table->getFullName().' '.$alias.' ON ';
+                    $tmp = [];
+                    foreach ($v->keymap as $kk => $vv) {
+                        $tmp[] = $table.'.'.$kk.' = '.$alias.'.'.$vv.' ';
+                    }
+                    if ($v->sql) {
+                        $tmp[] = $v->sql . ' ';
+                        $par = array_merge($par, $v->par ?? []);
+                    }
+                    $sql .= implode(' AND ', $tmp) . ' ';
+                }
             }
-            $sql .= implode(' AND ', $tmp) . ' ';
+            foreach ($j as $k => $v) {
+                $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getFullName().' '.$k.' ON ';
+                $tmp = [];
+                foreach ($v->keymap as $kk => $vv) {
+                    $tmp[] = $kk.' = '.$vv;
+                }
+                $sql .= implode(' AND ', $tmp) . ' ';
+            }
+        } else {
+            $sql = str_replace('COUNT(DISTINCT ', 'COUNT(', $sql);
         }
         if (count($w)) {
             $sql .= 'WHERE ';
@@ -739,9 +839,16 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             return $this->qiterator;
         }
         $aliases = [];
-        $getAlias = function ($name) use (&$aliases) {
+        $aliases_ext = [];
+        $getAlias = function ($name) use (&$aliases, &$aliases_ext) {
             // to bypass use: return $name;
-            return $aliases[$name] = $aliases[$name] ?? 'alias' . static::SEP . count($aliases);
+            $aliases[$name] = $aliases[$name] ?? 'alias' . static::SEP . count($aliases);
+            $temp = explode(static::SEP, $name);
+            $temp = $temp[count($temp) - 1];
+            if (!isset($aliases[$temp])) {
+                $aliases_ext[$temp] = $aliases[$name];
+            }
+            return $aliases[$name];
         };
         $table = $this->definition->getName();
         if ($fields !== null) {
@@ -837,6 +944,40 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                         $j[$kk]->keymap[$kkk] = preg_replace(
                             '(\b'.preg_quote($k . '.'). ')i',
                             $getAlias($k) . '.',
+                            $vv
+                        );
+                    }
+                }
+            }
+        }
+        foreach ($aliases_ext as $k => $alias) {
+            foreach ($f as $kk => $field) {
+                if (strpos($field, $k . '.') === 0) {
+                    $f[$kk] = str_replace($k . '.', $alias . '.', $field);
+                }
+            }
+            foreach ($w as $kk => $v) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
+                    $w[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $alias . '.', $v[0]);
+                }
+            }
+            foreach ($h as $kk => $v) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
+                    $h[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $alias . '.', $v[0]);
+                }
+            }
+            if (isset($o[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $o[0])) {
+                $o[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $alias . '.', $o[0]);
+            }
+            if (isset($g[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $g[0])) {
+                $g[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $alias . '.', $g[0]);
+            }
+            foreach ($j as $kk => $v) {
+                foreach ($v->keymap as $kkk => $vv) {
+                    if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv)) {
+                        $j[$kk]->keymap[$kkk] = preg_replace(
+                            '(\b'.preg_quote($k . '.'). ')i',
+                            $alias . '.',
                             $vv
                         );
                     }
@@ -1136,23 +1277,35 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $this->withr[$relation] = [ $temp, $table->getName(), $select || ($this->withr[$relation][2] ?? false), $order, $desc ];
         } else {
             $parts = explode('.', $relation);
-            $name = array_reduce(
-                $parts,
-                function ($carry, $item) use (&$table, $select) {
-                    if (!$table->hasRelation($item)) {
-                        throw new DBException('Invalid relation name: '.$table->getName().' -> ' . $item);
+            try {
+                $name = array_reduce(
+                    $parts,
+                    function ($carry, $item) use (&$table, $select) {
+                        if (!$table->hasRelation($item)) {
+                            throw new DBException('Invalid relation name: '.$table->getName().' -> ' . $item);
+                        }
+                        $relation = $table->getRelation($item);
+                        $name = $carry ? $carry . static::SEP . $item : $item;
+                        $this->withr[$name] = [
+                            $relation,
+                            $carry ?? $table->getName(),
+                            $select || ($this->withr[$name][2] ?? false)
+                        ];
+                        $table = $relation->table;
+                        return $name;
                     }
-                    $relation = $table->getRelation($item);
-                    $name = $carry ? $carry . static::SEP . $item : $item;
-                    $this->withr[$name] = [
-                        $relation,
-                        $carry ?? $table->getName(),
-                        $select || ($this->withr[$name][2] ?? false)
-                    ];
-                    $table = $relation->table;
-                    return $name;
+                );
+            } catch (DBException $e) {
+                $path = [];
+                if (count($parts) === 1) {
+                    $path = $this->db->findRelation($this->definition->getName(), $relation);
                 }
-            );
+                if (!count($path)) {
+                    throw $e;
+                }
+                unset($path[0]);
+                return $this->with(implode('.', $path), $select, $order, $desc);
+            }
             $this->withr[$name][3] = $order;
             $this->withr[$name][4] = $desc;
         }

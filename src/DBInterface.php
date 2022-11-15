@@ -39,4 +39,5 @@ interface DBInterface
     public function getSchema($asPlainArray = true);
     public function setSchema(array $data);
     public function table(string $table, bool $mapped = false);
+    public function findRelation(string $start, string $end): array;
 }

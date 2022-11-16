@@ -391,15 +391,19 @@ class DB implements DBInterface
      * @param string $table the table to query
      * @return TableQuery
      */
-    public function table(string $table, bool $mapped = false, bool $findRelations = false): TableQuery
+    public function table(string $table, bool $findRelations = false): TableQuery
     {
-        return $mapped ?
-            new TableQueryMapped($this, $this->definition($table), $findRelations) :
-            new TableQuery($this, $this->definition($table), $findRelations);
+        return new TableQuery($this, $this->definition($table), $findRelations);
     }
-    public function __call(string $method, array $args): TableQuery
+    public function tableMapped(string $table, bool $findRelations = false): TableQueryMapped
     {
-        return $this->table($method, $args[0] ?? false);
+        return new TableQueryMapped($this, $this->definition($table), $findRelations);
+    }
+    public function __call(string $method, array $args): TableQuery|TableQueryMapped
+    {
+        return ($args[0] ?? false) ?
+            $this->tableMapped($method, $args[1] ?? false) :
+            $this->table($method, $args[1] ?? false);
     }
     public function findRelation(string $start, string $end): array
     {

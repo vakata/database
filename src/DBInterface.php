@@ -5,6 +5,7 @@ namespace vakata\database;
 use \vakata\collection\Collection;
 use \vakata\database\schema\Table;
 use vakata\database\schema\TableQuery;
+use vakata\database\schema\TableQueryMapped;
 
 interface DBInterface
 {
@@ -39,6 +40,7 @@ interface DBInterface
     public function parseSchema(): static;
     public function getSchema(bool $asPlainArray = true): array;
     public function setSchema(array $data): static;
-    public function table(string $table, bool $mapped = false, bool $findRelations = false): TableQuery;
+    public function table(string $table, bool $findRelations = false): TableQuery;
+    public function tableMapped(string $table, bool $findRelations = false): TableQueryMapped;
     public function findRelation(string $start, string $end): array;
 }

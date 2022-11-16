@@ -62,7 +62,7 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
 
     public function testMappedRelationsWith()
     {
-        $books = $this->getDB()->table('book', true)->with('author');
+        $books = $this->getDB()->tableMapped('book')->with('author');
         $this->assertEquals($books[0]->author->name, 'Terry Pratchett');
         $this->assertEquals(count($books[0]->tag), 2);
     }

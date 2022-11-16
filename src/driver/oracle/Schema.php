@@ -13,7 +13,7 @@ use \vakata\collection\Collection;
 
 trait Schema
 {
-    protected $connection;
+    protected array $connection;
     abstract public function query(string $sql, $par = null, bool $buff = true) : ResultInterface;
     abstract public function name() : string;
 

@@ -4,7 +4,7 @@ namespace vakata\database;
 
 interface ResultInterface extends \Iterator, \Countable
 {
-    public function affected() : int;
-    public function toArray() : array;
-    public function insertID(string $sequence = null);
+    public function affected(): int;
+    public function toArray(): array;
+    public function insertID(string $sequence = null): mixed;
 }

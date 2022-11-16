@@ -7,10 +7,10 @@ use vakata\database\DBInterface;
 /**
  * A basic mapper to enable relation traversing and basic create / update / delete functionality
  */
-class Mapper
+class Mapper implements MapperInterface
 {
-    protected $db;
-    protected $objects;
+    protected DBInterface $db;
+    protected array $objects;
 
     public function __construct(DBInterface $db)
     {
@@ -22,9 +22,9 @@ class Mapper
      * @param Table $definition
      * @param array $data
      * @param boolean $empty
-     * @return object
+     * @return Entity
      */
-    public function entity(Table $definition, array $data, bool $empty = false)
+    public function entity(Table $definition, array $data, bool $empty = false): Entity
     {
         $primary = [];
         if (!$empty) {
@@ -60,10 +60,13 @@ class Mapper
      * Persist all changes to an entity in the DB. Does not include modified relation collections.
      *
      * @param Entity $entity
-     * @return object
+     * @return Entity
      */
-    public function save(Entity $entity)
+    public function save(object $entity): Entity
     {
+        if (!($entity instanceof Entity)) {
+            throw new \Exception('Invalid object');
+        }
         $query = $this->db->table($entity->definition()->getFullName());
         $primary = $entity->id();
         if (!isset($this->objects[$entity->definition()->getFullName()][base64_encode(serialize($primary))])) {
@@ -92,8 +95,11 @@ class Mapper
      * @param Entity $entity
      * @return void
      */
-    public function delete(Entity $entity)
+    public function delete(object $entity): void
     {
+        if (!($entity instanceof Entity)) {
+            throw new \Exception('Invalid object');
+        }
         $query = $this->db->table($entity->definition()->getFullName());
         $primary = $entity->id();
         if (isset($this->objects[$entity->definition()->getFullName()][base64_encode(serialize($primary))])) {
@@ -108,10 +114,13 @@ class Mapper
      * Refresh an entity from the DB (includes own columns and relations).
      *
      * @param Entity $entity
-     * @return object
+     * @return Entity
      */
-    public function refresh(Entity $entity)
+    public function refresh(object $entity): Entity
     {
+        if (!($entity instanceof Entity)) {
+            throw new \Exception('Invalid object');
+        }
         $query = $this->db->table($entity->definition()->getFullName());
         $primary = $entity->id();
         foreach ($primary as $k => $v) {
@@ -121,7 +130,7 @@ class Mapper
         $entity->fromArray($data);
         return $this->lazy($entity, $data);
     }
-    protected function lazy(Entity $entity, $data)
+    protected function lazy(Entity $entity, array $data): Entity
     {
         $primary = $entity->id();
         $definition = $entity->definition();
@@ -152,7 +161,7 @@ class Mapper
                             $query->columns($columns);
                         }
                         if ($relation->sql) {
-                            $query->where($relation->sql, $relation->par);
+                            $query->where($relation->sql, $relation->par?:[]);
                         }
                         if ($relation->pivot) {
                             $nm = null;
@@ -164,7 +173,7 @@ class Mapper
                             if (!$nm) {
                                 $nm = $definition->getName();
                                 $relation->table->manyToMany(
-                                    $this->db->table($definition->getFullName()),
+                                    $definition,
                                     $relation->pivot,
                                     $nm,
                                     array_flip($relation->keymap),

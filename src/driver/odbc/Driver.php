@@ -11,8 +11,8 @@ use \vakata\database\schema\TableRelation;
 
 class Driver extends DriverAbstract implements DriverInterface
 {
-    protected $lnk = null;
-    protected $transaction = false;
+    protected mixed $lnk = null;
+    protected bool $transaction = false;
 
     public function __construct(array $connection)
     {
@@ -34,7 +34,7 @@ class Driver extends DriverAbstract implements DriverInterface
     {
         $this->disconnect();
     }
-    public function connect()
+    public function connect(): void
     {
         if ($this->lnk === null) {
             $this->lnk = call_user_func(
@@ -61,7 +61,7 @@ class Driver extends DriverAbstract implements DriverInterface
             return false;
         }
     }
-    public function disconnect()
+    public function disconnect(): void
     {
         if (is_resource($this->lnk)) {
             \odbc_close($this->lnk);
@@ -77,7 +77,7 @@ class Driver extends DriverAbstract implements DriverInterface
             $this->connection['opts']['charset_out'] ?? null
         );
     }
-    public function raw(string $sql)
+    public function raw(string $sql): mixed
     {
         $this->connect();
         return \odbc_exec($this->lnk, $sql);
@@ -105,7 +105,7 @@ class Driver extends DriverAbstract implements DriverInterface
         \odbc_autocommit($this->lnk, false);
         return $res;
     }
-    public function isTransaction()
+    public function isTransaction(): bool
     {
         return $this->transaction;
     }

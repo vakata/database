@@ -2,9 +2,9 @@ parameters:
 	checkMissingIterableValueType: false
 	checkGenericClassInNonGenericObjectType: false
 	ignoreErrors:
-		- '#no typehint specified.$#'
-		- '#no return typehint specified.$#'
-	excludes_analyse:
+		- '#ibase_.*not found.$#'
+		- '#ibase_.*given.$#'
+	excludePaths:
 		- src/driver/ibase/Driver.php
 	universalObjectCratesClasses:
 		- vakata\database\schema\Entity

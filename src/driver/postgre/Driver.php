@@ -14,8 +14,8 @@ class Driver extends DriverAbstract implements DriverInterface
 {
     use Schema;
     
-    protected $lnk = null;
-    protected $transaction = false;
+    protected mixed $lnk = null;
+    protected bool $transaction = false;
 
     public function __construct(array $connection)
     {
@@ -25,7 +25,7 @@ class Driver extends DriverAbstract implements DriverInterface
     {
         $this->disconnect();
     }
-    public function connect()
+    public function connect(): void
     {
         if ($this->lnk === null) {
             $this->lnk = call_user_func(
@@ -61,13 +61,13 @@ class Driver extends DriverAbstract implements DriverInterface
             return false;
         }
     }
-    public function disconnect()
+    public function disconnect(): void
     {
-        if (is_resource($this->lnk)) {
-            \pg_close($this->lnk);
-        }
+        // if (isset($this->lnk)) {
+        //     @\pg_close($this->lnk);
+        // }
     }
-    public function raw(string $sql)
+    public function raw(string $sql): mixed
     {
         $this->connect();
         $log = $this->option('log_file');
@@ -144,7 +144,7 @@ class Driver extends DriverAbstract implements DriverInterface
 
         return true;
     }
-    public function isTransaction()
+    public function isTransaction(): bool
     {
         return $this->transaction;
     }

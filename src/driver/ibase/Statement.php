@@ -9,10 +9,10 @@ use \vakata\database\ResultInterface;
 
 class Statement implements StatementInterface
 {
-    protected $statement;
-    protected $driver;
+    protected mixed $statement;
+    protected mixed $driver;
 
-    public function __construct($statement, $driver)
+    public function __construct(mixed $statement, mixed $driver)
     {
         $this->statement = $statement;
         $this->driver = $driver;

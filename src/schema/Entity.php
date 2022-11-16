@@ -3,12 +3,11 @@ namespace vakata\database\schema;
 
 class Entity
 {
-    protected $mapper;
-    protected $empty;
-    protected $definition;
-    protected $initial = [];
-    protected $changed = [];
-    protected $fetched = [];
+    protected Mapper $mapper;
+    protected Table $definition;
+    protected array $initial = [];
+    protected array $changed = [];
+    protected array $fetched = [];
 
     public function __construct(Mapper $mapper, Table $definition, array $data = [])
     {
@@ -16,12 +15,12 @@ class Entity
         $this->definition = $definition;
         $this->initial = $data;
     }
-    public function __lazyProperty(string $property, $resolve)
+    public function __lazyProperty(string $property, mixed $resolve): static
     {
         $this->fetched[$property] = $resolve;
         return $this;
     }
-    public function &__get($property)
+    public function &__get(string $property): mixed
     {
         if (array_key_exists($property, $this->fetched)) {
             if (is_callable($this->fetched[$property])) {
@@ -38,11 +37,11 @@ class Entity
         $null = null;
         return $null;
     }
-    public function __set($property, $value)
+    public function __set(string $property, mixed $value): void
     {
         $this->changed[$property] = $value;
     }
-    public function __call($method, $args)
+    public function __call(string $method, array $args): mixed
     {
         if (isset($this->definition->getRelations()[$method])) {
             if (array_key_exists($method, $this->fetched)) {
@@ -53,11 +52,11 @@ class Entity
         }
         return null;
     }
-    public function definition()
+    public function definition(): Table
     {
         return $this->definition;
     }
-    public function toArray(bool $fetch = false)
+    public function toArray(bool $fetch = false): array
     {
         $data = [];
         foreach ($this->definition->getColumns() as $k) {
@@ -78,7 +77,7 @@ class Entity
         }
         return $data;
     }
-    public function fromArray(array $data)
+    public function fromArray(array $data): static
     {
         foreach ($this->definition->getColumns() as $k) {
             if (array_key_exists($k, $data)) {
@@ -87,7 +86,7 @@ class Entity
         }
         return $this;
     }
-    public function id()
+    public function id(): array
     {
         $primary = [];
         foreach ($this->definition->getPrimaryKey() as $k) {
@@ -95,21 +94,21 @@ class Entity
         }
         return $primary;
     }
-    public function save()
+    public function save(): static
     {
         $this->mapper->save($this);
         return $this->flatten();
     }
-    public function delete()
+    public function delete(): void
     {
         $this->mapper->delete($this);
     }
-    public function refresh()
+    public function refresh(): static
     {
         $this->mapper->refresh($this);
         return $this->flatten();
     }
-    public function flatten()
+    public function flatten(): static
     {
         $this->initial = $this->toArray();
         $this->changed = [];

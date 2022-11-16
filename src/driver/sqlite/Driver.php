@@ -11,8 +11,8 @@ use \vakata\database\schema\TableRelation;
 
 class Driver extends DriverAbstract implements DriverInterface
 {
-    protected $lnk = null;
-    protected $transaction = false;
+    protected mixed $lnk = null;
+    protected bool $transaction = false;
 
     public function __construct(array $connection)
     {
@@ -31,7 +31,7 @@ class Driver extends DriverAbstract implements DriverInterface
     {
         $this->disconnect();
     }
-    public function connect()
+    public function connect(): void
     {
         if ($this->lnk === null) {
             try {
@@ -59,13 +59,13 @@ class Driver extends DriverAbstract implements DriverInterface
             return false;
         }
     }
-    public function disconnect()
+    public function disconnect(): void
     {
         if ($this->lnk !== null && $this->lnk !== false) {
             $this->lnk->close();
         }
     }
-    public function raw(string $sql)
+    public function raw(string $sql): mixed
     {
         $this->connect();
         return $this->lnk->query($sql);
@@ -129,7 +129,7 @@ class Driver extends DriverAbstract implements DriverInterface
 
         return true;
     }
-    public function isTransaction()
+    public function isTransaction(): bool
     {
         return $this->transaction;
     }

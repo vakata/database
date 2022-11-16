@@ -9,11 +9,11 @@ use \vakata\collection\Collection;
 
 class Result implements ResultInterface
 {
-    protected $statement;
-    protected $last = null;
-    protected $fetched = -1;
+    protected mixed $statement;
+    protected ?array $last = null;
+    protected int $fetched = -1;
 
-    public function __construct($statement)
+    public function __construct(mixed $statement)
     {
         $this->statement = $statement;
     }
@@ -25,7 +25,7 @@ class Result implements ResultInterface
     {
         return (int)\oci_num_rows($this->statement);
     }
-    public function insertID(string $sequence = null)
+    public function insertID(string $sequence = null): mixed
     {
         return null;
     }
@@ -36,7 +36,7 @@ class Result implements ResultInterface
 
     public function count(): int
     {
-        return \oci_num_rows($this->statement);
+        return (int)\oci_num_rows($this->statement);
     }
 
     public function key(): mixed
@@ -65,7 +65,7 @@ class Result implements ResultInterface
     public function next(): void
     {
         $this->fetched ++;
-        $this->last = \oci_fetch_array($this->statement, \OCI_ASSOC + \OCI_RETURN_NULLS + \OCI_RETURN_LOBS);
+        $this->last = \oci_fetch_array($this->statement, \OCI_ASSOC + \OCI_RETURN_NULLS + \OCI_RETURN_LOBS)?:null;
     }
     public function valid(): bool
     {

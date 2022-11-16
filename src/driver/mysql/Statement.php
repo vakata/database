@@ -2,6 +2,7 @@
 
 namespace vakata\database\driver\mysql;
 
+use mysqli_stmt;
 use \vakata\database\DBException;
 use \vakata\database\DriverInterface;
 use \vakata\database\StatementInterface;
@@ -9,11 +10,11 @@ use \vakata\database\ResultInterface;
 
 class Statement implements StatementInterface
 {
-    protected $statement;
-    protected $driver;
-    protected $sql;
+    protected mysqli_stmt $statement;
+    protected Driver $driver;
+    protected string $sql;
 
-    public function __construct(\mysqli_stmt $statement, $driver, $sql = '')
+    public function __construct(\mysqli_stmt $statement, Driver $driver, string $sql = '')
     {
         $this->statement = $statement;
         $this->driver = $driver;
@@ -76,7 +77,7 @@ class Statement implements StatementInterface
             foreach ($lng as $index) {
                 if (is_resource($data[$index]) && get_resource_type($data[$index]) === 'stream') {
                     while (!feof($data[$index])) {
-                        $this->statement->send_long_data($index, fread($data[$index], $lds));
+                        $this->statement->send_long_data($index, (string)fread($data[$index], $lds));
                     }
                 } else {
                     $data[$index] = str_split($data[$index], $lds);

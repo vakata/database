@@ -42,7 +42,7 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
     public function testIDs()
     {
         $books = $this->getDB()->book()
-            ->with('author')->order('author.name')->filter('author.name', 'Terry Pratchett')->ids();
+            ->with('author')->filter('author.name', 'Terry Pratchett')->ids();
         $this->assertEquals($books, ['1']);
     }
 
@@ -67,7 +67,7 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
 
     public function testSerialize()
     {
-        $this->getDB()->getSchema($this->getDB()->getSchema());
+        $this->getDB()->setSchema($this->getDB()->getSchema());
         $books = $this->getDB()->book()->with('author')->with('tag');
         $this->assertEquals($books[0]['author']['name'], 'Terry Pratchett');
         $this->assertEquals(count($books[0]['tag']), 2);

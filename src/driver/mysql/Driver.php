@@ -14,7 +14,7 @@ class Driver extends DriverAbstract implements DriverInterface
 {
     use Schema;
     
-    protected $lnk = null;
+    protected mixed $lnk = null;
 
     public function __construct(array $connection)
     {
@@ -33,7 +33,7 @@ class Driver extends DriverAbstract implements DriverInterface
     {
         $this->disconnect();
     }
-    public function connect()
+    public function connect(): void
     {
         if ($this->lnk === null) {
             $this->lnk = new \mysqli(
@@ -72,7 +72,7 @@ class Driver extends DriverAbstract implements DriverInterface
             return false;
         }
     }
-    public function disconnect()
+    public function disconnect(): void
     {
         if ($this->lnk !== null && $this->lnk !== false) {
             $this->lnk->close();
@@ -87,7 +87,7 @@ class Driver extends DriverAbstract implements DriverInterface
         }
         return new Statement($temp, $this, $sql);
     }
-    public function raw(string $sql)
+    public function raw(string $sql): mixed
     {
         $this->connect();
         $log = $this->option('log_file');

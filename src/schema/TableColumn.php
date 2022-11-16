@@ -6,21 +6,21 @@ namespace vakata\database\schema;
  */
 class TableColumn
 {
-    protected $name;
-    protected $type;
-    protected $btype = 'text';
-    protected $values = [];
-    protected $default = null;
-    protected $comment = null;
-    protected $nullable = false;
-    protected $length = null;
+    protected string $name;
+    protected string $type;
+    protected string $btype = 'text';
+    protected array $values = [];
+    protected mixed $default = null;
+    protected ?string $comment = null;
+    protected bool $nullable = false;
+    protected ?int $length = null;
 
     public function __construct(string $name)
     {
         $this->setName($name);
     }
 
-    public static function fromArray(string $name, array $data = [])
+    public static function fromArray(string $name, array $data = []): self
     {
         $instance = new self($name);
         if (isset($data['Type'])) {
@@ -83,40 +83,40 @@ class TableColumn
         return $instance;
     }
 
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
-    public function getType()
+    public function getType(): string
     {
         return $this->type;
     }
-    public function getValues()
+    public function getValues(): array
     {
         return $this->values;
     }
-    public function getDefault()
+    public function getDefault(): mixed
     {
         return $this->default;
     }
-    public function isNullable()
+    public function isNullable(): bool
     {
         return $this->nullable;
     }
-    public function getComment()
+    public function getComment(): ?string
     {
         return $this->comment;
     }
-    public function getBasicType()
+    public function getBasicType(): string
     {
         return $this->btype;
     }
-    public function setName(string $name)
+    public function setName(string $name): static
     {
         $this->name = $name;
         return $this;
     }
-    public function setType(string $type)
+    public function setType(string $type): static
     {
         $this->type = $type;
         $type = strtolower($type);
@@ -143,35 +143,35 @@ class TableColumn
         }
         return $this;
     }
-    public function setValues(array $values)
+    public function setValues(array $values): static
     {
         $this->values = $values;
         return $this;
     }
-    public function setDefault($default = null)
+    public function setDefault(mixed $default = null): static
     {
         $this->default = $default;
         return $this;
     }
-    public function setNullable(bool $nullable)
+    public function setNullable(bool $nullable): static
     {
         $this->nullable = $nullable;
         return $this;
     }
-    public function setComment(string $comment)
+    public function setComment(string $comment): static
     {
         $this->comment = $comment;
         return $this;
     }
-    public function hasLength()
+    public function hasLength(): bool
     {
         return $this->length !== null;
     }
-    public function getLength()
+    public function getLength(): int
     {
-        return $this->length;
+        return (int)$this->length;
     }
-    public function setLength($length)
+    public function setLength(int $length): static
     {
         $this->length = $length;
         return $this;

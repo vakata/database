@@ -13,27 +13,27 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
     /**
      * @var array
      */
-    protected $pkey;
+    protected array  $pkey;
     /**
      * @var Collection
      */
-    protected $result;
+    protected Collection $result;
     /**
      * @var array[]
      */
-    protected $relations;
+    protected array $relations;
     /**
      * @var array[]
      */
-    protected $aliases;
+    protected array $aliases;
     /**
      * @var string|null
      */
-    protected $primary = null;
+    protected ?string $primary = null;
     /**
      * @var int
      */
-    protected $fetched = 0;
+    protected int $fetched = 0;
 
     public function __construct(Collection $result, array $pkey, array $relations = [], array $aliases = [])
     {
@@ -134,7 +134,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
         }
         return $result;
     }
-    protected function values(array $data)
+    protected function values(array $data): array
     {
         foreach ($data as $k => $v) {
             if (is_array($v)) {
@@ -199,7 +199,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
         return $this->result->valid();
     }
 
-    public function offsetGet($offset): mixed
+    public function offsetGet(mixed $offset): mixed
     {
         $index = $this->fetched;
         $item = null;
@@ -215,7 +215,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
         }
         return $item;
     }
-    public function offsetExists($offset): bool
+    public function offsetExists(mixed $offset): bool
     {
         $index = $this->fetched;
         $exists = false;
@@ -231,11 +231,11 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
         }
         return $exists;
     }
-    public function offsetSet($offset, $value): void
+    public function offsetSet(mixed $offset, mixed $value): void
     {
         throw new DBException('Invalid call to offsetSet');
     }
-    public function offsetUnset($offset): void
+    public function offsetUnset(mixed $offset): void
     {
         throw new DBException('Invalid call to offsetUnset');
     }

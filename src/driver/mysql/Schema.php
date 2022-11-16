@@ -13,9 +13,8 @@ use \vakata\collection\Collection;
 
 trait Schema
 {
-    protected $connection;
-    abstract public function query(string $sql, $par = null, bool $buff = true) : ResultInterface;
-
+    protected array $connection;
+    abstract public function query(string $sql, mixed $par = null, bool $buff = true) : ResultInterface;
     public function table(string $table, bool $detectRelations = true) : Table
     {
         static $tables = [];
@@ -40,7 +39,7 @@ trait Schema
                     [ $schema ]
                 )
             )
-            ->mapKey(function ($v) {
+            ->mapKey(function (array $v): string {
                 return $v['TABLE_NAME'];
             })
             ->pluck('TABLE_COMMENT')
@@ -99,10 +98,10 @@ trait Schema
             ->addColumns(
                 $columns
                     ->clone()
-                    ->mapKey(function ($v) {
+                    ->mapKey(function (array $v): string {
                         return $v['Field'];
                     })
-                    ->map(function ($v) {
+                    ->map(function (array $v): array {
                         $v['length'] = null;
                         if (!isset($v['Type'])) {
                             return $v;
@@ -136,7 +135,7 @@ trait Schema
             ->setPrimaryKey(
                 $columns
                     ->clone()
-                    ->filter(function ($v) {
+                    ->filter(function (array $v): bool {
                         return $v['Key'] === 'PRI';
                     })
                     ->pluck('Field')
@@ -167,10 +166,10 @@ trait Schema
                 $usedcol = [];
                 if (count($columns)) {
                     foreach (Collection::from($relationsT[$data['table']] ?? [])
-                        ->filter(function ($v) use ($columns) {
+                        ->filter(function (array $v) use ($columns): bool {
                             return in_array($v['COLUMN_NAME'], $columns);
                         })
-                        ->map(function ($v) {
+                        ->map(function (array $v): array {
                             $new = [];
                             foreach ($v as $kk => $vv) {
                                 $new[strtoupper($kk)] = $vv;
@@ -232,7 +231,7 @@ trait Schema
             // resulting in a "belongsTo" relationship
             $relations = [];
             foreach (Collection::from($relationsT[$schema . '.' . $table] ?? [])
-                ->map(function ($v) {
+                ->map(function (array $v): array {
                     $new = [];
                     foreach ($v as $kk => $vv) {
                         $new[strtoupper($kk)] = $vv;
@@ -274,18 +273,18 @@ trait Schema
                 "SELECT table_name FROM information_schema.tables where table_schema = ?",
                 [$this->connection['opts']['schema'] ?? $this->connection['name']]
             ))
-            ->map(function ($v) {
+            ->map(function (array $v): array {
                 $new = [];
                 foreach ($v as $kk => $vv) {
                     $new[strtoupper($kk)] = $vv;
                 }
                 return $new;
             })
-            ->mapKey(function ($v) {
+            ->mapKey(function (array $v): string {
                 return $v['TABLE_NAME'];
             })
             ->pluck('TABLE_NAME')
-            ->map(function ($v) {
+            ->map(function (string $v): Table {
                 return $this->table($v);
             })
             ->toArray();

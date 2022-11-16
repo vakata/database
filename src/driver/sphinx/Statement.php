@@ -9,10 +9,10 @@ use \vakata\database\ResultInterface;
 
 class Statement implements StatementInterface
 {
-    protected $lnk;
-    protected $sql;
+    protected mixed $lnk;
+    protected string $sql;
 
-    public function __construct($lnk, $sql = '')
+    public function __construct(mixed $lnk, string $sql = '')
     {
         $this->lnk = $lnk;
         $this->sql = $sql;
@@ -47,7 +47,7 @@ class Statement implements StatementInterface
                             $par = "'" . $this->lnk->escape_string($par) . "'";
                             break;
                         case 'resource':
-                            if (is_resource($v) && get_resource_type($v) === 'stream') {
+                            if (is_resource($par) && get_resource_type($par) === 'stream') {
                                 $par = stream_get_contents($par);
                                 $par = "'" . $this->lnk->escape_string($par) . "'";
                             } else {

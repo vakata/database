@@ -9,8 +9,6 @@ use vakata\database\driver\mysql\Driver as MysqlDriver;
 
 class Driver extends MysqlDriver implements DriverInterface
 {
-    protected $lnk = null;
-
     public function __construct(array $connection)
     {
         $this->connection = $connection;
@@ -28,7 +26,7 @@ class Driver extends MysqlDriver implements DriverInterface
     {
         $this->disconnect();
     }
-    public function connect()
+    public function connect(): void
     {
         if ($this->lnk === null) {
             $this->lnk = new \mysqli(
@@ -67,7 +65,7 @@ class Driver extends MysqlDriver implements DriverInterface
             return false;
         }
     }
-    public function disconnect()
+    public function disconnect(): void
     {
         if ($this->lnk !== null && $this->lnk !== false) {
             $this->lnk->close();
@@ -78,7 +76,7 @@ class Driver extends MysqlDriver implements DriverInterface
         $this->connect();
         return new Statement($this->lnk, $sql);
     }
-    public function raw(string $sql)
+    public function raw(string $sql): mixed
     {
         $this->connect();
         $log = $this->option('log_file');

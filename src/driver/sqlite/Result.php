@@ -2,19 +2,20 @@
 
 namespace vakata\database\driver\sqlite;
 
+use SQLite3Result;
 use \vakata\database\DBException;
 use \vakata\database\ResultInterface;
 
 class Result implements ResultInterface
 {
-    protected $statement;
-    protected $row = [];
-    protected $last = null;
-    protected $fetched = -1;
-    protected $iid = null;
-    protected $aff = 0;
+    protected SQLite3Result $statement;
+    protected array $row = [];
+    protected ?array $last = null;
+    protected int $fetched = -1;
+    protected int $iid = 0;
+    protected int $aff = 0;
 
-    public function __construct(\SQLite3Result $statement, $iid, $aff)
+    public function __construct(SQLite3Result $statement, int $iid, int $aff)
     {
         $this->statement = $statement;
         $this->iid = $iid;
@@ -28,7 +29,7 @@ class Result implements ResultInterface
     {
         return $this->aff;
     }
-    public function insertID(string $sequence = null)
+    public function insertID(string $sequence = null): int
     {
         return $this->iid;
     }
@@ -62,7 +63,7 @@ class Result implements ResultInterface
     public function next(): void
     {
         $this->fetched ++;
-        $this->last = $this->statement->fetchArray(\SQLITE3_ASSOC);
+        $this->last = $this->statement->fetchArray(\SQLITE3_ASSOC)?:null;
     }
     public function valid(): bool
     {

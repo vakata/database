@@ -9,12 +9,12 @@ use \vakata\database\ResultInterface;
 
 class Statement implements StatementInterface
 {
-    protected $statement;
-    protected $driver;
-    protected $drv;
-    protected $name;
+    protected string $statement;
+    protected mixed $driver;
+    protected Driver $drv;
+    protected ?string $name;
 
-    public function __construct(string $statement, $lnk, $drv, ?string $name = null)
+    public function __construct(string $statement, mixed $lnk, Driver $drv, ?string $name = null)
     {
         $this->statement = $statement;
         $this->driver = $lnk;
@@ -23,7 +23,7 @@ class Statement implements StatementInterface
         if (strpos(strtolower($statement), 'prepare') === 0) {
             $this->drv->raw($this->statement);
             if (!isset($this->name)) {
-                $this->name = trim(preg_split('(\s+)', trim($this->statement))[1], '"');
+                $this->name = trim((preg_split('(\s+)', trim($this->statement))?:[])[1]??'', '"');
             }
         } elseif ($this->name !== null) {
             $temp = \pg_prepare($this->driver, $this->name, $this->statement);

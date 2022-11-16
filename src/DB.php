@@ -16,11 +16,11 @@ class DB implements DBInterface
     /**
      * @var DriverInterface
      */
-    protected $driver;
+    protected DriverInterface $driver;
     /**
      * @var Table[]
      */
-    protected $tables = [];
+    protected array $tables = [];
 
     /**
      * Create an instance.
@@ -69,21 +69,22 @@ class DB implements DBInterface
                 ];
             }
         }
-        $connection['type'] = isset($temp['scheme']) && strlen($temp['scheme']) ? $temp['scheme'] : null;
-        $connection['user'] = isset($temp['user']) && strlen($temp['user']) ? $temp['user'] : null;
-        $connection['pass'] = isset($temp['pass']) && strlen($temp['pass']) ? $temp['pass'] : null;
-        $connection['host'] = isset($temp['host']) && strlen($temp['host']) ? $temp['host'] : null;
-        $connection['name'] = isset($temp['path']) && strlen($temp['path']) ? trim($temp['path'], '/') : null;
+        $connection['type'] = isset($temp['scheme']) && strlen((string)$temp['scheme']) ? $temp['scheme'] : null;
+        $connection['user'] = isset($temp['user']) && strlen((string)$temp['user']) ? $temp['user'] : null;
+        $connection['pass'] = isset($temp['pass']) && strlen((string)$temp['pass']) ? $temp['pass'] : null;
+        $connection['host'] = isset($temp['host']) && strlen((string)$temp['host']) ? $temp['host'] : null;
+        $connection['name'] = isset($temp['path']) && strlen((string)$temp['path']) ? trim((string)$temp['path'], '/') : null;
         $connection['port'] = isset($temp['port']) && (int)$temp['port'] ? (int)$temp['port'] : null;
-        if (isset($temp['query']) && strlen($temp['query'])) {
-            parse_str($temp['query'], $connection['opts']);
+        if (isset($temp['query']) && strlen((string)$temp['query'])) {
+            parse_str((string)$temp['query'], $connection['opts']);
         }
         // create the driver
         $connection['type'] = $aliases[$connection['type']] ?? $connection['type'];
-        $tmp = '\\vakata\\database\\driver\\'.strtolower($connection['type']).'\\Driver';
+        $tmp = '\\vakata\\database\\driver\\'.strtolower((string)$connection['type']).'\\Driver';
         if (!class_exists($tmp)) {
             throw new DBException('Unknown DB backend');
         }
+        /* @phpstan-ignore-next-line */
         $this->driver = new $tmp($connection);
     }
 
@@ -112,7 +113,7 @@ class DB implements DBInterface
     {
         return $this->driver->test();
     }
-    protected function expand(string $sql, $par = null) : array
+    protected function expand(string $sql, mixed $par = null) : array
     {
         $new = '';
         $par = array_values($par);
@@ -144,7 +145,7 @@ class DB implements DBInterface
      * @param bool     $buff  should the results be buffered (defaults to true)
      * @return ResultInterface the result of the execution
      */
-    public function query(string $sql, $par = null, bool $buff = true) : ResultInterface
+    public function query(string $sql, mixed $par = null, bool $buff = true) : ResultInterface
     {
         $par = isset($par) ? (is_array($par) ? $par : [$par]) : [];
         if (strpos($sql, '??') && count($par)) {
@@ -176,7 +177,7 @@ class DB implements DBInterface
      */
     public function get(
         string $sql,
-        $par = null,
+        mixed $par = null,
         string $key = null,
         bool $skip = false,
         bool $opti = true,
@@ -217,7 +218,7 @@ class DB implements DBInterface
      * @param bool     $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
      * @return mixed the result of the execution
      */
-    public function one(string $sql, $par = null, bool $opti = true)
+    public function one(string $sql, mixed $par = null, bool $opti = true): mixed
     {
         return $this->get($sql, $par, null, false, $opti, true)->value();
     }
@@ -230,13 +231,13 @@ class DB implements DBInterface
      * @param bool     $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
      * @return array the result of the execution
      */
-    public function all(string $sql, $par = null, string $key = null, bool $skip = false, bool $opti = true) : array
+    public function all(string $sql, mixed $par = null, string $key = null, bool $skip = false, bool $opti = true): array
     {
         return $this->get($sql, $par, $key, $skip, $opti, true)->toArray();
     }
     public function unbuffered(
         string $sql,
-        $par = null,
+        mixed $par = null,
         string $key = null,
         bool $skip = false,
         bool $opti = true
@@ -291,7 +292,7 @@ class DB implements DBInterface
      * @param mixed  $default the default value to return if the option key is not defined
      * @return mixed the option value
      */
-    public function driverOption(string $key, $default = null)
+    public function driverOption(string $key, $default = null): mixed
     {
         return $this->driver->option($key, $default);
     }
@@ -306,7 +307,7 @@ class DB implements DBInterface
      * Parse all tables from the database.
      * @return $this
      */
-    public function parseSchema()
+    public function parseSchema(): static
     {
         $this->tables = $this->driver->tables();
         return $this;
@@ -315,7 +316,7 @@ class DB implements DBInterface
      * Get the full schema as an array that you can serialize and store
      * @return array
      */
-    public function getSchema($asPlainArray = true)
+    public function getSchema(bool $asPlainArray = true): array
     {
         return !$asPlainArray ? $this->tables : array_map(function ($table) {
             return [
@@ -351,7 +352,7 @@ class DB implements DBInterface
      * @param  mixed        $data the schema definition
      * @return $this
      */
-    public function setSchema($data)
+    public function setSchema($data): static
     {
         if (!is_array($data)) {
             $this->tables = \unserialize($data);
@@ -375,7 +376,7 @@ class DB implements DBInterface
                     $relationData['table'],
                     $relationData['keymap'],
                     $relationData['many'],
-                    $relationData['pivot'] ?? null,
+                    $relationData['pivot'] instanceof Table ? $relationData['pivot'] : null,
                     $relationData['pivot_keymap'],
                     $relationData['sql'],
                     $relationData['par']
@@ -390,19 +391,22 @@ class DB implements DBInterface
      * @param string $table the table to query
      * @return TableQuery
      */
-    public function table(string $table, bool $mapped = false)
+    public function table(string $table, bool $mapped = false, bool $findRelations = false): TableQuery
     {
         return $mapped ?
-            new TableQueryMapped($this, $this->definition($table)) :
-            new TableQuery($this, $this->definition($table));
+            new TableQueryMapped($this, $this->definition($table), $findRelations) :
+            new TableQuery($this, $this->definition($table), $findRelations);
     }
-    public function __call($method, $args)
+    public function __call(string $method, array $args): TableQuery
     {
         return $this->table($method, $args[0] ?? false);
     }
     public function findRelation(string $start, string $end): array
     {
-        static $schema = null;
+        /**
+         * @var array
+         */
+        static $schema = [];
 
         $start = $this->definition($start)->getName();
         $end = $this->definition($end)->getName();
@@ -410,7 +414,7 @@ class DB implements DBInterface
         if (!$this->tables) {
             $this->parseSchema();
         }
-        if (!isset($schema)) {
+        if (!count($schema)) {
             foreach ($this->tables as $table) {
                 $name = $table->getName();
 

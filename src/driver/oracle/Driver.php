@@ -14,8 +14,8 @@ class Driver extends DriverAbstract implements DriverInterface
 {
     use Schema;
     
-    protected $lnk = null;
-    protected $transaction = false;
+    protected mixed $lnk = null;
+    protected bool $transaction = false;
 
     public function __construct(array $connection)
     {
@@ -25,7 +25,7 @@ class Driver extends DriverAbstract implements DriverInterface
     {
         $this->disconnect();
     }
-    public function connect()
+    public function connect(): void
     {
         if ($this->lnk === null) {
             $this->lnk = @call_user_func(
@@ -57,20 +57,20 @@ class Driver extends DriverAbstract implements DriverInterface
             return false;
         }
     }
-    public function disconnect()
+    public function disconnect(): void
     {
         if ($this->lnk !== null && $this->lnk !== false) {
             \oci_close($this->lnk);
         }
     }
-    public function raw(string $sql)
+    public function raw(string $sql): mixed
     {
         $this->connect();
         $log = $this->option('log_file');
         if ($log) {
             $tm = microtime(true);
         }
-        $res = \oci_execute(\oci_parse($this->lnk, $sql));
+        $res = \oci_execute(\oci_parse($this->lnk, $sql)?:throw new \Exception());
         if ($log) {
             $tm = microtime(true) - $tm;
             if ($tm >= (float)$this->option('log_slow', 0)) {
@@ -139,12 +139,12 @@ class Driver extends DriverAbstract implements DriverInterface
         return true;
     }
 
-    public function isTransaction()
+    public function isTransaction(): bool
     {
         return $this->transaction;
     }
 
-    public function lob()
+    public function lob(): mixed
     {
         return \oci_new_descriptor($this->lnk, \OCI_D_LOB);
     }

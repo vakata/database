@@ -3,13 +3,12 @@
 namespace vakata\database;
 
 use \vakata\database\schema\Table;
-use \vakata\database\schema\TableQuery;
 
 abstract class DriverAbstract implements DriverInterface
 {
-    protected $connection;
+    protected array $connection;
     
-    protected function expand(string $sql, $par = null) : array
+    protected function expand(string $sql, mixed $par = null): array
     {
         $new = '';
         $par = array_values($par);
@@ -40,7 +39,7 @@ abstract class DriverAbstract implements DriverInterface
      * @param mixed  $par  parameters (optional)
      * @return ResultInterface the result of the execution
      */
-    public function query(string $sql, $par = null, bool $buff = true) : ResultInterface
+    public function query(string $sql, mixed $par = null, bool $buff = true): ResultInterface
     {
         $par = isset($par) ? (is_array($par) ? $par : [$par]) : [];
         if (strpos($sql, '??') && count($par)) {
@@ -48,11 +47,11 @@ abstract class DriverAbstract implements DriverInterface
         }
         return $this->prepare($sql)->execute($par, $buff);
     }
-    public function name() : string
+    public function name(): string
     {
         return $this->connection['name'];
     }
-    public function option(string $key, $default = null)
+    public function option(string $key, mixed $default = null): mixed
     {
         return isset($this->connection['opts'][$key]) ? $this->connection['opts'][$key] : $default;
     }
@@ -85,24 +84,24 @@ abstract class DriverAbstract implements DriverInterface
             return false;
         }
     }
-    public function raw(string $sql)
+    public function raw(string $sql): mixed
     {
         $this->connect();
         return $this->query($sql);
     }
     
-    abstract public function connect();
+    abstract public function connect(): void;
     abstract public function prepare(string $sql, ?string $name = null) : StatementInterface;
     abstract public function test() : bool;
-    public function disconnect()
+    public function disconnect(): void
     {
     }
 
-    public function table(string $table, bool $detectRelations = true) : Table
+    public function table(string $table, bool $detectRelations = true): Table
     {
         throw new DBException('Not supported');
     }
-    public function tables() : array
+    public function tables(): array
     {
         throw new DBException('Not supported');
     }

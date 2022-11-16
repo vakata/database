@@ -9,14 +9,14 @@ use \vakata\collection\Collection;
 
 class Result implements ResultInterface
 {
-    protected $statement;
-    protected $last = null;
-    protected $fetched = -1;
-    protected $driver = null;
-    protected $iid = null;
-    protected $aff = 0;
+    protected mixed $statement;
+    protected ?array $last = null;
+    protected int $fetched = -1;
+    protected mixed $driver = null;
+    protected mixed $iid = null;
+    protected int $aff = 0;
 
-    public function __construct($statement, $driver, $aff)
+    public function __construct(mixed $statement, mixed $driver, int $aff)
     {
         $this->statement = $statement;
         $this->driver = $driver;
@@ -30,7 +30,7 @@ class Result implements ResultInterface
     {
         return $this->aff;
     }
-    public function insertID(string $sequence = null)
+    public function insertID(string $sequence = null): mixed
     {
         if ($this->iid === null) {
             $temp = @\pg_query(
@@ -41,7 +41,7 @@ class Result implements ResultInterface
             );
             if ($temp) {
                 $res = \pg_fetch_row($temp);
-                $this->iid = $res[0];
+                $this->iid = $res && is_array($res) && isset($res[0]) ? $res[0] : null;
             }
         }
         return $this->iid;
@@ -76,7 +76,7 @@ class Result implements ResultInterface
     public function next(): void
     {
         $this->fetched ++;
-        $this->last = \pg_fetch_array($this->statement, null, \PGSQL_ASSOC);
+        $this->last = \pg_fetch_array($this->statement, null, \PGSQL_ASSOC)?:null;
     }
     public function valid(): bool
     {

@@ -8,15 +8,14 @@ use \vakata\collection\Collection;
 
 class Result implements ResultInterface
 {
-    protected $lnk = null;
-    protected $row = [];
-    protected $buff = true;
-    protected $last = null;
-    protected $fetched = -1;
-    protected $result = null;
-    protected $nativeDriver = false;
+    protected mixed $lnk = null;
+    protected array $row = [];
+    protected bool $buff = true;
+    protected ?array $last = null;
+    protected int $fetched = -1;
+    protected mixed $result = null;
 
-    public function __construct($lnk, $sql, bool $buff = true)
+    public function __construct(mixed $lnk, string $sql, bool $buff = true)
     {
         $this->lnk = $lnk;
         $this->result = $this->lnk->query($sql, $buff ? MYSQLI_STORE_RESULT : MYSQLI_USE_RESULT);
@@ -25,7 +24,7 @@ class Result implements ResultInterface
     {
         return $this->lnk->affected_rows;
     }
-    public function insertID(string $sequence = null)
+    public function insertID(string $sequence = null): mixed
     {
         return $this->lnk->insert_id;
     }
@@ -59,7 +58,7 @@ class Result implements ResultInterface
     public function next(): void
     {
         $this->fetched ++;
-        $this->last = $this->result->fetch_assoc();
+        $this->last = $this->result->fetch_assoc()?:null;
     }
     public function valid(): bool
     {

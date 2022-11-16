@@ -2,6 +2,8 @@
 
 namespace vakata\database\driver\pdo;
 
+use PDO;
+use PDOStatement;
 use \vakata\database\DBException;
 use \vakata\database\DriverInterface;
 use \vakata\database\StatementInterface;
@@ -9,10 +11,10 @@ use \vakata\database\ResultInterface;
 
 class Statement implements StatementInterface
 {
-    protected $statement;
-    protected $driver;
+    protected PDOStatement $statement;
+    protected PDO $driver;
 
-    public function __construct(\PDOStatement $statement, \PDO $driver)
+    public function __construct(PDOStatement $statement, PDO $driver)
     {
         $this->statement = $statement;
         $this->driver = $driver;

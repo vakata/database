@@ -23,8 +23,8 @@ class Driver extends DriverAbstract implements DriverInterface
         \vakata\database\driver\postgre\Schema::tables as ptables;
     }
 
-    protected $lnk = null;
-    protected $drv = null;
+    protected mixed $lnk = null;
+    protected ?string $drv = null;
 
     public function __construct(array $connection)
     {
@@ -51,7 +51,7 @@ class Driver extends DriverAbstract implements DriverInterface
     {
         $this->disconnect();
     }
-    public function connect()
+    public function connect(): void
     {
         if ($this->lnk === null) {
             try {
@@ -79,11 +79,11 @@ class Driver extends DriverAbstract implements DriverInterface
             return false;
         }
     }
-    public function disconnect()
+    public function disconnect(): void
     {
         $this->lnk = null;
     }
-    public function raw(string $sql)
+    public function raw(string $sql): mixed
     {
         $this->connect();
         return $this->lnk->query($sql);

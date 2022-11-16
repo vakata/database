@@ -2,18 +2,20 @@
 
 namespace vakata\database\driver\pdo;
 
+use PDO;
+use PDOStatement;
 use \vakata\database\DriverInterface;
 use \vakata\database\ResultInterface;
 use \vakata\collection\Collection;
 
 class Result implements ResultInterface
 {
-    protected $statement;
-    protected $driver;
-    protected $fetched = -1;
-    protected $last = null;
+    protected PDOStatement $statement;
+    protected PDO $driver;
+    protected int $fetched = -1;
+    protected ?array $last = null;
 
-    public function __construct(\PDOStatement $statement, \PDO $driver)
+    public function __construct(PDOStatement $statement, PDO $driver)
     {
         $this->statement = $statement;
         $this->driver = $driver;
@@ -22,7 +24,7 @@ class Result implements ResultInterface
     {
         return $this->statement->rowCount();
     }
-    public function insertID(string $sequence = null)
+    public function insertID(string $sequence = null): mixed
     {
         return $this->driver->lastInsertId($sequence);
     }
@@ -56,7 +58,7 @@ class Result implements ResultInterface
     public function next(): void
     {
         $this->fetched ++;
-        $this->last = $this->statement->fetch(\PDO::FETCH_ASSOC);
+        $this->last = $this->statement->fetch(\PDO::FETCH_ASSOC)?:null;
     }
     public function valid(): bool
     {

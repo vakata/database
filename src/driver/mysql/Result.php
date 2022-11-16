@@ -2,20 +2,21 @@
 
 namespace vakata\database\driver\mysql;
 
+use mysqli_stmt;
 use \vakata\database\DriverInterface;
 use \vakata\database\ResultInterface;
 use \vakata\collection\Collection;
 
 class Result implements ResultInterface
 {
-    protected $statement;
-    protected $row = [];
-    protected $last = null;
-    protected $fetched = -1;
-    protected $result = null;
-    protected $nativeDriver = false;
+    protected mysqli_stmt $statement;
+    protected array $row = [];
+    protected ?array $last = null;
+    protected int $fetched = -1;
+    protected mixed $result = null;
+    protected bool $nativeDriver = false;
 
-    public function __construct(\mysqli_stmt $statement, bool $buff = true)
+    public function __construct(mysqli_stmt $statement, bool $buff = true)
     {
         $this->nativeDriver = $buff && function_exists('\mysqli_fetch_all');
         $this->statement = $statement;
@@ -52,9 +53,9 @@ class Result implements ResultInterface
     }
     public function affected() : int
     {
-        return $this->statement->affected_rows;
+        return (int)$this->statement->affected_rows;
     }
-    public function insertID(string $sequence = null)
+    public function insertID(string $sequence = null): mixed
     {
         return $this->statement->insert_id;
     }
@@ -94,7 +95,7 @@ class Result implements ResultInterface
     public function next(): void
     {
         $this->fetched ++;
-        $this->last = $this->nativeDriver ? $this->result->fetch_assoc() : $this->statement->fetch();
+        $this->last = $this->nativeDriver ? ($this->result->fetch_assoc()?:null) : $this->statement->fetch();
     }
     public function valid(): bool
     {

@@ -9,11 +9,11 @@ use \vakata\database\ResultInterface;
 
 class Statement implements StatementInterface
 {
-    protected $statement;
-    protected $driver;
-    protected $sql;
+    protected mixed $statement;
+    protected Driver $driver;
+    protected string $sql;
 
-    public function __construct($statement, Driver $driver, $sql = '')
+    public function __construct(mixed $statement, Driver $driver, string $sql = '')
     {
         $this->statement = $statement;
         $this->driver = $driver;

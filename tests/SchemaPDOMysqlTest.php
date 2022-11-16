@@ -9,7 +9,7 @@ class SchemaPDOMysqlTest extends Schema
 {
     protected function getConnectionString()
     {
-        return "pdo://root@mysql:host=127.0.0.1;dbname=test?charset=utf8&schema=test";
+        return "pdo://root@mysql:host=DESKTOP.local;dbname=test?charset=utf8&schema=test";
     }
     protected function importFile(DBI $dbc, string $path)
     {

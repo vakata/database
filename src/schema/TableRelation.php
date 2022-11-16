@@ -9,35 +9,35 @@ class TableRelation
     /**
      * @var string
      */
-    public $name;
+    public string $name;
     /**
      * @var Table
      */
-    public $table;
+    public Table $table;
     /**
      * @var string[]
      */
-    public $keymap;
+    public array $keymap;
     /**
      * @var bool
      */
-    public $many;
+    public bool $many;
     /**
      * @var Table|null
      */
-    public $pivot;
+    public ?Table $pivot = null;
     /**
      * @var string[]|null
      */
-    public $pivot_keymap;
+    public ?array $pivot_keymap = null;
     /**
      * @var string|null
      */
-    public $sql;
+    public ?string $sql = null;
     /**
      * @var array|null
      */
-    public $par;
+    public ?array $par = null;
 
     /**
      * Create a new instance
@@ -57,8 +57,8 @@ class TableRelation
         bool $many = false,
         Table $pivot = null,
         array $pivot_keymap = null,
-        string $sql = null,
-        array $par = null
+        ?string $sql = null,
+        ?array $par = null
     ) {
         $this->name = $name;
         $this->table = $table;

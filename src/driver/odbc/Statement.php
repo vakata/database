@@ -9,13 +9,13 @@ use \vakata\database\ResultInterface;
 
 class Statement implements StatementInterface
 {
-    protected $statement;
-    protected $sql;
-    protected $driver;
-    protected $charIn;
-    protected $charOut;
+    protected mixed $statement;
+    protected string $sql;
+    protected mixed $driver;
+    protected ?string $charIn;
+    protected ?string $charOut;
 
-    public function __construct(string $statement, $driver, $charIn = null, $charOut = null)
+    public function __construct(string $statement, mixed $driver, ?string $charIn = null, ?string $charOut = null)
     {
         $this->sql = $statement;
         $this->driver = $driver;
@@ -44,7 +44,7 @@ class Statement implements StatementInterface
         }
         return new Result($this->statement, $data, $iid, $this->charIn, $this->charOut);
     }
-    protected function convert($data)
+    protected function convert(mixed $data): mixed
     {
         if (!is_callable("\iconv") || !isset($this->charIn) || !isset($this->charOut)) {
             return $data;

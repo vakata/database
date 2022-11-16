@@ -9,16 +9,16 @@ use \vakata\collection\Collection;
 
 class Result implements ResultInterface
 {
-    protected $statement;
-    protected $data;
-    protected $charIn;
-    protected $charOut;
-    protected $columns;
-    protected $last = null;
-    protected $fetched = -1;
-    protected $iid = null;
+    protected mixed $statement;
+    protected array $data;
+    protected ?string $charIn;
+    protected ?string $charOut;
+    protected array $columns;
+    protected ?array $last = null;
+    protected int $fetched = -1;
+    protected mixed $iid = null;
 
-    public function __construct($statement, $data, $iid, $charIn = null, $charOut = null)
+    public function __construct(mixed $statement, array $data, mixed $iid, ?string $charIn = null, ?string $charOut = null)
     {
         $this->statement = $statement;
         $this->data = $data;
@@ -42,7 +42,7 @@ class Result implements ResultInterface
     {
         return \odbc_num_rows($this->statement);
     }
-    public function insertID(string $sequence = null)
+    public function insertID(string $sequence = null): mixed
     {
         return $this->iid;
     }
@@ -81,7 +81,7 @@ class Result implements ResultInterface
         $this->fetched ++;
         $temp = \odbc_fetch_row($this->statement);
         if (!$temp) {
-            $this->last = false;
+            $this->last = null;
         } else {
             $this->last = [];
             foreach ($this->columns as $col) {
@@ -94,7 +94,7 @@ class Result implements ResultInterface
     {
         return !!$this->last;
     }
-    protected function convert($data)
+    protected function convert(mixed $data): mixed
     {
         if (!is_callable("\iconv") || !isset($this->charIn) || !isset($this->charOut)) {
             return $data;

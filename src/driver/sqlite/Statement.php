@@ -2,6 +2,8 @@
 
 namespace vakata\database\driver\sqlite;
 
+use SQLite3;
+use SQLite3Stmt;
 use \vakata\database\DBException;
 use \vakata\database\DriverInterface;
 use \vakata\database\StatementInterface;
@@ -9,10 +11,10 @@ use \vakata\database\ResultInterface;
 
 class Statement implements StatementInterface
 {
-    protected $statement;
-    protected $driver;
+    protected SQLite3Stmt $statement;
+    protected SQLite3 $driver;
 
-    public function __construct(\SQLite3Stmt $statement, \SQLite3 $driver)
+    public function __construct(SQLite3Stmt $statement, SQLite3 $driver)
     {
         $this->statement = $statement;
         $this->driver = $driver;

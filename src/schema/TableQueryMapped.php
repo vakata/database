@@ -11,12 +11,12 @@ use vakata\database\ResultInterface;
  */
 class TableQueryMapped extends TableQuery
 {
-    protected static $mappers = [];
-    protected $mapper;
+    protected static array $mappers = [];
+    protected MapperInterface $mapper;
 
-    public function __construct(DBInterface $db, $table)
+    public function __construct(DBInterface $db, Table|string $table, bool $findRelations = false)
     {
-        parent::__construct($db, $table);
+        parent::__construct($db, $table, $findRelations);
         if (!isset(static::$mappers[spl_object_hash($db)])) {
             static::$mappers[spl_object_hash($db)] = new Mapper($db);
         }
@@ -27,7 +27,7 @@ class TableQueryMapped extends TableQuery
      * @param  array|null $fields optional array of columns to select (related columns can be used too)
      * @return Collection               the query result as a mapped Collection
      */
-    public function iterator(array $fields = null, array $collectionKey = null)
+    public function iterator(array $fields = null, array $collectionKey = null): Collection
     {
         return $this->mapper->collection(parent::iterator($fields, $collectionKey), $this->definition);
     }
@@ -37,7 +37,7 @@ class TableQueryMapped extends TableQuery
      * @param array $data optional array of data to populate with
      * @return object
      */
-    public function create(array $data = [])
+    public function create(array $data = []): object
     {
         return $this->mapper->entity($this->definition, $data, true);
     }

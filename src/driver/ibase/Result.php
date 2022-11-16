@@ -9,14 +9,14 @@ use \vakata\collection\Collection;
 
 class Result implements ResultInterface
 {
-    protected $data;
-    protected $result;
-    protected $driver;
-    protected $last = null;
-    protected $fetched = -1;
-    protected $affected = 0;
+    protected array $data;
+    protected mixed $result;
+    protected mixed $driver;
+    protected ?array $last = null;
+    protected int $fetched = -1;
+    protected int $affected = 0;
 
-    public function __construct($result, array $data, $driver)
+    public function __construct(mixed $result, array $data, mixed $driver)
     {
         $this->result = $result;
         $this->data = $data;
@@ -31,7 +31,7 @@ class Result implements ResultInterface
     {
         return $this->affected;
     }
-    public function insertID(string $sequence = null)
+    public function insertID(string $sequence = null): mixed
     {
         return null;
     }
@@ -68,7 +68,7 @@ class Result implements ResultInterface
     public function next(): void
     {
         $this->fetched ++;
-        $this->last = \ibase_fetch_assoc($this->result, \IBASE_TEXT);
+        $this->last = \ibase_fetch_assoc($this->result, \IBASE_TEXT)?:null;
     }
     public function valid(): bool
     {

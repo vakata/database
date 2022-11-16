@@ -13,68 +13,33 @@ use vakata\database\ResultInterface;
 class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
 {
     const SEP = '___';
-    /**
-     * @var DBInterface
-     */
-    protected $db;
-    /**
-     * @var Table
-     */
-    protected $definition;
-    /**
-     * @var TableQueryIterator|null
-     */
-    protected $qiterator;
 
-    /**
-     * @var array
-     */
-    protected $where = [];
-    /**
-     * @var array
-     */
-    protected $order = [];
-    /**
-     * @var array
-     */
-    protected $group = [];
-    /**
-     * @var array
-     */
-    protected $having = [];
-    /**
-     * @var int[]
-     */
-    protected $li_of = [0,0,0];
-    /**
-     * @var array
-     */
-    protected $fields = [];
-    /**
-     * @var array
-     */
-    protected $withr = [];
-    /**
-     * @var array
-     */
-    protected $joins = [];
-    /**
-     * @var array
-     */
-    protected $pkey = [];
-    /**
-     * @var array
-     */
-    protected $aliases = [];
+    protected DBInterface $db;
+    protected Table $definition;
+    protected ?TableQueryIterator $qiterator;
+
+    protected array $where = [];
+    protected array $order = [];
+    protected array $group = [];
+    protected array $having = [];
+    protected array $li_of = [0,0,0];
+    protected array $fields = [];
+    protected array $withr = [];
+    protected array $joins = [];
+    protected array $pkey = [];
+    protected array $aliases = [];
+    protected bool $findRelations = false;
 
     /**
      * Create an instance
-     * @param  DBInterface    $db         the database connection
-     * @param  Table|string   $table      the name or definition of the main table in the query
+     * @param  DBInterface    $db              the database connection
+     * @param  Table|string   $table           the name or definition of the main table in the query
+     * @param  bool           $findRelations   should the query builder try to find missing joins
      */
-    public function __construct(DBInterface $db, $table)
+    public function __construct(DBInterface $db, Table|string $table, bool $findRelations = false)
     {
         $this->db = $db;
+        $this->findRelations = $findRelations;
         $this->definition = $table instanceof Table ? $table : $this->db->definition((string)$table);
         $primary = $this->definition->getPrimaryKey();
         $columns = $this->definition->getColumns();
@@ -94,7 +59,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         return $this->definition;
     }
 
-    protected function getColumn($column)
+    protected function getColumn(string $column): array
     {
         $column = explode('.', $column);
         if (count($column) === 1) {
@@ -111,7 +76,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 }
             } else {
                 if ($this->definition->hasRelation($column[0])) {
-                    $col = $this->definition->getRelation($column[0])->table->getColumn($column[1]);
+                    $col = $this->definition->getRelation($column[0])?->table?->getColumn($column[1]);
                     if (!$col) {
                         throw new DBException('Invalid column name in related table');
                     }
@@ -132,7 +97,10 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                         }
                     }
                     if (!$col) {
-                        $path = $this->db->findRelation($this->definition->getName(), $column[0]);
+                        $path = [];
+                        if ($this->findRelations) {
+                            $path = $this->db->findRelation($this->definition->getName(), $column[0]);
+                        }
                         if (!count($path)) {
                             throw new DBException('Invalid foreign table / column name: ' . implode(',', $column));
                         }
@@ -146,7 +114,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $name = array_pop($column);
             if ($this->definition->hasRelation(implode('.', $column))) {
                 $this->with(implode('.', $column), false);
-                $col = $this->definition->getRelation(implode('.', $column))->table->getColumn($name);
+                $col = $this->definition->getRelation(implode('.', $column))?->table?->getColumn($name);
                 $column = [ implode('.', $column), $name ];
             } else {
                 $this->with(implode('.', $column), false);
@@ -164,7 +132,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
         return [ 'name' => implode('.', $column), 'data' => $col ];
     }
-    protected function normalizeValue(TableColumn $col, $value)
+    protected function normalizeValue(TableColumn $col, mixed $value): mixed
     {
         $strict = (int)$this->db->driverOption('strict', 0) > 0;
         if ($value === null && $col->isNullable()) {
@@ -252,7 +220,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
     }
 
-    protected function filterSQL(string $column, $value, bool $negate = false) : array
+    protected function filterSQL(string $column, mixed $value, bool $negate = false) : array
     {
         list($name, $column) = array_values($this->getColumn($column));
         if (is_array($value) && count($value) === 1 && isset($value['not'])) {
@@ -442,7 +410,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     {
         return $this->limit($perPage, ($page - 1) * $perPage);
     }
-    public function __call($name, $data)
+    public function __call(string $name, mixed $data): static
     {
         if (strpos($name, 'filterBy') === 0) {
             return $this->filter(strtolower(substr($name, 8)), $data[0]);
@@ -453,6 +421,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         if (strpos($name, 'groupBy') === 0) {
             return $this->group(strtolower(substr($name, 7)));
         }
+        return $this;
     }
     /**
      * Remove all filters, sorting, etc
@@ -578,6 +547,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $getAlias = function ($name) use (&$aliases, &$aliases_ext) {
             // to bypass use: return $name;
             $aliases[$name] = $aliases[$name] ?? 'alias' . static::SEP . count($aliases);
+            if (isset($aliases_ext[$name])) {
+                unset($aliases_ext[$name]);
+            }
             $temp = explode(static::SEP, $name);
             $temp = $temp[count($temp) - 1];
             if (!isset($aliases[$temp])) {
@@ -785,7 +757,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 } elseif (count($temp) === 2) {
                     $table = $temp[0];
                     if ($this->definition->hasRelation($table)) {
-                        $cols = $this->definition->getRelation($table)->table->getColumns();
+                        $cols = $this->definition->getRelation($table)?->table->getColumns();
                     } elseif (isset($this->joins[$table])) {
                         $cols = $this->joins[$table]->table->getColumns();
                     } else {
@@ -835,7 +807,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      */
     public function iterator(array $fields = null, array $collectionKey = null)
     {
-        if ($this->qiterator) {
+        if (isset($this->qiterator)) {
             return $this->qiterator;
         }
         $aliases = [];
@@ -843,6 +815,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $getAlias = function ($name) use (&$aliases, &$aliases_ext) {
             // to bypass use: return $name;
             $aliases[$name] = $aliases[$name] ?? 'alias' . static::SEP . count($aliases);
+            if (isset($aliases_ext[$name])) {
+                unset($aliases_ext[$name]);
+            }
             $temp = explode(static::SEP, $name);
             $temp = $temp[count($temp) - 1];
             if (!isset($aliases[$temp])) {
@@ -1285,6 +1260,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                             throw new DBException('Invalid relation name: '.$table->getName().' -> ' . $item);
                         }
                         $relation = $table->getRelation($item);
+                        if (!$relation) {
+                            throw new DBException('Invalid relation name: '.$table->getName().' -> ' . $item);
+                        }
                         $name = $carry ? $carry . static::SEP . $item : $item;
                         $this->withr[$name] = [
                             $relation,
@@ -1297,7 +1275,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 );
             } catch (DBException $e) {
                 $path = [];
-                if (count($parts) === 1) {
+                if (count($parts) === 1 && $this->findRelations) {
                     $path = $this->db->findRelation($this->definition->getName(), $relation);
                 }
                 if (!count($path)) {
@@ -1339,7 +1317,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         return new Collection($this->iterator($fields));
     }
 
-    public function ids()
+    public function ids(): array
     {
         if (count($this->group)) {
             throw new DBException('Can not LIMIT result set by master table when GROUP BY is used');
@@ -1349,9 +1327,19 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
 
         $aliases = [];
-        $getAlias = function ($name) use (&$aliases) {
+        $aliases_ext = [];
+        $getAlias = function ($name) use (&$aliases, &$aliases_ext) {
             // to bypass use: return $name;
-            return $aliases[$name] = $aliases[$name] ?? 'alias' . static::SEP . count($aliases);
+            $aliases[$name] = $aliases[$name] ?? 'alias' . static::SEP . count($aliases);
+            if (isset($aliases_ext[$name])) {
+                unset($aliases_ext[$name]);
+            }
+            $temp = explode(static::SEP, $name);
+            $temp = $temp[count($temp) - 1];
+            if (!isset($aliases[$temp])) {
+                $aliases_ext[$temp] = $aliases[$name];
+            }
+            return $aliases[$name];
         };
         
         $table = $this->definition->getName();
@@ -1362,10 +1350,39 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $w = $this->where;
         $h = $this->having;
         $o = $this->order;
-        $g = $this->group;
         $j = array_map(function ($v) {
             return clone $v;
         }, $this->joins);
+
+        foreach ($this->withr as $k => $relation) {
+            if ($this->definition->hasRelation($k)) {
+                continue;
+            }
+            foreach ($w as $kk => $v) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
+                    $w[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $v[0]);
+                }
+            }
+            foreach ($h as $kk => $v) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
+                    $h[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $v[0]);
+                }
+            }
+            if (isset($o[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $o[0])) {
+                $o[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $o[0]);
+            }
+            foreach ($j as $kk => $v) {
+                foreach ($v->keymap as $kkk => $vv) {
+                    if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv)) {
+                        $j[$kk]->keymap[$kkk] = preg_replace(
+                            '(\b'.preg_quote($k . '.'). ')i',
+                            $getAlias($k) . '.',
+                            $vv
+                        );
+                    }
+                }
+            }
+        }
         foreach ($this->definition->getRelations() as $k => $v) {
             foreach ($w as $kk => $vv) {
                 if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv[0])) {
@@ -1384,16 +1401,38 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                     $h[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vv[0]);
                 }
             }
-            if (isset($g[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $g[0])) {
-                $relations[$k] = [ $v, $table ];
-                $g[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $g[0]);
-            }
             foreach ($j as $kk => $vv) {
                 foreach ($vv->keymap as $kkk => $vvv) {
                     if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vvv)) {
                         $relations[$k] = [ $v, $table ];
                         $j[$kk]->keymap[$kkk] =
                             preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $vvv);
+                    }
+                }
+            }
+        }
+        foreach ($aliases_ext as $k => $alias) {
+            foreach ($w as $kk => $v) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
+                    $w[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $alias . '.', $v[0]);
+                }
+            }
+            foreach ($h as $kk => $v) {
+                if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
+                    $h[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $alias . '.', $v[0]);
+                }
+            }
+            if (isset($o[0]) && preg_match('(\b'.preg_quote($k . '.'). ')i', $o[0])) {
+                $o[0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $alias . '.', $o[0]);
+            }
+            foreach ($j as $kk => $v) {
+                foreach ($v->keymap as $kkk => $vv) {
+                    if (preg_match('(\b'.preg_quote($k . '.'). ')i', $vv)) {
+                        $j[$kk]->keymap[$kkk] = preg_replace(
+                            '(\b'.preg_quote($k . '.'). ')i',
+                            $alias . '.',
+                            $vv
+                        );
                     }
                 }
             }
@@ -1523,7 +1562,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             return count($v) === 1 ? array_values($v)[0] : $v;
         }, $this->db->all($sql, $par, null, false, false));
     }
-    public function find($primary)
+    public function find(mixed $primary): mixed
     {
         $columns = $this->definition->getPrimaryKey();
         if (!count($columns)) {

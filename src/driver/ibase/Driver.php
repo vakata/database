@@ -11,8 +11,8 @@ use \vakata\database\schema\TableRelation;
 
 class Driver extends DriverAbstract implements DriverInterface
 {
-    protected $lnk = null;
-    protected $transaction = null;
+    protected mixed $lnk = null;
+    protected mixed $transaction = null;
 
     public function __construct(array $connection)
     {
@@ -27,7 +27,7 @@ class Driver extends DriverAbstract implements DriverInterface
     {
         $this->disconnect();
     }
-    public function connect()
+    public function connect(): void
     {
         $this->lnk = call_user_func(
             $this->option('persist') ? '\ibase_pconnect' : '\ibase_connect',
@@ -53,18 +53,18 @@ class Driver extends DriverAbstract implements DriverInterface
             return false;
         }
     }
-    public function disconnect()
+    public function disconnect(): void
     {
         if (is_resource($this->lnk)) {
             \ibase_close($this->lnk);
         }
     }
-    public function raw(string $sql)
+    public function raw(string $sql): mixed
     {
         $this->connect();
         return \ibase_query($this->lnk, $sql);
     }
-    public function prepare(string $sql, ?string $name = null) : StatementInterface
+    public function prepare(string $sql, ?string $name = null): StatementInterface
     {
         $this->connect();
         $statement = \ibase_prepare($this->transaction !== null ? $this->transaction : $this->lnk, $sql);
@@ -113,7 +113,7 @@ class Driver extends DriverAbstract implements DriverInterface
         return true;
     }
 
-    public function isTransaction()
+    public function isTransaction(): bool
     {
         return $this->transaction !== null;
     }

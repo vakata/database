@@ -9,11 +9,11 @@ use \vakata\database\DBException;
  */
 class Table
 {
-    protected $data = [];
+    protected array $data = [];
     /**
      * @var TableRelation[]
      */
-    protected $relations = [];
+    protected array $relations = [];
 
     /**
      * Create a new instance
@@ -33,7 +33,7 @@ class Table
      * Get the table comment
      * @return string  the table comment
      */
-    public function getComment()
+    public function getComment(): string
     {
         return $this->data['comment'];
     }
@@ -42,7 +42,7 @@ class Table
      * @param  string    $comment     the table comment
      * @return $this
      */
-    public function setComment(string $comment)
+    public function setComment(string $comment): static
     {
         $this->data['comment'] = $comment;
         return $this;
@@ -51,9 +51,9 @@ class Table
      * Add a column to the definition
      * @param  string    $column     the column name
      * @param  array     $definition optional array of data associated with the column
-     * @return  self
+     * @return  static
      */
-    public function addColumn(string $column, array $definition = []) : Table
+    public function addColumn(string $column, array $definition = []): static
     {
         $this->data['columns'][$column] = TableColumn::fromArray($column, $definition);
         return $this;
@@ -61,9 +61,9 @@ class Table
     /**
      * Add columns to the definition
      * @param  array      $columns key - value pairs, where each key is a column name and each value - array of info
-     * @return  self
+     * @return  static
      */
-    public function addColumns(array $columns) : Table
+    public function addColumns(array $columns): static
     {
         foreach ($columns as $column => $definition) {
             if (is_numeric($column) && is_string($definition)) {
@@ -77,9 +77,9 @@ class Table
     /**
      * Set the primary key
      * @param  array|string        $column either a single column name or an array of column names
-     * @return  self
+     * @return  static
      */
-    public function setPrimaryKey($column) : Table
+    public function setPrimaryKey(array|string $column): static
     {
         if (!is_array($column)) {
             $column = [ $column ];
@@ -91,7 +91,7 @@ class Table
      * Get the table schema
      * @return string  the table name
      */
-    public function getSchema()
+    public function getSchema(): string
     {
         return $this->data['schema'];
     }
@@ -99,7 +99,7 @@ class Table
      * Get the table name
      * @return string  the table name
      */
-    public function getName()
+    public function getName(): string
     {
         return $this->data['name'];
     }
@@ -107,16 +107,16 @@ class Table
      * Get the table name with the schema if available
      * @return string  the table name
      */
-    public function getFullName()
+    public function getFullName(): string
     {
         return ($this->data['schema'] ? $this->data['schema'] . '.' : '') . $this->data['name'];
     }
     /**
      * Get a column definition
      * @param  string    $column the column name to search for
-     * @return array|null the column details or `null` if the column does not exist
+     * @return ?TableColumn the column details or `null` if the column does not exist
      */
-    public function getColumn($column)
+    public function getColumn(string $column): ?TableColumn
     {
         return $this->data['columns'][$column] ?? null;
     }
@@ -124,7 +124,7 @@ class Table
      * Get all column names
      * @return array     array of strings, where each element is a column name
      */
-    public function getColumns()
+    public function getColumns(): array
     {
         return array_keys($this->data['columns']);
     }
@@ -132,7 +132,7 @@ class Table
      * Get all column definitions
      * @return array         key - value pairs, where each key is a column name and each value - the column data
      */
-    public function getFullColumns()
+    public function getFullColumns(): array
     {
         return $this->data['columns'];
     }
@@ -140,7 +140,7 @@ class Table
      * Get the primary key columns
      * @return array        array of column names
      */
-    public function getPrimaryKey()
+    public function getPrimaryKey(): array
     {
         return $this->data['primary'];
     }
@@ -156,10 +156,10 @@ class Table
     public function hasOne(
         Table $toTable,
         string $name = null,
-        $toTableColumn = null,
+        string|array|null $toTableColumn = null,
         string $sql = null,
         array $par = []
-    ) : Table {
+    ) : static {
         $columns = $toTable->getColumns();
 
         $keymap = [];
@@ -210,10 +210,10 @@ class Table
     public function hasMany(
         Table $toTable,
         string $name = null,
-        $toTableColumn = null,
-        $sql = null,
+        string|array|null $toTableColumn = null,
+        ?string $sql = null,
         array $par = []
-    ) : Table {
+    ): static {
         $columns = $toTable->getColumns();
 
         $keymap = [];
@@ -264,10 +264,10 @@ class Table
     public function belongsTo(
         Table $toTable,
         string $name = null,
-        $localColumn = null,
-        $sql = null,
+        string|array|null $localColumn = null,
+        ?string $sql = null,
         array $par = []
-    ) : Table {
+    ): static {
         $columns = $this->getColumns();
 
         $keymap = [];
@@ -318,10 +318,10 @@ class Table
     public function manyToMany(
         Table $toTable,
         Table $pivot,
-        $name = null,
-        $toTableColumn = null,
-        $localColumn = null
-    ) : Table {
+        ?string $name = null,
+        string|array|null $toTableColumn = null,
+        string|array|null $localColumn = null
+    ): static {
         $pivotColumns = $pivot->getColumns();
 
         $keymap = [];
@@ -385,7 +385,7 @@ class Table
      * @param  string|null       $name          optional name of the relation (defaults to the related table name)
      * @return $this
      */
-    public function addRelation(TableRelation $relation, string $name = null)
+    public function addRelation(TableRelation $relation, ?string $name = null): static
     {
         $name = $name ?? $relation->name;
         $relation->name = $name;
@@ -396,7 +396,7 @@ class Table
      * Does the definition have related tables
      * @return boolean
      */
-    public function hasRelations() : bool
+    public function hasRelations(): bool
     {
         return count($this->relations) > 0;
     }
@@ -404,7 +404,7 @@ class Table
      * Get all relation definitions
      * @return TableRelation[]       the relation definitions
      */
-    public function getRelations() : array
+    public function getRelations(): array
     {
         return $this->relations;
     }
@@ -413,26 +413,26 @@ class Table
      * @param  string      $name the name to search for
      * @return boolean           does the relation exist
      */
-    public function hasRelation(string $name) : bool
+    public function hasRelation(string $name): bool
     {
         return isset($this->relations[$name]);
     }
     /**
      * Get a relation by name
      * @param  string      $name      the name to search for
-     * @return TableRelation          the relation definition
+     * @return ?TableRelation          the relation definition
      */
-    public function getRelation(string $name)
+    public function getRelation(string $name): ?TableRelation
     {
-        return $this->relations[$name];
+        return $this->relations[$name] ?? null;
     }
     /**
      * Rename a relation
      * @param  string      $name the name to search for
      * @param  string      $new  the new name for the relation
-     * @return mixed       the relation definition
+     * @return ?TableRelation       the relation definition
      */
-    public function renameRelation(string $name, string $new)
+    public function renameRelation(string $name, string $new): ?TableRelation
     {
         if (!isset($this->relations[$name])) {
             throw new DBException("Relation not found");
@@ -446,7 +446,7 @@ class Table
         unset($this->relations[$name]);
         return $this->relations[$new] ?? null;
     }
-    public function toLowerCase()
+    public function toLowerCase(): static
     {
         $this->data['name'] = strtolower($this->data['name']);
         $temp = [];

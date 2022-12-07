@@ -122,7 +122,9 @@ class TableColumn
         $type = strtolower($type);
         if (strpos($type, 'enum') !== false || strpos($type, 'set') !== false) {
             $this->btype = 'enum';
-        } elseif (strpos($type, 'text') !== false || strpos($type, 'char') !== false) {
+        } elseif (strpos($type, 'json') !== false) {
+            $this->btype = 'json';
+        }  elseif (strpos($type, 'text') !== false || strpos($type, 'char') !== false) {
             $this->btype = 'text';
         } elseif (strpos($type, 'int') !== false || strpos($type, 'bit') !== false) {
             $this->btype = 'int';

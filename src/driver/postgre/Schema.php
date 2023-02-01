@@ -197,7 +197,11 @@ trait Schema
                     }
                     $orig = $relname;
                     $cntr = 1;
-                    while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
+                    while (
+                        $definition->hasRelation($relname) ||
+                        $definition->getName() == $relname ||
+                        $definition->getColumn($relname)
+                    ) {
                         $relname = $orig . '_' . (++ $cntr);
                     }
                     $definition->addRelation(
@@ -218,7 +222,11 @@ trait Schema
                     }
                     $orig = $relname;
                     $cntr = 1;
-                    while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
+                    while (
+                        $definition->hasRelation($relname) ||
+                        $definition->getName() == $relname ||
+                        $definition->getColumn($relname)
+                    ) {
                         $relname = $orig . '_' . (++ $cntr);
                     }
                     $definition->addRelation(
@@ -248,7 +256,11 @@ trait Schema
                 }
                 $orig = $relname;
                 $cntr = 1;
-                while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
+                while (
+                    $definition->hasRelation($relname) ||
+                    $definition->getName() == $relname ||
+                    $definition->getColumn($relname)
+                ) {
                     $relname = $orig . '_' . (++ $cntr);
                 }
                 $definition->addRelation(

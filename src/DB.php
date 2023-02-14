@@ -303,6 +303,11 @@ class DB implements DBInterface
             $this->tables[$table] :
             $this->driver->table($table, $detectRelations);
     }
+
+    public function hasSchema(): bool
+    {
+        return count($this->tables) !== 0;
+    }
     /**
      * Parse all tables from the database.
      * @return $this

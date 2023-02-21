@@ -15,6 +15,7 @@ class Result implements ResultInterface
     protected mixed $driver = null;
     protected mixed $iid = null;
     protected int $aff = 0;
+    protected array $types = [];
 
     public function __construct(mixed $statement, mixed $driver, int $aff)
     {
@@ -77,9 +78,44 @@ class Result implements ResultInterface
     {
         $this->fetched ++;
         $this->last = \pg_fetch_array($this->statement, null, \PGSQL_ASSOC)?:null;
+        if (is_array($this->last) && count($this->last)) {
+            $this->cast();
+        }
     }
     public function valid(): bool
     {
         return !!$this->last;
+    }
+
+    protected function cast()
+    {
+        if (!count($this->types)) {
+            foreach (array_keys($this->last) as $k => $v) {
+                $this->types[$v] = \pg_field_type($this->statement, $k);
+            }
+        }
+        foreach ($this->last as $k => $v) {
+            if (is_null($v) || !isset($this->types[$k])) {
+                continue;
+            }
+            switch ($this->types[$k]) {
+                case 'int2':
+                case 'int4':
+                case 'int8':
+                    $this->last[$k] = (int)$v;
+                    break;
+                case 'bit':
+                case 'bool':
+                    $this->last[$k] = $v !== 'f' && (int)$v ? true : false;
+                    break;
+                case 'float4':
+                case 'float8':
+                    $this->last[$k] = (float)$v;
+                case 'money':
+                case 'numeric':
+                    // TODO:
+                    break;
+            }
+        }
     }
 }

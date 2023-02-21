@@ -12,6 +12,7 @@ class Result implements ResultInterface
     protected mixed $statement;
     protected ?array $last = null;
     protected int $fetched = -1;
+    protected array $types = [];
 
     public function __construct(mixed $statement)
     {
@@ -66,9 +67,37 @@ class Result implements ResultInterface
     {
         $this->fetched ++;
         $this->last = \oci_fetch_array($this->statement, \OCI_ASSOC + \OCI_RETURN_NULLS + \OCI_RETURN_LOBS)?:null;
+        $this->cast();
     }
     public function valid(): bool
     {
         return !!$this->last;
+    }
+    protected function cast()
+    {
+        if (!count($this->types)) {
+            foreach (array_keys($this->last) as $k => $v) {
+                $this->types[$v] = \oci_field_type($this->statement, $k + 1);
+                if ($this->types[$v] === 'NUMBER') {
+                    $size = \oci_field_size($this->statement, $k + 1);
+                    if ((int)(explode(',', $size, 2)[1] ?? '') > 0) {
+                        $this->types[$v] === 'FLOAT';
+                    }
+                }
+            }
+        }
+        foreach ($this->last as $k => $v) {
+            if (is_null($v) || !isset($this->types[$k])) {
+                continue;
+            }
+            switch ($this->types[$k]) {
+                case 'NUMBER':
+                    $this->last[$k] = (int)$v;
+                    break;
+                case 'FLOAT':
+                    $this->last[$k] = (float)$v;
+                    break;
+            }
+        }
     }
 }

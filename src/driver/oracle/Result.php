@@ -89,7 +89,17 @@ class Result implements ResultInterface
             }
         }
         foreach ($this->last as $k => $v) {
-            if (is_null($v) || !isset($this->types[$k])) {
+            if (!isset($this->types[$k])) {
+                continue;
+            }
+            if (
+                is_null($v) &&
+                (strpos($this->types[$k], 'CHAR') !== false || strpos($this->types[$k], 'CLOB') !== false)
+            ) {
+                $this->last[$k] = '';
+                continue;
+            }
+            if (is_null($v)) {
                 continue;
             }
             switch ($this->types[$k]) {

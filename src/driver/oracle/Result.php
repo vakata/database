@@ -67,7 +67,9 @@ class Result implements ResultInterface
     {
         $this->fetched ++;
         $this->last = \oci_fetch_array($this->statement, \OCI_ASSOC + \OCI_RETURN_NULLS + \OCI_RETURN_LOBS)?:null;
-        $this->cast();
+        if (is_array($this->last) && count($this->last)) {
+            $this->cast();
+        }
     }
     public function valid(): bool
     {

@@ -299,8 +299,9 @@ class DB implements DBInterface
 
     public function definition(string $table, bool $detectRelations = true) : Table
     {
-        return isset($this->tables[$table]) ?
-            $this->tables[$table] :
+        return $this->tables[$table] ??
+            $this->tables[strtoupper($table)] ??
+            $this->tables[strtolower($table)] ??
             $this->driver->table($table, $detectRelations);
     }
 

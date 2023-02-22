@@ -306,7 +306,7 @@ trait Schema
                 return $new;
             })
             ->mapKey(function ($v) {
-                return $v['TABLE_NAME'];
+                return strtolower($v['TABLE_NAME']);
             })
             ->pluck('TABLE_NAME')
             ->map(function ($v) {

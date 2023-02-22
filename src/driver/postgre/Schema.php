@@ -283,7 +283,7 @@ trait Schema
                 [ $this->connection['opts']['schema'] ?? 'public', $this->connection['name'] ]
             ))
             ->mapKey(function ($v) {
-                return $v['table_name'];
+                return strtolower($v['table_name']);
             })
             ->pluck('table_name')
             ->map(function ($v) {

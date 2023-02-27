@@ -264,7 +264,7 @@ trait Schema
                 );
             }
         }
-        return $definition->toLowerCase();
+        return $definition;
     }
     public function tables() : array
     {
@@ -285,7 +285,7 @@ trait Schema
             })
             ->pluck('TABLE_NAME')
             ->map(function (string $v): Table {
-                return $this->table($v);
+                return $this->table($v)->toLowerCase();
             })
             ->toArray();
         foreach (array_keys($tables) as $k) {

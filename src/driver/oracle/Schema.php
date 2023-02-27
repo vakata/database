@@ -289,7 +289,7 @@ trait Schema
                 );
             }
         }
-        return $definition->toLowerCase();
+        return $definition;
     }
     public function tables() : array
     {
@@ -310,7 +310,7 @@ trait Schema
             })
             ->pluck('TABLE_NAME')
             ->map(function ($v) {
-                return $this->table($v);
+                return $this->table($v)->toLowerCase();
             })
             ->toArray();
     }

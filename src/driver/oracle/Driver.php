@@ -71,7 +71,10 @@ class Driver extends DriverAbstract implements DriverInterface
         if ($log) {
             $tm = microtime(true);
         }
-        $res = \oci_execute(\oci_parse($this->lnk, $sql)?:throw new \Exception());
+        $res = \oci_execute(
+            \oci_parse($this->lnk, $sql) ?: throw new \Exception(),
+            $this->transaction ? \OCI_NO_AUTO_COMMIT : \OCI_COMMIT_ON_SUCCESS
+        );
         if ($log) {
             $tm = microtime(true) - $tm;
             if ($tm >= (float)$this->option('log_slow', 0)) {

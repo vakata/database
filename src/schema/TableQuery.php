@@ -227,9 +227,43 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $negate = true;
             $value = $value['not'];
         }
-        if (is_array($value) && count($value) === 1 && isset($value['like'])) {
-            $value = $value['like'];
-            // str_replace(['%', '_'], ['\\%','\\_'], $q)
+        if (
+            is_array($value) &&
+            count($value) === 1 &&
+            (isset($value['like']) || isset($value['ilike']) || isset($value['contains']) || isset($value['icontains']))
+        ) {
+            if ($column->getBasicType() !== 'text') {
+                switch ($this->db->driverName()) {
+                    case 'oracle':
+                        $name = 'CAST(' . $name . ' AS NVARCHAR(500))';
+                        break;
+                    case 'postgre':
+                        $name = $name.'::text';
+                        break;
+                }
+            }
+            $mode = array_keys($value)[0];
+            $value = str_replace(['%', '_'], ['\\%','\\_'], array_values($value)[0]) . '%';
+            if ($mode === 'contains' || $mode === 'icontains') {
+                $value = '%' . $value;
+            }
+            if ($mode === 'icontains' || $mode === 'ilike') {
+                $value = mb_strtoupper($value);
+                $name = 'UPPER(' . $name . ')';
+            }
+            return $negate ?
+                [
+                    $name . ' NOT LIKE ?',
+                    [ (string)$value ]
+                ] :
+                [
+                    $name . ' LIKE ?',
+                    [ (string)$value ]
+                ];
+        }
+        if (is_array($value) && count($value) === 1 && isset($value['contains'])) {
+            $value = $value['contains'];
+            $value = '%' . str_replace(['%', '_'], ['\\%','\\_'], $value) . '%';
             return $negate ?
                 [
                     $name . ' NOT LIKE ?',

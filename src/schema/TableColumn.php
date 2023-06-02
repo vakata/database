@@ -47,7 +47,7 @@ class TableColumn
         if (isset($data['default'])) {
             $instance->setDefault($data['default']);
         }
-        if (isset($data['length'])) {
+        if (isset($data['length']) && $data['length'] !== 0) {
             $instance->setLength($data['length']);
         }
         if ($instance->getBasicType() === 'enum' && strpos($instance->getType(), 'enum(') === 0) {
@@ -167,7 +167,7 @@ class TableColumn
     }
     public function hasLength(): bool
     {
-        return $this->length !== null;
+        return $this->length !== null && $this->length !== 0;
     }
     public function getLength(): int
     {

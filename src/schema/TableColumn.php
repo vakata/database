@@ -129,7 +129,10 @@ class TableColumn
             $this->btype = 'json';
         }  elseif (strpos($type, 'text') !== false || strpos($type, 'char') !== false) {
             $this->btype = 'text';
-        } elseif (strpos($type, 'int') !== false || strpos($type, 'bit') !== false) {
+        } elseif (strpos($type, 'int') !== false ||
+            strpos($type, 'bit') !== false ||
+            strpos($type, 'number') !== false
+        ) {
             $this->btype = 'int';
         } elseif (strpos($type, 'float') !== false ||
             strpos($type, 'double') !== false ||

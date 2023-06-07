@@ -80,7 +80,7 @@ class TableColumn
                 $instance->setDefault(null);
             }
         }
-        if ($instance->getBasicType() === 'text' && isset($data['CHAR_LENGTH'])) {
+        if ($instance->getBasicType() === 'text' && isset($data['CHAR_LENGTH']) && (int)$data['CHAR_LENGTH']) {
             $instance->setLength($data['CHAR_LENGTH']);
         }
         return $instance;

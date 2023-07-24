@@ -48,7 +48,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     }
     public function __clone()
     {
-        $this->reset();
+        $this->qiterator = null;
     }
     /**
      * Get the table definition of the queried table
@@ -496,6 +496,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      */
     public function join($table, array $fields, string $name = null, bool $multiple = true)
     {
+        $this->qiterator = null;
         $table = $table instanceof Table ? $table : $this->db->definition((string)$table);
         $name = $name ?? $table->getName();
         if (isset($this->joins[$name]) || $this->definition->hasRelation($name)) {
@@ -782,6 +783,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      */
     public function columns(array $fields, bool $addPrimary = true) : self
     {
+        $this->qiterator = null;
         foreach ($fields as $k => $v) {
             if (strpos($v, '*') !== false) {
                 $temp = explode('.', $v);

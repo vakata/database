@@ -62,11 +62,13 @@ class Driver extends DriverAbstract implements DriverInterface
     public function raw(string $sql): mixed
     {
         $this->connect();
+        $this->softDetect($sql);
         return \ibase_query($this->lnk, $sql);
     }
     public function prepare(string $sql, ?string $name = null): StatementInterface
     {
         $this->connect();
+        $this->softDetect($sql);
         $statement = \ibase_prepare($this->transaction !== null ? $this->transaction : $this->lnk, $sql);
         if ($statement === false) {
             throw new DBException('Prepare error: ' . \ibase_errmsg());
@@ -80,6 +82,9 @@ class Driver extends DriverAbstract implements DriverInterface
     public function begin() : bool
     {
         $this->connect();
+        if ($this->softTransaction === 1) {
+            $this->softTransaction = 0;
+        }
         $this->transaction = \ibase_trans($this->lnk);
         if ($this->transaction === false) {
             $this->transaction === null;
@@ -89,6 +94,9 @@ class Driver extends DriverAbstract implements DriverInterface
     public function commit() : bool
     {
         $this->connect();
+        if ($this->softTransaction) {
+            $this->softTransaction = 0;
+        }
         if ($this->transaction === null) {
             return false;
         }
@@ -102,6 +110,9 @@ class Driver extends DriverAbstract implements DriverInterface
     public function rollback() : bool
     {
         $this->connect();
+        if ($this->softTransaction) {
+            $this->softTransaction = 0;
+        }
         if ($this->transaction === null) {
             return false;
         }

@@ -29,9 +29,9 @@ interface DBInterface
         bool $opti = true
     ) : Collection;
 
-    public function begin() : DBInterface;
-    public function commit() : DBInterface;
-    public function rollback() : DBInterface;
+    public function begin(bool $soft = false) : DBInterface;
+    public function commit(bool $soft = false) : DBInterface;
+    public function rollback(bool $soft = false) : DBInterface;
     public function driver() : DriverInterface;
     public function driverName() : string;
     public function driverOption(string $key, mixed $default = null): mixed;

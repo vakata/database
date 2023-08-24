@@ -70,6 +70,7 @@ class Driver extends DriverAbstract implements DriverInterface
     public function prepare(string $sql, ?string $name = null) : StatementInterface
     {
         $this->connect();
+        $this->softDetect($sql);
         return new Statement(
             $sql,
             $this->lnk,
@@ -80,11 +81,15 @@ class Driver extends DriverAbstract implements DriverInterface
     public function raw(string $sql): mixed
     {
         $this->connect();
+        $this->softDetect($sql);
         return \odbc_exec($this->lnk, $sql);
     }
     public function begin() : bool
     {
         $this->connect();
+        if ($this->softTransaction === 1) {
+            $this->softTransaction = 0;
+        }
         $this->transaction = true;
         \odbc_autocommit($this->lnk, false);
         return true;
@@ -92,6 +97,9 @@ class Driver extends DriverAbstract implements DriverInterface
     public function commit() : bool
     {
         $this->connect();
+        if ($this->softTransaction) {
+            $this->softTransaction = 0;
+        }
         $this->transaction = false;
         $res = \odbc_commit($this->lnk);
         \odbc_autocommit($this->lnk, false);
@@ -100,6 +108,9 @@ class Driver extends DriverAbstract implements DriverInterface
     public function rollback() : bool
     {
         $this->connect();
+        if ($this->softTransaction) {
+            $this->softTransaction = 0;
+        }
         $this->transaction = false;
         $res = \odbc_rollback($this->lnk);
         \odbc_autocommit($this->lnk, false);

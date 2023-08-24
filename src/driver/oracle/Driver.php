@@ -67,6 +67,7 @@ class Driver extends DriverAbstract implements DriverInterface
     public function raw(string $sql): mixed
     {
         $this->connect();
+        $this->softDetect($sql);
         $log = $this->option('log_file');
         if ($log) {
             $tm = microtime(true);
@@ -92,6 +93,7 @@ class Driver extends DriverAbstract implements DriverInterface
     public function prepare(string $sql, ?string $name = null) : StatementInterface
     {
         $this->connect();
+        $this->softDetect($sql);
         $binder = '?';
         if (strpos($sql, $binder) !== false) {
             $tmp = explode($binder, $sql);
@@ -116,11 +118,17 @@ class Driver extends DriverAbstract implements DriverInterface
 
     public function begin() : bool
     {
-         return $this->transaction = true;
+        if ($this->softTransaction === 1) {
+            $this->softTransaction = 0;
+        }
+        return $this->transaction = true;
     }
     public function commit() : bool
     {
         $this->connect();
+        if ($this->softTransaction) {
+            $this->softTransaction = 0;
+        }
         if (!$this->transaction) {
             return false;
         }
@@ -133,6 +141,9 @@ class Driver extends DriverAbstract implements DriverInterface
     public function rollback() : bool
     {
         $this->connect();
+        if ($this->softTransaction) {
+            $this->softTransaction = 0;
+        }
         if (!$this->transaction) {
             return false;
         }

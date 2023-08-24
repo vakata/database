@@ -86,11 +86,13 @@ class Driver extends DriverAbstract implements DriverInterface
     public function raw(string $sql): mixed
     {
         $this->connect();
+        $this->softDetect($sql);
         return $this->lnk->query($sql);
     }
     public function prepare(string $sql, ?string $name = null) : StatementInterface
     {
         $this->connect();
+        $this->softDetect($sql);
         try {
             return new Statement($this->lnk->prepare($sql), $this->lnk);
         } catch (\PDOException $e) {
@@ -101,16 +103,25 @@ class Driver extends DriverAbstract implements DriverInterface
     public function begin() : bool
     {
         $this->connect();
+        if ($this->softTransaction === 1) {
+            $this->softTransaction = 0;
+        }
         return $this->lnk->beginTransaction();
     }
     public function commit() : bool
     {
         $this->connect();
+        if ($this->softTransaction) {
+            $this->softTransaction = 0;
+        }
         return $this->lnk->commit();
     }
     public function rollback() : bool
     {
         $this->connect();
+        if ($this->softTransaction) {
+            $this->softTransaction = 0;
+        }
         return $this->lnk->rollback();
     }
 

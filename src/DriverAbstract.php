@@ -7,6 +7,7 @@ use \vakata\database\schema\Table;
 abstract class DriverAbstract implements DriverInterface
 {
     protected array $connection;
+    protected int $softTransaction = 0;
     
     protected function expand(string $sql, mixed $par = null): array
     {
@@ -41,6 +42,7 @@ abstract class DriverAbstract implements DriverInterface
      */
     public function query(string $sql, mixed $par = null, bool $buff = true): ResultInterface
     {
+        $this->softDetect($sql);
         $par = isset($par) ? (is_array($par) ? $par : [$par]) : [];
         if (strpos($sql, '??') && count($par)) {
             list($sql, $par) = $this->expand($sql, $par);
@@ -59,6 +61,9 @@ abstract class DriverAbstract implements DriverInterface
     public function begin() : bool
     {
         $this->connect();
+        if ($this->softTransaction === 1) {
+            $this->softTransaction = 0;
+        }
         try {
             $this->query("START TRANSACTION");
             return true;
@@ -68,6 +73,9 @@ abstract class DriverAbstract implements DriverInterface
     }
     public function commit() : bool
     {
+        if ($this->softTransaction) {
+            $this->softTransaction = 0;
+        }
         try {
             $this->query("COMMIT");
             return true;
@@ -77,6 +85,9 @@ abstract class DriverAbstract implements DriverInterface
     }
     public function rollback() : bool
     {
+        if ($this->softTransaction) {
+            $this->softTransaction = 0;
+        }
         try {
             $this->query("ROLLBACK");
             return true;
@@ -84,9 +95,40 @@ abstract class DriverAbstract implements DriverInterface
             return false;
         }
     }
+
+    public function softBegin(): void
+    {
+        if (!property_exists($this, 'transaction') || !$this->{'transaction'}) {
+            $this->softTransaction = max($this->softTransaction, 1);
+        }
+    }
+    public function softCommit(): void
+    {
+        if ($this->softTransaction > 1) {
+            $this->commit();
+        }
+    }
+    public function softRollback(): void
+    {
+        if ($this->softTransaction > 1) {
+            $this->rollback();
+        }
+    }
+    public function softDetect(string $sql): void
+    {
+        if ($this->softTransaction === 1 && preg_match('(^(BEGIN|ROLLBACK|COMMIT))i', $sql)) {
+            $this->softTransaction = 0;
+        }
+        if ($this->softTransaction === 1 && preg_match('(^(INSERT|UPDATE|DELETE|REPLACE) )i', $sql)) {
+            $this->softTransaction = 2;
+            $this->begin();
+        }
+    }
+
     public function raw(string $sql): mixed
     {
         $this->connect();
+        $this->softDetect($sql);
         return $this->query($sql);
     }
     

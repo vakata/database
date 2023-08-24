@@ -74,11 +74,13 @@ class Driver extends MysqlDriver implements DriverInterface
     public function prepare(string $sql, ?string $name = null) : StatementInterface
     {
         $this->connect();
+        $this->softDetect($sql);
         return new Statement($this->lnk, $sql);
     }
     public function raw(string $sql): mixed
     {
         $this->connect();
+        $this->softDetect($sql);
         $log = $this->option('log_file');
         if ($log) {
             $tm = microtime(true);
@@ -101,16 +103,25 @@ class Driver extends MysqlDriver implements DriverInterface
     public function begin() : bool
     {
         $this->connect();
+        if ($this->softTransaction === 1) {
+            $this->softTransaction = 0;
+        }
         return $this->lnk->begin_transaction();
     }
     public function commit() : bool
     {
         $this->connect();
+        if ($this->softTransaction) {
+            $this->softTransaction = 0;
+        }
         return $this->lnk->commit();
     }
     public function rollback() : bool
     {
         $this->connect();
+        if ($this->softTransaction) {
+            $this->softTransaction = 0;
+        }
         return $this->lnk->rollback();
     }
 }

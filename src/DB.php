@@ -248,10 +248,13 @@ class DB implements DBInterface
      * Begin a transaction.
      * @return $this
      */
-    public function begin() : DBInterface
+    public function begin(bool $soft = false) : DBInterface
     {
-        if (!$this->driver->begin()) {
+        if (!$soft && !$this->driver->begin()) {
             throw new DBException('Could not begin');
+        }
+        if ($soft) {
+            $this->driver->softBegin();
         }
         return $this;
     }
@@ -259,10 +262,13 @@ class DB implements DBInterface
      * Commit a transaction.
      * @return $this
      */
-    public function commit() : DBInterface
+    public function commit(bool $soft = false) : DBInterface
     {
-        if (!$this->driver->commit()) {
+        if (!$soft && !$this->driver->commit()) {
             throw new DBException('Could not commit');
+        }
+        if ($soft) {
+            $this->driver->softCommit();
         }
         return $this;
     }
@@ -270,10 +276,13 @@ class DB implements DBInterface
      * Rollback a transaction.
      * @return $this
      */
-    public function rollback() : DBInterface
+    public function rollback(bool $soft = false) : DBInterface
     {
-        if (!$this->driver->rollback()) {
+        if (!$soft && !$this->driver->rollback()) {
             throw new DBException('Could not rollback');
+        }
+        if ($soft) {
+            $this->driver->softRollback();
         }
         return $this;
     }

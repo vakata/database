@@ -41,7 +41,10 @@ class Driver extends DriverAbstract implements DriverInterface
             $this->query("ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY-MM-DD HH24:MI:SS'");
             $this->query("ALTER SESSION SET NLS_TIMESTAMP_FORMAT = 'YYYY-MM-DD HH24:MI:SS'");
             if ($timezone = $this->option('timezone')) {
-                $this->query("ALTER session SET time_zone = '".addslashes($timezone)."'");
+                $this->query("ALTER SESSION SET time_zone = '".addslashes($timezone)."'");
+            }
+            if ($schema = $this->option('schema')) {
+                $this->query("ALTER SESSION SET CURRENT_SCHEMA = " . $schema);
             }
         }
     }

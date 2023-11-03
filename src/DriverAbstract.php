@@ -107,12 +107,14 @@ abstract class DriverAbstract implements DriverInterface
         if ($this->softTransaction > 1) {
             $this->commit();
         }
+        $this->softTransaction = 0;
     }
     public function softRollback(): void
     {
         if ($this->softTransaction > 1) {
             $this->rollback();
         }
+        $this->softTransaction = 0;
     }
     public function softDetect(string $sql): void
     {

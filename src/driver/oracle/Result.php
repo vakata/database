@@ -67,7 +67,7 @@ class Result implements ResultInterface
     {
         $this->fetched ++;
         $this->last = \oci_fetch_array($this->statement, \OCI_ASSOC + \OCI_RETURN_NULLS + \OCI_RETURN_LOBS)?:null;
-        if (is_array($this->last) && count($this->last)) {
+        if (is_array($this->last)) {
             $this->cast();
         }
     }
@@ -75,25 +75,30 @@ class Result implements ResultInterface
     {
         return !!$this->last;
     }
-    protected function cast()
+    protected function cast(): void
     {
         if (!count($this->types)) {
-            foreach (array_keys($this->last) as $k => $v) {
+            foreach (array_keys($this->last??[]) as $k => $v) {
                 $this->types[$v] = \oci_field_type($this->statement, $k + 1);
                 if ($this->types[$v] === 'NUMBER') {
-                    $size = \oci_field_size($this->statement, $k + 1);
-                    if ((int)(explode(',', $size, 2)[1] ?? '') > 0) {
-                        $this->types[$v] === 'FLOAT';
+                    $scale = \oci_field_scale($this->statement, $k + 1);
+                    $precision = \oci_field_precision($this->statement, $k + 1);
+                    // true float
+                    if ((int)$scale === -127 && (int)$precision !== 0) {
+                        $this->types[$v] = 'FLOAT';
+                    }
+                    // TODO: decimal
+                    if ((int)$scale > 0) {
+                        $this->types[$v] = 'DECIMAL';
                     }
                 }
             }
         }
-        foreach ($this->last as $k => $v) {
+        foreach ($this->last??[] as $k => $v) {
             if (!isset($this->types[$k])) {
                 continue;
             }
-            if (
-                is_null($v) &&
+            if (is_null($v) &&
                 (strpos($this->types[$k], 'CHAR') !== false || strpos($this->types[$k], 'CLOB') !== false)
             ) {
                 $this->last[$k] = '';

@@ -38,7 +38,9 @@ class Statement implements StatementInterface
                         FILE_APPEND
                     );
                 }
-                throw new DBException('Could not prepare query : '.\pg_last_error($this->driver).' <'.$this->statement.'>');
+                throw new DBException(
+                    'Could not prepare query : '.\pg_last_error($this->driver).' <'.$this->statement.'>'
+                );
             }
         }
     }

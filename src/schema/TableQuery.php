@@ -227,8 +227,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $negate = true;
             $value = $value['not'];
         }
-        if (
-            is_array($value) &&
+        if (is_array($value) &&
             count($value) === 1 &&
             (isset($value['like']) || isset($value['ilike']) || isset($value['contains']) || isset($value['icontains']))
         ) {
@@ -259,19 +258,6 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 [
                     $name . ' LIKE ?',
                     [ (string)$value ]
-                ];
-        }
-        if (is_array($value) && count($value) === 1 && isset($value['contains'])) {
-            $value = $value['contains'];
-            $value = '%' . str_replace(['%', '_'], ['\\%','\\_'], $value) . '%';
-            return $negate ?
-                [
-                    $name . ' NOT LIKE ?',
-                    [ $this->normalizeValue($column, $value) ]
-                ] :
-                [
-                    $name . ' LIKE ?',
-                    [ $this->normalizeValue($column, $value) ]
                 ];
         }
         if (is_null($value)) {
@@ -711,7 +697,8 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
         if (count($used_relations)) {
             foreach ($relations as $k => $v) {
-                $table = $v[1] !== $this->definition->getName() && $v[1] !== $this->definition->getFullName() ? $getAlias($v[1]) : $v[1];
+                $table = $v[1] !== $this->definition->getName() && $v[1] !== $this->definition->getFullName() ?
+                    $getAlias($v[1]) : $v[1];
                 $v = $v[0];
                 if ($v->pivot) {
                     $alias = $getAlias($k.'_pivot');
@@ -1010,7 +997,8 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $par = [];
         $many = false;
         foreach ($relations as $relation => $v) {
-            $table = $v[1] !== $this->definition->getName() && $v[1] !== $this->definition->getFullName() ? $getAlias($v[1]) : $v[1];
+            $table = $v[1] !== $this->definition->getName() && $v[1] !== $this->definition->getFullName() ?
+                $getAlias($v[1]) : $v[1];
             $v = $v[0];
             if ($v->many || $v->pivot) {
                 $many = true;
@@ -1285,7 +1273,13 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $table = $this->definition;
         if ($table->hasRelation($relation)) {
             $temp = $table->getRelation($relation);
-            $this->withr[$relation] = [ $temp, $table->getName(), $select || ($this->withr[$relation][2] ?? false), $order, $desc ];
+            $this->withr[$relation] = [
+                $temp,
+                $table->getName(),
+                $select || ($this->withr[$relation][2] ?? false),
+                $order,
+                $desc
+            ];
         } else {
             $parts = explode('.', $relation);
             try {

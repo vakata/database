@@ -43,7 +43,10 @@ class Driver extends DriverAbstract implements DriverInterface
                 throw new DBException('Connect error');
             }
             if (isset($this->connection['opts']['search_path'])) {
-                @\pg_query($this->lnk, "SET search_path TO " . pg_escape_string($this->connection['opts']['search_path']));
+                @\pg_query(
+                    $this->lnk,
+                    "SET search_path TO " . pg_escape_string($this->connection['opts']['search_path'])
+                );
             }
             if (!isset($this->connection['opts']['search_path']) && isset($this->connection['opts']['schema'])) {
                 @\pg_query($this->lnk, "SET search_path TO " . pg_escape_string($this->connection['opts']['schema']));

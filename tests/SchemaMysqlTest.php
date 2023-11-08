@@ -6,6 +6,6 @@ class SchemaMysqlTest extends Schema
 {
     protected function getConnectionString()
     {
-        return "mysql://root@DESKTOP.local/test?charset=utf8";
+        return "mysql://root@".gethostname().".local/test?charset=utf8";
     }
 }

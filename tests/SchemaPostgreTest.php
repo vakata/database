@@ -6,6 +6,6 @@ class SchemaPostgreTest extends Schema
 {
     protected function getConnectionString()
     {
-        return "postgre://postgres:postgres@DESKTOP.local/test?schema=public";
+        return "postgre://postgres:postgres@".gethostname().".local/test?schema=public";
     }
 }

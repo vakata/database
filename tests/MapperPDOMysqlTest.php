@@ -9,7 +9,7 @@ class MapperPDOMysqlTest extends Mapper
 {
     protected function getConnectionString()
     {
-        return "pdo://root@mysql:host=DESKTOP.local;dbname=test?charset=utf8&schema=test";
+        return "pdo://root@mysql:host=".gethostname().".local;dbname=test?charset=utf8&schema=test";
     }
     protected function importFile(DBI $dbc, string $path)
     {

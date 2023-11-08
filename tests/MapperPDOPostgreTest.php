@@ -9,7 +9,7 @@ class MapperPDOPostgreTest extends Mapper
 {
     protected function getConnectionString()
     {
-        return "pdo://postgres:postgres@pgsql:host=DESKTOP.local;dbname=test?charset=utf8&schema=public";
+        return "pdo://postgres:postgres@pgsql:host=".gethostname().".local;dbname=test?charset=utf8&schema=public";
     }
     protected function importFile(DBI $dbc, string $path)
     {

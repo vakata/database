@@ -13,14 +13,8 @@ use \vakata\database\schema\TableRelation;
  */
 class DB implements DBInterface
 {
-    /**
-     * @var DriverInterface
-     */
     protected DriverInterface $driver;
-    /**
-     * @var Table[]
-     */
-    protected array $tables = [];
+    protected ?Schema $schema = null;
 
     /**
      * Create an instance.
@@ -73,7 +67,8 @@ class DB implements DBInterface
         $connection['user'] = isset($temp['user']) && strlen((string)$temp['user']) ? $temp['user'] : null;
         $connection['pass'] = isset($temp['pass']) && strlen((string)$temp['pass']) ? $temp['pass'] : null;
         $connection['host'] = isset($temp['host']) && strlen((string)$temp['host']) ? $temp['host'] : null;
-        $connection['name'] = isset($temp['path']) && strlen((string)$temp['path']) ? trim((string)$temp['path'], '/') : null;
+        $connection['name'] = isset($temp['path']) && strlen((string)$temp['path']) ?
+            trim((string)$temp['path'], '/') : null;
         $connection['port'] = isset($temp['port']) && (int)$temp['port'] ? (int)$temp['port'] : null;
         if (isset($temp['query']) && strlen((string)$temp['query'])) {
             parse_str((string)$temp['query'], $connection['opts']);
@@ -231,8 +226,13 @@ class DB implements DBInterface
      * @param bool     $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
      * @return array the result of the execution
      */
-    public function all(string $sql, mixed $par = null, string $key = null, bool $skip = false, bool $opti = true): array
-    {
+    public function all(
+        string $sql,
+        mixed $par = null,
+        string $key = null,
+        bool $skip = false,
+        bool $opti = true
+    ): array {
         return $this->get($sql, $par, $key, $skip, $opti, true)->toArray();
     }
     public function unbuffered(
@@ -308,15 +308,14 @@ class DB implements DBInterface
 
     public function definition(string $table, bool $detectRelations = true) : Table
     {
-        return $this->tables[$table] ??
-            $this->tables[strtoupper($table)] ??
-            $this->tables[strtolower($table)] ??
+        return isset($this->schema) ?
+            $this->schema->getTable($table) :
             $this->driver->table($table, $detectRelations);
     }
 
     public function hasSchema(): bool
     {
-        return count($this->tables) !== 0;
+        return isset($this->schema);
     }
     /**
      * Parse all tables from the database.
@@ -324,80 +323,26 @@ class DB implements DBInterface
      */
     public function parseSchema(): static
     {
-        $this->tables = $this->driver->tables();
+        $this->schema = new Schema($this->driver->tables());
         return $this;
     }
     /**
-     * Get the full schema as an array that you can serialize and store
-     * @return array
+     * Get the full schema objact that can be serialized and stored
      */
-    public function getSchema(bool $asPlainArray = true): array
+    public function getSchema(): Schema
     {
-        return !$asPlainArray ? $this->tables : array_map(function ($table) {
-            return [
-                'name' => $table->getName(),
-                'schema' => $table->getSchema(),
-                'pkey' => $table->getPrimaryKey(),
-                'comment' => $table->getComment(),
-                'columns' => array_map(function ($column) {
-                    return [
-                        'name' => $column->getName(),
-                        'type' => $column->getType(),
-                        'length' => $column->getLength(),
-                        'comment' => $column->getComment(),
-                        'values' => $column->getValues(),
-                        'default' => $column->getDefault(),
-                        'nullable' => $column->isNullable()
-                    ];
-                }, $table->getFullColumns()),
-                'relations' => array_map(function ($rel) {
-                    $relation = clone $rel;
-                    $relation = (array)$relation;
-                    $relation['table'] = $rel->table->getName();
-                    if ($rel->pivot) {
-                        $relation['pivot'] = $rel->pivot->getName();
-                    }
-                    return $relation;
-                }, $table->getRelations())
-            ];
-        }, $this->tables);
+        if (!isset($this->schema)) {
+            throw new DBException('No schema exists');
+        }
+        return $this->schema;
     }
     /**
-     * Load the schema data from a schema definition array (obtained from getSchema)
-     * @param  mixed        $data the schema definition
+     * Load the schema data from an object (obtained from getSchema)
      * @return $this
      */
-    public function setSchema($data): static
+    public function setSchema(Schema $schema): static
     {
-        if (!is_array($data)) {
-            $this->tables = \unserialize($data);
-            return $this;
-        }
-        foreach ($data as $tableData) {
-            $this->tables[$tableData['name']] = (new Table($tableData['name'], $tableData['schema']))
-                        ->setPrimaryKey($tableData['pkey'])
-                        ->setComment($tableData['comment'])
-                        ->addColumns($tableData['columns']);
-        }
-        foreach ($data as $tableData) {
-            $table = $this->definition($tableData['name']);
-            foreach ($tableData['relations'] as $relationName => $relationData) {
-                $relationData['table'] = $this->definition($relationData['table']);
-                if ($relationData['pivot']) {
-                    $relationData['pivot'] = $this->definition($relationData['pivot']);
-                }
-                $table->addRelation(new TableRelation(
-                    $relationData['name'],
-                    $relationData['table'],
-                    $relationData['keymap'],
-                    $relationData['many'],
-                    $relationData['pivot'] instanceof Table ? $relationData['pivot'] : null,
-                    $relationData['pivot_keymap'],
-                    $relationData['sql'],
-                    $relationData['par']
-                ));
-            }
-        }
+        $this->schema = $schema;
         return $this;
     }
 
@@ -430,11 +375,14 @@ class DB implements DBInterface
         $start = $this->definition($start)->getName();
         $end = $this->definition($end)->getName();
 
-        if (!$this->tables) {
+        if (!isset($this->schema)) {
             $this->parseSchema();
         }
+        if (!isset($this->schema)) {
+            throw new DBException('Could not parse schema');
+        }
         if (!count($schema)) {
-            foreach ($this->tables as $table) {
+            foreach ($this->schema->getTables() as $table) {
                 $name = $table->getName();
 
                 $relations = [];
@@ -495,7 +443,7 @@ class DB implements DBInterface
                     $min_weight = $v['weight'];
                 }
             }
-            if ($to_add === false) { 
+            if ($to_add === false) {
                 break;
             }
             // also break here if $to_add === $end

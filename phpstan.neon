@@ -1,9 +1,6 @@
 parameters:
 	checkMissingIterableValueType: false
 	checkGenericClassInNonGenericObjectType: false
-	ignoreErrors:
-		- '#ibase_.*not found.$#'
-		- '#ibase_.*given.$#'
 	excludePaths:
 		- src/driver/ibase/Driver.php
 	universalObjectCratesClasses:

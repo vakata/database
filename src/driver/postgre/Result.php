@@ -78,7 +78,7 @@ class Result implements ResultInterface
     {
         $this->fetched ++;
         $this->last = \pg_fetch_array($this->statement, null, \PGSQL_ASSOC)?:null;
-        if (is_array($this->last) && count($this->last)) {
+        if (is_array($this->last)) {
             $this->cast();
         }
     }
@@ -87,14 +87,14 @@ class Result implements ResultInterface
         return !!$this->last;
     }
 
-    protected function cast()
+    protected function cast(): void
     {
         if (!count($this->types)) {
-            foreach (array_keys($this->last) as $k => $v) {
+            foreach (array_keys($this->last??[]) as $k => $v) {
                 $this->types[$v] = \pg_field_type($this->statement, $k);
             }
         }
-        foreach ($this->last as $k => $v) {
+        foreach ($this->last??[] as $k => $v) {
             if (is_null($v) || !isset($this->types[$k])) {
                 continue;
             }
@@ -111,6 +111,7 @@ class Result implements ResultInterface
                 case 'float4':
                 case 'float8':
                     $this->last[$k] = (float)$v;
+                    break;
                 case 'money':
                 case 'numeric':
                     // TODO:

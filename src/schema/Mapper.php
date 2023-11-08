@@ -155,7 +155,16 @@ class Mapper implements MapperInterface
                         }, $data[$name]) :
                         $this->entity($relation->table, $data[$name])
                     ) :
-                    function (array $columns = null, string $order = null, bool $desc = false) use ($entity, $definition, $relation, $data) {
+                    function (
+                        array $columns = null,
+                        string $order = null,
+                        bool $desc = false
+                    ) use (
+                        $entity,
+                        $definition,
+                        $relation,
+                        $data
+                    ) {
                         $query = $this->db->tableMapped($relation->table->getFullName());
                         if ($columns !== null) {
                             $query->columns($columns);

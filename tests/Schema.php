@@ -67,6 +67,7 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
 
     public function testSerialize()
     {
+        $this->getDB()->parseSchema();
         $this->getDB()->setSchema($this->getDB()->getSchema());
         $books = $this->getDB()->book()->with('author')->with('tag');
         $this->assertEquals($books[0]['author']['name'], 'Terry Pratchett');
@@ -277,10 +278,11 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
     {
         $author = $this->getDB()->author();
         $this->assertEquals(count($author->reset()->filter('name', ['like'=>'Brad'])), 0);
-        $this->assertEquals(count($author->reset()->filter('name', ['like'=>'%Brad%'])), 1);
+        $this->assertEquals(count($author->reset()->filter('name', ['contains'=>'Brad'])), 1);
+        $this->assertEquals(count($author->reset()->filter('name', ['icontains'=>'BRAD'])), 1);
         $this->assertEquals(count($author->reset()->filter('name', ['like'=>'%Ivan%'])), 0);
         $this->assertEquals(
-            count($author->reset()->any([['name', ['like'=>'%Ivan%']], ['name', ['like'=>'%Brad%']]])),
+            count($author->reset()->any([['name', ['like'=>'King']], ['name', ['contains'=>'Brad']]])),
             1
         );
     }

@@ -20,7 +20,13 @@ interface DBInterface
         bool $buff = true
     ) : Collection;
     public function one(string $sql, mixed $par = null, bool $opti = true): mixed;
-    public function all(string $sql, mixed $par = null, string $key = null, bool $skip = false, bool $opti = true): array;
+    public function all(
+        string $sql,
+        mixed $par = null,
+        string $key = null,
+        bool $skip = false,
+        bool $opti = true
+    ): array;
     public function unbuffered(
         string $sql,
         mixed $par = null,
@@ -38,8 +44,8 @@ interface DBInterface
 
     public function definition(string $table, bool $detectRelations = true): Table;
     public function parseSchema(): static;
-    public function getSchema(bool $asPlainArray = true): array;
-    public function setSchema(array $data): static;
+    public function getSchema(): Schema;
+    public function setSchema(Schema $schema): static;
     public function table(string $table, bool $findRelations = false): TableQuery;
     public function tableMapped(string $table, bool $findRelations = false): TableQueryMapped;
     public function findRelation(string $start, string $end): array;

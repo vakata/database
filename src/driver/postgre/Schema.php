@@ -109,7 +109,8 @@ trait Schema
 
         $columns = Collection::from($this
             ->query(
-                "SELECT * FROM information_schema.columns WHERE table_name = ? AND table_schema = ? AND table_catalog = ?",
+                "SELECT * FROM information_schema.columns
+                 WHERE table_name = ? AND table_schema = ? AND table_catalog = ?",
                 [ $table, $schema, $catalog ]
             ))
             ->mapKey(function ($v) {
@@ -162,7 +163,8 @@ trait Schema
             // resulting in a "hasMany" or "manyToMany" relationship (if a pivot table is detected)
             $relations = [];
             foreach ($relationsR[$schema . '.' . $table] ?? [] as $relation) {
-                $relations[$relation['constraint_name']]['table'] = $relation['table_schema'] . '.' . $relation['table_name'];
+                $relations[$relation['constraint_name']]['table'] = $relation['table_schema'] . '.' .
+                    $relation['table_name'];
                 $relations[$relation['constraint_name']]['keymap'][$relation['referenced_column_name']] =
                     $relation['column_name'];
             }
@@ -182,7 +184,8 @@ trait Schema
                             return in_array($v['column_name'], $columns);
                         }) as $relation
                     ) {
-                        $foreign[$relation['constraint_name']]['table'] = $relation['referenced_table_schema'] . '.' . $relation['referenced_table_name'];
+                        $foreign[$relation['constraint_name']]['table'] = $relation['referenced_table_schema'] . '.' .
+                            $relation['referenced_table_name'];
                         $foreign[$relation['constraint_name']]['keymap'][$relation['column_name']] =
                             $relation['referenced_column_name'];
                         $usedcol[] = $relation['column_name'];
@@ -197,8 +200,7 @@ trait Schema
                     }
                     $orig = $relname;
                     $cntr = 1;
-                    while (
-                        $definition->hasRelation($relname) ||
+                    while ($definition->hasRelation($relname) ||
                         $definition->getName() == $relname ||
                         $definition->getColumn($relname)
                     ) {
@@ -222,8 +224,7 @@ trait Schema
                     }
                     $orig = $relname;
                     $cntr = 1;
-                    while (
-                        $definition->hasRelation($relname) ||
+                    while ($definition->hasRelation($relname) ||
                         $definition->getName() == $relname ||
                         $definition->getColumn($relname)
                     ) {
@@ -244,7 +245,8 @@ trait Schema
             // resulting in a "belongsTo" relationship
             $relations = [];
             foreach ($relationsT[$schema . '.' . $table] ?? [] as $relation) {
-                $relations[$relation['constraint_name']]['table'] = $relation['referenced_table_schema'] . '.' . $relation['referenced_table_name'];
+                $relations[$relation['constraint_name']]['table'] = $relation['referenced_table_schema'] . '.' .
+                    $relation['referenced_table_name'];
                 $relations[$relation['constraint_name']]['keymap'][$relation['column_name']] =
                     $relation['referenced_column_name'];
             }
@@ -256,8 +258,7 @@ trait Schema
                 }
                 $orig = $relname;
                 $cntr = 1;
-                while (
-                    $definition->hasRelation($relname) ||
+                while ($definition->hasRelation($relname) ||
                     $definition->getName() == $relname ||
                     $definition->getColumn($relname)
                 ) {

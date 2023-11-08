@@ -18,8 +18,13 @@ class Result implements ResultInterface
     protected int $fetched = -1;
     protected mixed $iid = null;
 
-    public function __construct(mixed $statement, array $data, mixed $iid, ?string $charIn = null, ?string $charOut = null)
-    {
+    public function __construct(
+        mixed $statement,
+        array $data,
+        mixed $iid,
+        ?string $charIn = null,
+        ?string $charOut = null
+    ) {
         $this->statement = $statement;
         $this->data = $data;
         $this->iid = $iid;

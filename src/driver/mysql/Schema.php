@@ -54,7 +54,9 @@ trait Schema
             $additional = [];
             $col = Collection::from(
                 $this->query(
-                    "SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_TABLE_SCHEMA, REFERENCED_COLUMN_NAME
+                    "SELECT
+                        TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME,
+                        REFERENCED_TABLE_NAME, REFERENCED_TABLE_SCHEMA, REFERENCED_COLUMN_NAME
                      FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
                      WHERE
                         (TABLE_SCHEMA = ? OR REFERENCED_TABLE_SCHEMA = ?) AND
@@ -75,7 +77,9 @@ trait Schema
             foreach (array_filter(array_unique($additional)) as $s) {
                 $col = Collection::from(
                     $this->query(
-                        "SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_TABLE_NAME, REFERENCED_TABLE_SCHEMA, REFERENCED_COLUMN_NAME
+                        "SELECT
+                            TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME,
+                            REFERENCED_TABLE_NAME, REFERENCED_TABLE_SCHEMA, REFERENCED_COLUMN_NAME
                         FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
                         WHERE
                             TABLE_SCHEMA = ? AND REFERENCED_TABLE_SCHEMA = ? AND
@@ -150,7 +154,8 @@ trait Schema
             // resulting in a "hasMany" or "manyToMany" relationship (if a pivot table is detected)
             $relations = [];
             foreach ($relationsR[$schema . '.' . $table] ?? [] as $relation) {
-                $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_SCHEMA'] . '.' . $relation['TABLE_NAME'];
+                $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_SCHEMA'] . '.' .
+                    $relation['TABLE_NAME'];
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['REFERENCED_COLUMN_NAME']] =
                     $relation['COLUMN_NAME'];
             }
@@ -177,7 +182,8 @@ trait Schema
                             return $new;
                         }) as $relation
                     ) {
-                        $foreign[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_SCHEMA'] . '.' . $relation['REFERENCED_TABLE_NAME'];
+                        $foreign[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_SCHEMA'] . '.' .
+                            $relation['REFERENCED_TABLE_NAME'];
                         $foreign[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] =
                             $relation['REFERENCED_COLUMN_NAME'];
                         $usedcol[] = $relation['COLUMN_NAME'];
@@ -239,7 +245,8 @@ trait Schema
                     return $new;
                 }) as $relation
             ) {
-                $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_SCHEMA'] . '.' . $relation['REFERENCED_TABLE_NAME'];
+                $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_SCHEMA'] . '.' .
+                    $relation['REFERENCED_TABLE_NAME'];
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] =
                     $relation['REFERENCED_COLUMN_NAME'];
             }

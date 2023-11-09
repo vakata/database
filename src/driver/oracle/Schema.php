@@ -113,7 +113,9 @@ trait Schema
                     "SELECT ac.TABLE_NAME, ac.CONSTRAINT_NAME, cc.COLUMN_NAME, cc.POSITION
                     FROM all_constraints ac
                     LEFT JOIN all_cons_columns cc ON cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
-                    WHERE UPPER(ac.OWNER) = ? AND UPPER(ac.R_OWNER) = ? AND ac.R_CONSTRAINT_NAME = ? AND ac.CONSTRAINT_TYPE = ?
+                    WHERE 
+                        UPPER(ac.OWNER) = ? AND UPPER(ac.R_OWNER) = ? AND
+                        ac.R_CONSTRAINT_NAME = ? AND ac.CONSTRAINT_TYPE = ?
                     ORDER BY cc.POSITION",
                     [ $owner, $owner, $pkname, 'R' ]
                 ))
@@ -154,7 +156,8 @@ trait Schema
                             LEFT JOIN all_cons_columns cc ON
                                 cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
                             WHERE
-                                UPPER(ac.OWNER) = ? AND UPPER(ac.R_OWNER) = ? AND ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ? AND
+                                UPPER(ac.OWNER) = ? AND UPPER(ac.R_OWNER) = ? AND
+                                ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ? AND
                                 cc.COLUMN_NAME IN (??)
                             ORDER BY POSITION",
                             [ $owner, $owner, $data['table'], 'R', $columns ]

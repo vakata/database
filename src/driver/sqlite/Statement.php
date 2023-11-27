@@ -57,7 +57,11 @@ class Statement implements StatementInterface
                 }
             }
         }
-        $rtrn = $this->statement->execute();
+        try {
+            $rtrn = $this->statement->execute();
+        } catch (\Exception $e) {
+            $rtrn = false;
+        }
         if (!$rtrn) {
             throw new DBException('Prepared execute error : '.$this->driver->lastErrorMsg());
         }

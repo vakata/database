@@ -47,7 +47,7 @@ class Statement implements StatementInterface
     public function __destruct()
     {
         if ($this->name !== null) {
-            @\pg_query('DEALLOCATE "'.\pg_escape_string($this->name).'"');
+            @\pg_query($this->driver, "DEALLOCATE ".\pg_escape_identifier($this->driver, $this->name));
         }
     }
     public function execute(array $data = [], bool $buff = true) : ResultInterface
@@ -59,14 +59,18 @@ class Statement implements StatementInterface
         if ($log) {
             $tm = microtime(true);
         }
-        if ($this->name !== null) {
-            $temp = (is_array($data) && count($data)) ?
-                \pg_execute($this->driver, $this->name, $data) :
-                \pg_execute($this->driver, $this->name, array());
-        } else {
-            $temp = (is_array($data) && count($data)) ?
-                \pg_query_params($this->driver, $this->statement, $data) :
-                \pg_query_params($this->driver, $this->statement, array());
+        try {
+            if ($this->name !== null) {
+                $temp = (is_array($data) && count($data)) ?
+                    \pg_execute($this->driver, $this->name, $data) :
+                    \pg_execute($this->driver, $this->name, array());
+            } else {
+                $temp = (is_array($data) && count($data)) ?
+                    \pg_query_params($this->driver, $this->statement, $data) :
+                    \pg_query_params($this->driver, $this->statement, array());
+            }
+        } catch (\Exception $e) {
+            $temp = false;
         }
         if (!$temp) {
             if ($log && (int)$this->drv->option('log_errors', 1)) {

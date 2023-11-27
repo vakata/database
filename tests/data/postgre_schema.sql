@@ -1,6 +1,7 @@
 DROP TABLE IF EXISTS book_tag;
 DROP TABLE IF EXISTS tag;
 DROP TABLE IF EXISTS book;
+DROP TABLE IF EXISTS book1;
 DROP TABLE IF EXISTS author;
 
 CREATE TABLE IF NOT EXISTS author (
@@ -31,6 +32,13 @@ CREATE TABLE IF NOT EXISTS book (
   author_id int NOT NULL,
   PRIMARY KEY (id),
   CONSTRAINT BOOK_AUTHOR FOREIGN KEY (author_id) REFERENCES author (id)
+) ;
+
+CREATE TABLE IF NOT EXISTS book1 (
+  id SERIAL NOT NULL,
+  name varchar(255) NOT NULL,
+  author_id int NOT NULL,
+  PRIMARY KEY (id)
 ) ;
 
 INSERT INTO book (name, author_id) VALUES

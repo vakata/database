@@ -728,15 +728,20 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                     $sql .= implode(' AND ', $tmp) . ' ';
                 }
             }
-            foreach ($j as $k => $v) {
-                $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getFullName().' '.$k.' ON ';
-                $tmp = [];
-                foreach ($v->keymap as $kk => $vv) {
-                    $tmp[] = $kk.' = '.$vv;
-                }
-                $sql .= implode(' AND ', $tmp) . ' ';
+        }
+        $jMany = false;
+        foreach ($j as $k => $v) {
+            if ($v->many) {
+                $jMany = true;
             }
-        } else {
+            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getFullName().' '.$k.' ON ';
+            $tmp = [];
+            foreach ($v->keymap as $kk => $vv) {
+                $tmp[] = $kk.' = '.$vv;
+            }
+            $sql .= implode(' AND ', $tmp) . ' ';
+        }
+        if (!$jMany && !count($used_relations)) {
             $sql = str_replace('COUNT(DISTINCT ', 'COUNT(', $sql);
         }
         if (count($w)) {
@@ -1036,7 +1041,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             if ($v->many) {
                 $many = true;
             }
-            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getName().' '.$k.' ON ';
+            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getFullName().' '.$k.' ON ';
             $tmp = [];
             foreach ($v->keymap as $kk => $vv) {
                 $tmp[] = $kk.' = '.$vv;
@@ -1496,13 +1501,13 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $v = $v[0];
             if ($v->pivot) {
                 $alias = $getAlias($k.'_pivot');
-                $sql .= 'LEFT JOIN '.$v->pivot->getName().' '.$alias.' ON ';
+                $sql .= 'LEFT JOIN '.$v->pivot->getFullName().' '.$alias.' ON ';
                 $tmp = [];
                 foreach ($v->keymap as $kk => $vv) {
                     $tmp[] = $table.'.'.$kk.' = '.$alias.'.'.$vv.' ';
                 }
                 $sql .= implode(' AND ', $tmp) . ' ';
-                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$getAlias($k).' ON ';
+                $sql .= 'LEFT JOIN '.$v->table->getFullName().' '.$getAlias($k).' ON ';
                 $tmp = [];
                 foreach ($v->pivot_keymap as $kk => $vv) {
                     $tmp[] = $getAlias($k).'.'.$vv.' = '.$alias.'.'.$kk.' ';
@@ -1510,7 +1515,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 $sql .= implode(' AND ', $tmp) . ' ';
             } else {
                 $alias = $getAlias($k);
-                $sql .= 'LEFT JOIN '.$v->table->getName().' '.$alias.' ON ';
+                $sql .= 'LEFT JOIN '.$v->table->getFullName().' '.$alias.' ON ';
                 $tmp = [];
                 foreach ($v->keymap as $kk => $vv) {
                     $tmp[] = $table.'.'.$kk.' = '.$alias.'.'.$vv.' ';
@@ -1523,7 +1528,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
         }
         foreach ($j as $k => $v) {
-            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getName().' '.$k.' ON ';
+            $sql .= ($v->many ? 'LEFT ' : '' ) . 'JOIN '.$v->table->getFullName().' '.$k.' ON ';
             $tmp = [];
             foreach ($v->keymap as $kk => $vv) {
                 $tmp[] = $kk.' = '.$vv;

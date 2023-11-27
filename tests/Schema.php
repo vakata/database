@@ -302,4 +302,85 @@ abstract class Schema extends \PHPUnit\Framework\TestCase
             'name' => str_repeat('a', 256)
         ]);
     }
+
+    public function testCount()
+    {
+        $this->assertEquals(
+            4,
+            $this->getDB()->author()->count()
+        );
+        $this->assertEquals(
+            4,
+            $this->getDB()->author()->with('book')->count()
+        );
+        $this->assertEquals(
+            4,
+            $this->getDB()->author()->join('book', ['author_id' => 'id'], 'tmp')->count()
+        );
+        $this->assertEquals(
+            3,
+            $this->getDB()->author()->join('book', ['author_id' => 'id'], 'tmp', false)->count()
+        );
+        $this->assertEquals(
+            1,
+            $this->getDB()->author()->join('book', ['author_id' => 'id'], 'tmp')
+                ->where("tmp.name LIKE '%rites%'")
+                ->count()
+        );
+        $this->assertEquals(
+            0,
+            $this->getDB()->author()->join('book', ['author_id' => 'id'], 'tmp')
+                ->where("tmp.name LIKE '%nonexisting%'")
+                ->count()
+        );
+        $this->assertEquals(
+            0,
+            $this->getDB()->author()->join('book', ['author_id' => 'id'], 'tmp', false)
+                ->where("tmp.name LIKE '%nonexisting%'")
+                ->count()
+        );
+    }
+    public function testCount1()
+    {
+        $this->assertEquals(
+            4,
+            $this->getDB()->author()->count()
+        );
+        $this->assertEquals(
+            4,
+            $this->getDB()->author()->join('book1', ['author_id' => 'id'], null)->count()
+        );
+        $this->assertEquals(
+            0,
+            $this->getDB()->author()->join('book1', ['author_id' => 'id'], null, false)->count()
+        );
+        $this->getDB()->query("INSERT INTO book1 (author_id, name) VALUES (1, 'rites')");
+        $this->getDB()->query("INSERT INTO book1 (author_id, name) VALUES (1, 'test')");
+        $this->assertEquals(
+            4,
+            $this->getDB()->author()->join('book1', ['author_id' => 'id'], null)->count()
+        );
+        $this->assertEquals(
+            2,
+            $this->getDB()->author()->join('book1', ['author_id' => 'id'], null, false)->count()
+        );
+        $this->assertEquals(
+            1,
+            $this->getDB()->author()->join('book1', ['author_id' => 'id'], null)
+                ->where("book1.name LIKE '%rites%'")
+                ->count()
+        );
+        $this->assertEquals(
+            0,
+            $this->getDB()->author()->join('book1', ['author_id' => 'id'], null)
+                ->where("book1.name LIKE '%nonexisting%'")
+                ->count()
+        );
+        $this->assertEquals(
+            0,
+            $this->getDB()->author()->join('book1', ['author_id' => 'id'], null, false)
+                ->where("book1.name LIKE '%nonexisting%'")
+                ->count()
+        );
+    }
 }

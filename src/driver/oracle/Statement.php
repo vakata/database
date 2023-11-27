@@ -51,10 +51,14 @@ class Statement implements StatementInterface
         if ($log) {
             $tm = microtime(true);
         }
-        $temp = \oci_execute(
-            $this->statement,
-            $this->driver->isTransaction() ? \OCI_NO_AUTO_COMMIT : \OCI_COMMIT_ON_SUCCESS
-        );
+        try {
+            $temp = \oci_execute(
+                $this->statement,
+                $this->driver->isTransaction() ? \OCI_NO_AUTO_COMMIT : \OCI_COMMIT_ON_SUCCESS
+            );
+        } catch (\Exception $e) {
+            $temp = false;
+        }
         if (!$temp) {
             $err = \oci_error($this->statement);
             if (!is_array($err)) {

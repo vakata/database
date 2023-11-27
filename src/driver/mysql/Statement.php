@@ -91,7 +91,12 @@ class Statement implements StatementInterface
         if ($log) {
             $tm = microtime(true);
         }
-        if (!$this->statement->execute()) {
+        try {
+            $res = $this->statement->execute();
+        } catch (\Exception $e) {
+            $res = false;
+        }
+        if (!$res) {
             if ($log && (int)$this->driver->option('log_errors', 1)) {
                 @file_put_contents(
                     $log,

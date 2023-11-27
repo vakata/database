@@ -1,6 +1,7 @@
 DROP TABLE IF EXISTS book_tag;
 DROP TABLE IF EXISTS tag;
 DROP TABLE IF EXISTS book;
+DROP TABLE IF EXISTS book1;
 DROP TABLE IF EXISTS author;
 
 CREATE TABLE IF NOT EXISTS `author` (
@@ -32,6 +33,14 @@ CREATE TABLE IF NOT EXISTS `book` (
   PRIMARY KEY (`id`),
   KEY `BOOK_AUTHOR` (`author_id`),
   CONSTRAINT `BOOK_AUTHOR` FOREIGN KEY (`author_id`) REFERENCES `author` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `book1` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `author_id` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `BOOK_AUTHOR` (`author_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 INSERT INTO `book` (`id`, `name`, `author_id`) VALUES

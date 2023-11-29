@@ -21,7 +21,7 @@ trait Schema
         static $tables = [];
 
         $catalog = $this->connection['name'];
-        $main = $this->connection['opts']['schema'] ?? 'public';
+        $main = $this->connection['opts']['schema'] ?? 'main';
         $schema = $main;
         if (strpos($table, '.')) {
             $temp = explode('.', $table, 2);
@@ -53,8 +53,8 @@ trait Schema
                             ]
                         )
                     );
-                    $relationsT['public.' . $row['table']][] = $row;
-                    $relationsR['public.' . $row['referenced_table']][] = $row;
+                    $relationsT['main.' . $row['table']][] = $row;
+                    $relationsR['main.' . $row['referenced_table']][] = $row;
                 }
             }
         }
@@ -102,7 +102,7 @@ trait Schema
             // resulting in a "hasMany" or "manyToMany" relationship (if a pivot table is detected)
             $relations = [];
             foreach ($relationsR[$schema . '.' . $table] ?? [] as $k => $relation) {
-                $relations[$relation['constraint_name']]['table'] = 'public.' . $relation['table'];
+                $relations[$relation['constraint_name']]['table'] = 'main.' . $relation['table'];
                 $relations[$relation['constraint_name']]['keymap'][$relation['to']] = $relation['from'];
             }
             foreach ($relations as $data) {
@@ -121,7 +121,7 @@ trait Schema
                             return in_array($v['from'], $columns);
                         }) as $relation
                     ) {
-                        $foreign[$relation['constraint_name']]['table'] = 'public.' .
+                        $foreign[$relation['constraint_name']]['table'] = 'main.' .
                             $relation['referenced_table'];
                         $foreign[$relation['constraint_name']]['keymap'][$relation['from']] = $relation['to'];
                         $usedcol[] = $relation['from'];
@@ -181,7 +181,7 @@ trait Schema
             // resulting in a "belongsTo" relationship
             $relations = [];
             foreach ($relationsT[$schema . '.' . $table] ?? [] as $relation) {
-                $relations[$relation['constraint_name']]['table'] = 'public.' . $relation['referenced_table'];
+                $relations[$relation['constraint_name']]['table'] = 'main.' . $relation['referenced_table'];
                 $relations[$relation['constraint_name']]['keymap'][$relation['from']] = $relation['to'];
             }
             foreach ($relations as $name => $data) {
@@ -228,7 +228,7 @@ trait Schema
             $tables[$k] = $this->table($v, true, array_keys($tables))->toLowerCase();
         }
         foreach (array_keys($tables) as $k) {
-            $tables[($this->connection['opts']['schema'] ?? 'public') . '.' . $k] = &$tables[$k];
+            $tables[($this->connection['opts']['schema'] ?? 'main') . '.' . $k] = &$tables[$k];
         }
         return $tables;
     }

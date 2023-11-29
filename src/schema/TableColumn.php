@@ -41,11 +41,17 @@ class TableColumn
         if (isset($data['nullable']) && is_bool($data['nullable'])) {
             $instance->setNullable($data['nullable']);
         }
+        if (isset($data['notnull'])) {
+            $instance->setNullable(!((int)$data['notnull']));
+        }
         if (isset($data['Default'])) {
             $instance->setDefault($data['Default']);
         }
         if (isset($data['default'])) {
             $instance->setDefault($data['default']);
+        }
+        if (isset($data['dflt_value'])) {
+            $instance->setDefault($data['dflt_value']);
         }
         if (isset($data['length']) && $data['length'] !== 0) {
             $instance->setLength($data['length']);

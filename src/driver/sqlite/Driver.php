@@ -11,6 +11,8 @@ use \vakata\database\schema\TableRelation;
 
 class Driver extends DriverAbstract implements DriverInterface
 {
+    use Schema;
+    
     protected mixed $lnk = null;
     protected bool $transaction = false;
 
@@ -36,7 +38,7 @@ class Driver extends DriverAbstract implements DriverInterface
         if ($this->lnk === null) {
             try {
                 $this->lnk = new \SQLite3($this->connection['name']);
-                $this->lnk->exec('PRAGMA encoding = "'.$this->option('charset', 'utf-8'));
+                $this->lnk->exec('PRAGMA encoding = "'.$this->option('charset', 'utf-8') . '"');
             } catch (\Exception $e) {
                 if ($this->lnk !== null) {
                     throw new DBException('Connect error: '.$this->lnk->lastErrorMsg());

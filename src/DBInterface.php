@@ -64,7 +64,7 @@ interface DBInterface
      * @param string $sql
      * @param mixed $par
      * @param ?string $key
-     * @return array<array-key,array<string,scalar|null>>
+     * @return array<int|string,array<string,scalar|null>>
      */
     public function rows(string $sql, array $par = [], ?string $key = null): array;
     /**
@@ -73,7 +73,7 @@ interface DBInterface
      * @param string $sql
      * @param array $par
      * @param string|null $key
-     * @return array<array-key,scalar|null>
+     * @return array<int|string,scalar|null>
      */
     public function col(string $sql, array $par = [], ?string $key = null): array;
     /**

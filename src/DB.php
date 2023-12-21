@@ -461,4 +461,43 @@ class DB implements DBInterface
         $path[] = $start;
         return array_reverse($path);
     }
+
+    public function row(string $sql, array $par = []): ?array
+    {
+        return $this->one($sql, $par, false);
+    }
+    public function rows(string $sql, array $par = [], ?string $key = null): array
+    {
+        return $this->all($sql, $par, $key, false, false);
+    }
+    public function col(string $sql, array $par = [], ?string $key = null): array
+    {
+        $temp = $this->all($sql, $par, $key, true, true);
+        foreach ($temp as $k => $v) {
+            if (is_array($v)) {
+                $temp[$k] = array_values($v)[0];
+            }
+        }
+        return $temp;
+    }
+    public function val(string $sql, array $par = []): mixed
+    {
+        $temp = $this->one($sql, $par, true);
+        if (is_array($temp)) {
+            $temp = array_values($temp)[0];
+        }
+        return $temp;
+    }
+    public function valString(string $sql, array $par = []): string
+    {
+        return (string)$this->val($sql, $par);
+    }
+    public function valInt(string $sql, array $par = []): int
+    {
+        return (int)$this->val($sql, $par);
+    }
+    public function valFloat(string $sql, array $par = []): float
+    {
+        return (float)$this->val($sql, $par);
+    }
 }

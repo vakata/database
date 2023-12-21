@@ -49,4 +49,42 @@ interface DBInterface
     public function table(string $table, bool $findRelations = false): TableQuery;
     public function tableMapped(string $table, bool $findRelations = false): TableQueryMapped;
     public function findRelation(string $start, string $end): array;
+
+    /**
+     * get a single row
+     *
+     * @param string $sql
+     * @param array $par
+     * @return array<string,scalar>|null
+     */
+    public function row(string $sql, array $par = []): ?array;
+    /**
+     * get all rows
+     *
+     * @param string $sql
+     * @param mixed $par
+     * @param ?string $key
+     * @return array<scalar,array<string,scalar>>
+     */
+    public function rows(string $sql, array $par = [], ?string $key = null): array;
+    /**
+     * get a column
+     *
+     * @param string $sql
+     * @param array $par
+     * @param string|null $key
+     * @return array<scalar,scalar>
+     */
+    public function col(string $sql, array $par = [], ?string $key = null): array;
+    /**
+     * get a single value
+     *
+     * @param string $sql
+     * @param array $par
+     * @return scalar
+     */
+    public function val(string $sql, array $par = []): mixed;
+    public function valString(string $sql, array $par = []): string;
+    public function valInt(string $sql, array $par = []): int;
+    public function valFloat(string $sql, array $par = []): float;
 }

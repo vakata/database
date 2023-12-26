@@ -55,27 +55,19 @@ interface DBInterface
      *
      * @param string $sql
      * @param array $par
-     * @return array<string,scalar|null>|null
+     * @return ?array<string,scalar|null>
      */
     public function row(string $sql, array $par = []): ?array;
-    /**
-     * get all rows
-     *
-     * @param string $sql
-     * @param mixed $par
-     * @param ?string $key
-     * @return array<int|string,array<string,scalar|null>>
-     */
-    public function rows(string $sql, array $par = [], ?string $key = null): array;
+    public function rows(string $sql, array $par = []): Collection;
     /**
      * get a column
      *
      * @param string $sql
      * @param array $par
      * @param string|null $key
-     * @return array<int|string,scalar|null>
+     * @return array<scalar|null>
      */
-    public function col(string $sql, array $par = [], ?string $key = null): array;
+    public function col(string $sql, array $par = []): array;
     /**
      * get a single value
      *
@@ -84,7 +76,4 @@ interface DBInterface
      * @return scalar|null
      */
     public function val(string $sql, array $par = []): mixed;
-    public function valString(string $sql, array $par = []): string;
-    public function valInt(string $sql, array $par = []): int;
-    public function valFloat(string $sql, array $par = []): float;
 }

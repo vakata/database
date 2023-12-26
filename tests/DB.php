@@ -229,23 +229,19 @@ abstract class DB extends \PHPUnit\Framework\TestCase
     {
         $this->assertEquals(
             [],
-            $this->getDB()->rows('SELECT * FROM log WHERE id IN (??) ORDER BY id', [[10,20]])
+            $this->getDB()->rows('SELECT * FROM log WHERE id IN (??) ORDER BY id', [[10,20]])->toArray()
         );
         $this->assertEquals(
             [['id' => 1, 'lvl' => 'error']],
-            $this->getDB()->rows('SELECT id, lvl FROM log WHERE id IN (??) ORDER BY id', [[1]])
+            $this->getDB()->rows('SELECT id, lvl FROM log WHERE id IN (??) ORDER BY id', [[1]])->toArray()
         );
         $this->assertEquals(
             [['id' => 1, 'lvl' => 'error'], ['id' => 2, 'lvl' => 'debug']],
-            $this->getDB()->rows('SELECT id, lvl FROM log WHERE id IN (??) ORDER BY id', [[1, 2]])
-        );
-        $this->assertEquals(
-            [ 1 => ['id' => 1, 'lvl' => 'error'], 2 => ['id' => 2, 'lvl' => 'debug']],
-            $this->getDB()->rows('SELECT id, lvl FROM log WHERE id IN (??) ORDER BY id', [[1, 2]], 'id')
+            $this->getDB()->rows('SELECT id, lvl FROM log WHERE id IN (??) ORDER BY id', [[1, 2]])->toArray()
         );
         $this->assertEquals(
             [['id'=>1], ['id'=>2]],
-            $this->getDB()->rows('SELECT id FROM log WHERE id IN (??) ORDER BY id', [[1, 2]])
+            $this->getDB()->rows('SELECT id FROM log WHERE id IN (??) ORDER BY id', [[1, 2]])->toArray()
         );
     }
     public function testRow()
@@ -281,10 +277,6 @@ abstract class DB extends \PHPUnit\Framework\TestCase
             [1],
             $this->getDB()->col('SELECT id, lvl FROM log WHERE id IN (??) ORDER BY id', [[1]])
         );
-        $this->assertEquals(
-            [1 => 'error', 2 => 'debug'],
-            $this->getDB()->col('SELECT id, lvl FROM log WHERE id IN (??) ORDER BY id', [[1, 2]], 'id')
-        );
     }
     public function testVal()
     {
@@ -303,14 +295,6 @@ abstract class DB extends \PHPUnit\Framework\TestCase
         $this->assertEquals(
             'error',
             $this->getDB()->val('SELECT lvl FROM log WHERE id IN (??) ORDER BY id', [[1, 2]])
-        );
-        $this->assertEquals(
-            '1',
-            $this->getDB()->valString('SELECT id, lvl FROM log WHERE id IN (??) ORDER BY id', [[1]])
-        );
-        $this->assertEquals(
-            0,
-            $this->getDB()->valInt('SELECT lvl FROM log WHERE id IN (??) ORDER BY id', [[1, 2]])
         );
     }
 }

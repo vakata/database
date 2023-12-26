@@ -466,13 +466,13 @@ class DB implements DBInterface
     {
         return $this->one($sql, $par, false);
     }
-    public function rows(string $sql, array $par = [], ?string $key = null): array
+    public function rows(string $sql, array $par = []): Collection
     {
-        return $this->all($sql, $par, $key, false, false);
+        return $this->get($sql, $par, null, false, false);
     }
-    public function col(string $sql, array $par = [], ?string $key = null): array
+    public function col(string $sql, array $par = []): array
     {
-        $temp = $this->all($sql, $par, $key, true, true);
+        $temp = $this->all($sql, $par, null, false, true);
         foreach ($temp as $k => $v) {
             if (is_array($v)) {
                 $temp[$k] = array_values($v)[0];
@@ -487,17 +487,5 @@ class DB implements DBInterface
             $temp = array_values($temp)[0];
         }
         return $temp;
-    }
-    public function valString(string $sql, array $par = []): string
-    {
-        return (string)$this->val($sql, $par);
-    }
-    public function valInt(string $sql, array $par = []): int
-    {
-        return (int)$this->val($sql, $par);
-    }
-    public function valFloat(string $sql, array $par = []): float
-    {
-        return (float)$this->val($sql, $par);
     }
 }

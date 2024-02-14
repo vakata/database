@@ -1,9 +1,19 @@
-CREATE TABLE groups (
+DROP TABLE IF EXISTS user_groups;
+DROP TABLE IF EXISTS user_providers;
+DROP TABLE IF EXISTS user_groups;
+DROP TABLE IF EXISTS group_permissions;
+DROP TABLE IF EXISTS log;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS grps;
+DROP TABLE IF EXISTS uploads;
+DROP TABLE IF EXISTS permissions;
+
+CREATE TABLE grps (
   grp varchar(80) NOT NULL,
   created timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO groups (grp, created) VALUES
+INSERT INTO grps (grp, created) VALUES
 ('Администратори', now()),
 ('Обикновени', now());
 
@@ -77,7 +87,7 @@ CREATE TABLE uploads (
   settings text
 );
 
-ALTER TABLE groups
+ALTER TABLE grps
   ADD PRIMARY KEY (grp);
 
 ALTER TABLE group_permissions

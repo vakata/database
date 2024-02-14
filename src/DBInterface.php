@@ -54,4 +54,31 @@ interface DBInterface
         ?MapperInterface $mapper = null
     ): TableQueryMapped;
     public function findRelation(string $start, string $end): array;
+
+    /**
+     * get a single row
+     *
+     * @param string $sql
+     * @param array $par
+     * @return ?array<string,scalar|null>
+     */
+    public function row(string $sql, array $par = []): ?array;
+    public function rows(string $sql, array $par = []): Collection;
+    /**
+     * get a column
+     *
+     * @param string $sql
+     * @param array $par
+     * @param string|null $key
+     * @return array<scalar|null>
+     */
+    public function col(string $sql, array $par = []): array;
+    /**
+     * get a single value
+     *
+     * @param string $sql
+     * @param array $par
+     * @return scalar|null
+     */
+    public function val(string $sql, array $par = []): mixed;
 }

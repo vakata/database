@@ -3,6 +3,8 @@
 namespace vakata\database;
 
 use \vakata\collection\Collection;
+use vakata\database\schema\Mapper;
+use vakata\database\schema\MapperInterface;
 use \vakata\database\schema\Table;
 use \vakata\database\schema\TableQuery;
 use \vakata\database\schema\TableQueryMapped;
@@ -355,14 +357,18 @@ class DB implements DBInterface
     {
         return new TableQuery($this, $this->definition($table), $findRelations);
     }
-    public function tableMapped(string $table, bool $findRelations = false): TableQueryMapped
+    public function tableMapped(
+        string $table,
+        bool $findRelations = false,
+        ?MapperInterface $mapper = null
+    ): TableQueryMapped
     {
-        return new TableQueryMapped($this, $this->definition($table), $findRelations);
+        return new TableQueryMapped($this, $this->definition($table), $findRelations, $mapper);
     }
     public function __call(string $method, array $args): TableQuery|TableQueryMapped
     {
         return ($args[0] ?? false) ?
-            $this->tableMapped($method, $args[1] ?? false) :
+            $this->tableMapped($method, $args[1] ?? false, $args[2] ?? null) :
             $this->table($method, $args[1] ?? false);
     }
     public function findRelation(string $start, string $end): array

@@ -14,13 +14,20 @@ class TableQueryMapped extends TableQuery
     protected static array $mappers = [];
     protected MapperInterface $mapper;
 
-    public function __construct(DBInterface $db, Table|string $table, bool $findRelations = false)
-    {
+    public function __construct(
+        DBInterface $db,
+        Table|string $table,
+        bool $findRelations = false,
+        ?MapperInterface $mapper = null
+    ) {
         parent::__construct($db, $table, $findRelations);
-        if (!isset(static::$mappers[spl_object_hash($db)])) {
-            static::$mappers[spl_object_hash($db)] = new Mapper($db);
+        if (!isset($mapper)) {
+            if (!isset(static::$mappers[spl_object_hash($db)])) {
+                static::$mappers[spl_object_hash($db)] = new Mapper($db);
+            }
+            $mapper = static::$mappers[spl_object_hash($db)];
         }
-        $this->mapper = static::$mappers[spl_object_hash($db)];
+        $this->mapper = $mapper;
     }
     /**
      * Perform the actual fetch

@@ -16,6 +16,10 @@ class Mapper implements MapperInterface
     {
         $this->db = $db;
     }
+    protected function instance(Table $definition, array $data = []): Entity
+    {
+        return new Entity($this, $definition, $data);
+    }
     /**
      * Create an entity from an array of data
      *
@@ -35,7 +39,7 @@ class Mapper implements MapperInterface
                 return $this->objects[$definition->getFullName()][base64_encode(serialize($primary))];
             }
         }
-        $entity = new Entity($this, $definition, $data);
+        $entity = $this->instance($definition, $data);
         if ($empty) {
             return $entity;
         }

@@ -13,7 +13,7 @@ use vakata\database\DBInterface;
 class Mapper implements MapperInterface
 {
     protected DBInterface $db;
-    protected array $objects;
+    protected array $objects = [];
 
     public function __construct(DBInterface $db)
     {

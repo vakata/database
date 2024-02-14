@@ -3,13 +3,21 @@ namespace vakata\database\schema;
 
 class Entity
 {
-    protected Mapper $mapper;
+    /**
+     * @var MapperInterface<static>
+     */
+    protected MapperInterface $mapper;
     protected Table $definition;
     protected array $initial = [];
     protected array $changed = [];
     protected array $fetched = [];
 
-    public function __construct(Mapper $mapper, Table $definition, array $data = [])
+    /**
+     * @param MapperInterface<static> $mapper
+     * @param Table $definition
+     * @param array<string,mixed> $data
+     */
+    public function __construct(MapperInterface $mapper, Table $definition, array $data = [])
     {
         $this->mapper = $mapper;
         $this->definition = $definition;

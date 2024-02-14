@@ -6,6 +6,9 @@ use vakata\database\DBInterface;
 
 /**
  * A basic mapper to enable relation traversing and basic create / update / delete functionality
+ * 
+ * @template T
+ * @implements MapperInterface<T>
  */
 class Mapper implements MapperInterface
 {
@@ -16,6 +19,11 @@ class Mapper implements MapperInterface
     {
         $this->db = $db;
     }
+    /**
+     * @param Table $definition
+     * @param array<string,mixed> $data
+     * @return T
+     */
     protected function instance(Table $definition, array $data = []): Entity
     {
         return new Entity($this, $definition, $data);
@@ -24,9 +32,9 @@ class Mapper implements MapperInterface
      * Create an entity from an array of data
      *
      * @param Table $definition
-     * @param array $data
+     * @param array<string,mixed> $data
      * @param boolean $empty
-     * @return Entity
+     * @return T
      */
     public function entity(Table $definition, array $data, bool $empty = false): Entity
     {
@@ -63,8 +71,8 @@ class Mapper implements MapperInterface
     /**
      * Persist all changes to an entity in the DB. Does not include modified relation collections.
      *
-     * @param Entity $entity
-     * @return Entity
+     * @param T $entity
+     * @return T
      */
     public function save(object $entity): Entity
     {
@@ -96,7 +104,7 @@ class Mapper implements MapperInterface
     /**
      * Delete an entity from the database
      *
-     * @param Entity $entity
+     * @param Т $entity
      * @return void
      */
     public function delete(object $entity): void
@@ -117,8 +125,8 @@ class Mapper implements MapperInterface
     /**
      * Refresh an entity from the DB (includes own columns and relations).
      *
-     * @param Entity $entity
-     * @return Entity
+     * @param Т $entity
+     * @return Т
      */
     public function refresh(object $entity): Entity
     {

@@ -7,8 +7,8 @@ use vakata\database\DBInterface;
 /**
  * A basic mapper to enable relation traversing and basic create / update / delete functionality
  * 
- * @template T of Entity
- * @implements MapperInterface<T>
+ * @template-covariant T of Entity
+ * @implements MapperInterface<Entity>
  */
 class Mapper implements MapperInterface
 {

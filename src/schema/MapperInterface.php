@@ -5,7 +5,7 @@ use vakata\collection\Collection;
 use vakata\database\DBInterface;
 
 /**
- * @template T of object
+ * @template-covariant T of object
  */
 interface MapperInterface
 {

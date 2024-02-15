@@ -17,6 +17,10 @@ class DB implements DBInterface
 {
     protected DriverInterface $driver;
     protected ?Schema $schema = null;
+    /**
+     * @var array<string,MapperInterface>
+     */
+    protected array $mappers = [];
 
     /**
      * Create an instance.
@@ -81,6 +85,8 @@ class DB implements DBInterface
         if (!class_exists($tmp)) {
             throw new DBException('Unknown DB backend');
         }
+
+        $this->mappers['*'] = new Mapper($this);
         /* @phpstan-ignore-next-line */
         $this->driver = new $tmp($connection);
     }
@@ -356,6 +362,21 @@ class DB implements DBInterface
     public function table(string $table, bool $findRelations = false): TableQuery
     {
         return new TableQuery($this, $this->definition($table), $findRelations);
+    }
+    public function getMapper(Table|string $table): MapperInterface
+    {
+        if (is_string($table)) {
+            $table = $this->definition($table);
+        }
+        return $this->mappers[$table->getFullName()] ?? $this->mappers['*'];
+    }
+    public function setMapper(Table|string $table, MapperInterface $mapper): static
+    {
+        if (is_string($table)) {
+            $table = $this->definition($table);
+        }
+        $this->mappers[$table->getFullName()] = $mapper;
+        return $this;
     }
     public function tableMapped(
         string $table,

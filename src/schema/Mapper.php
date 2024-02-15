@@ -158,14 +158,15 @@ class Mapper implements MapperInterface
             }
         }
         foreach ($definition->getRelations() as $name => $relation) {
+            $mapper = $this->db->getMapper($relation->table);
             $entity->__lazyProperty(
                 $name,
                 array_key_exists($name, $data) && isset($data[$name]) ?
                     ($relation->many ?
-                        array_map(function ($v) use ($relation) {
-                            return $this->entity($relation->table, $v);
+                        array_map(function ($v) use ($relation, $mapper) {
+                            return $mapper->entity($relation->table, $v);
                         }, $data[$name]) :
-                        $this->entity($relation->table, $data[$name])
+                        $mapper->entity($relation->table, $data[$name])
                     ) :
                     function (
                         array $columns = null,

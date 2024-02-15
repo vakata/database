@@ -48,6 +48,8 @@ interface DBInterface
     public function getSchema(): Schema;
     public function setSchema(Schema $schema): static;
     public function table(string $table, bool $findRelations = false): TableQuery;
+    public function getMapper(Table|string $table): MapperInterface;
+    public function setMapper(Table|string $table, MapperInterface $mapper): static;
     public function tableMapped(
         string $table,
         bool $findRelations = false,

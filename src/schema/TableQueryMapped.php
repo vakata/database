@@ -11,7 +11,6 @@ use vakata\database\ResultInterface;
  */
 class TableQueryMapped extends TableQuery
 {
-    protected static array $mappers = [];
     protected MapperInterface $mapper;
 
     public function __construct(
@@ -21,13 +20,7 @@ class TableQueryMapped extends TableQuery
         ?MapperInterface $mapper = null
     ) {
         parent::__construct($db, $table, $findRelations);
-        if (!isset($mapper)) {
-            if (!isset(static::$mappers[spl_object_hash($db)])) {
-                static::$mappers[spl_object_hash($db)] = new Mapper($db);
-            }
-            $mapper = static::$mappers[spl_object_hash($db)];
-        }
-        $this->mapper = $mapper;
+        $this->mapper = $mapper ?? $db->getMapper($this->definition);
     }
     /**
      * Perform the actual fetch

@@ -13,7 +13,7 @@ class Entity
     protected array $fetched = [];
 
     /**
-     * @param MapperInterface<static> $mapper
+     * @param MapperInterface<self> $mapper
      * @param Table $definition
      * @param array<string,mixed> $data
      */

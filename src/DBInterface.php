@@ -12,6 +12,15 @@ interface DBInterface
 {
     public function prepare(string $sql, ?string $name = null): StatementInterface;
     public function query(string $sql, mixed $par = null, bool $buff = true): ResultInterface;
+    /**
+     * @param string $sql
+     * @param mixed $par
+     * @param string|null $key
+     * @param boolean $skip
+     * @param boolean $opti
+     * @param boolean $buff
+     * @return Collection<array-key,mixed>
+     */
     public function get(
         string $sql,
         mixed $par = null,
@@ -28,6 +37,14 @@ interface DBInterface
         bool $skip = false,
         bool $opti = true
     ): array;
+    /**
+     * @param string $sql
+     * @param mixed $par
+     * @param string|null $key
+     * @param boolean $skip
+     * @param boolean $opti
+     * @return Collection<array-key,mixed>
+     */
     public function unbuffered(
         string $sql,
         mixed $par = null,
@@ -65,6 +82,11 @@ interface DBInterface
      * @return ?array<string,scalar|null>
      */
     public function row(string $sql, array $par = []): ?array;
+    /**
+     * @param string $sql
+     * @param array $par
+     * @return Collection<int,array<array-key,scalar|null>>
+     */
     public function rows(string $sql, array $par = []): Collection;
     /**
      * get a column

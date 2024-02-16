@@ -59,7 +59,7 @@ class Mapper implements MapperInterface
      *
      * @param TableQueryIterator $iterator
      * @param Table $definition
-     * @return Collection
+     * @return Collection<int,Entity>
      */
     public function collection(TableQueryIterator $iterator, Table $definition) : Collection
     {

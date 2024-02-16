@@ -176,7 +176,7 @@ class DB implements DBInterface
      * @param bool     $opti     if a single column is returned - do not use an array wrapper (defaults to `true`)
      * @param bool     $buff     should the results be buffered (defaults to `false`)
      *
-     * @return Collection the result of the execution
+     * @return Collection<array-key,mixed> the result of the execution
      */
     public function get(
         string $sql,
@@ -243,6 +243,14 @@ class DB implements DBInterface
     ): array {
         return $this->get($sql, $par, $key, $skip, $opti, true)->toArray();
     }
+    /**
+     * @param string $sql
+     * @param mixed $par
+     * @param string|null $key
+     * @param boolean $skip
+     * @param boolean $opti
+     * @return Collection<array-key,mixed>
+     */
     public function unbuffered(
         string $sql,
         mixed $par = null,
@@ -493,6 +501,11 @@ class DB implements DBInterface
     {
         return $this->one($sql, $par, false);
     }
+    /**
+     * @param string $sql
+     * @param array $par
+     * @return Collection<int,array<array-key,scalar|null>>
+     */
     public function rows(string $sql, array $par = []): Collection
     {
         return $this->get($sql, $par, null, false, false);

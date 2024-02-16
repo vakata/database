@@ -1347,6 +1347,10 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $this->iterator()->offsetSet($offset, $value);
     }
 
+    /**
+     * @param array|null $fields
+     * @return Collection<int,array<array-key,scalar|null>>
+     */
     public function collection(array $fields = null) : Collection
     {
         return new Collection($this->iterator($fields));

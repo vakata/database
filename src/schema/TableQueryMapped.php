@@ -8,6 +8,7 @@ use vakata\database\ResultInterface;
 
 /**
  * A database query class with mapping
+ * @template T of Entity
  */
 class TableQueryMapped extends TableQuery
 {
@@ -25,17 +26,25 @@ class TableQueryMapped extends TableQuery
     /**
      * Perform the actual fetch
      * @param  array|null $fields optional array of columns to select (related columns can be used too)
-     * @return Collection<int,Entity>               the query result as a mapped Collection
+     * @return Collection<int,T>               the query result as a mapped Collection
      */
     public function iterator(array $fields = null, array $collectionKey = null): Collection
     {
         return $this->mapper->collection(parent::iterator($fields, $collectionKey), $this->definition);
     }
     /**
+     * @param array|null $fields
+     * @return Collection<int,T>
+     */
+    public function collection(?array $fields = null): Collection
+    {
+        return parent::collection($fields);
+    }
+    /**
      * Create an empty entity for the queried table.
      *
      * @param array $data optional array of data to populate with
-     * @return object
+     * @return T
      */
     public function create(array $data = []): object
     {

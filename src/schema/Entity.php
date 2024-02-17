@@ -1,6 +1,8 @@
 <?php
 namespace vakata\database\schema;
 
+use vakata\database\DBException;
+
 class Entity
 {
     /**
@@ -59,6 +61,14 @@ class Entity
             }
         }
         return null;
+    }
+    public function relation(string $name): TableQueryMapped
+    {
+        $relation = $this->definition->getRelation($name);
+        if (!$relation) {
+            throw new DBException('Invalid relation name');
+        }
+        return $this->mapper->relation($this, $relation, $this->definition);
     }
     public function definition(): Table
     {

@@ -68,6 +68,39 @@ class Mapper implements MapperInterface
                 return $this->entity($definition, $v);
             });
     }
+    public function relation(object $entity, TableRelation $relation, Table $definition): TableQueryMapped
+    {
+        $query = $this->db->tableMapped($relation->table->getFullName());
+        if ($relation->sql) {
+            $query->where($relation->sql, $relation->par?:[]);
+        }
+        if ($relation->pivot) {
+            $nm = null;
+            foreach ($relation->table->getRelations() as $rname => $rdata) {
+                if ($rdata->pivot && $rdata->pivot->getFullName() === $relation->pivot->getFullName()) {
+                    $nm = $rname;
+                }
+            }
+            if (!$nm) {
+                $nm = $definition->getName();
+                $relation->table->manyToMany(
+                    $definition,
+                    $relation->pivot,
+                    $nm,
+                    array_flip($relation->keymap),
+                    $relation->pivot_keymap
+                );
+            }
+            foreach ($definition->getPrimaryKey() as $v) {
+                $query->filter($nm . '.' . $v, $entity->{$v} ?? null);
+            }
+        } else {
+            foreach ($relation->keymap as $k => $v) {
+                $query->filter($v, $entity->{$k} ?? null);
+            }
+        }
+        return $query;
+    }
     /**
      * Persist all changes to an entity in the DB. Does not include modified relation collections.
      *
@@ -175,40 +208,11 @@ class Mapper implements MapperInterface
                     ) use (
                         $entity,
                         $definition,
-                        $relation,
-                        $data
+                        $relation
                     ) {
-                        $query = $this->db->tableMapped($relation->table->getFullName());
+                        $query = $this->relation($entity, $relation, $definition);
                         if ($columns !== null) {
                             $query->columns($columns);
-                        }
-                        if ($relation->sql) {
-                            $query->where($relation->sql, $relation->par?:[]);
-                        }
-                        if ($relation->pivot) {
-                            $nm = null;
-                            foreach ($relation->table->getRelations() as $rname => $rdata) {
-                                if ($rdata->pivot && $rdata->pivot->getFullName() === $relation->pivot->getFullName()) {
-                                    $nm = $rname;
-                                }
-                            }
-                            if (!$nm) {
-                                $nm = $definition->getName();
-                                $relation->table->manyToMany(
-                                    $definition,
-                                    $relation->pivot,
-                                    $nm,
-                                    array_flip($relation->keymap),
-                                    $relation->pivot_keymap
-                                );
-                            }
-                            foreach ($definition->getPrimaryKey() as $v) {
-                                $query->filter($nm . '.' . $v, $data[$v] ?? null);
-                            }
-                        } else {
-                            foreach ($relation->keymap as $k => $v) {
-                                $query->filter($v, $entity->{$k} ?? null);
-                            }
                         }
                         if ($relation->many && $order) {
                             $query->sort($order, $desc);

@@ -19,9 +19,16 @@ interface MapperInterface
     /**
      * @param TableQueryIterator $iterator
      * @param Table $definition
-     * @return Collection<int,Entity>
+     * @return Collection<int,T>
      */
     public function collection(TableQueryIterator $iterator, Table $definition): Collection;
+    /**
+     * @param object $entity
+     * @param TableRelation $relation
+     * @param Table $definition
+     * @return TableQueryMapped<T>
+     */
+    public function relation(object $entity, TableRelation $relation, Table $definition): TableQueryMapped;
     public function save(object $entity): object;
     public function delete(object $entity): void;
     public function refresh(object $entity): object;

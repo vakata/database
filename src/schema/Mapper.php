@@ -22,9 +22,9 @@ class Mapper implements MapperInterface
     }
     /**
      * 
-     * @param array $data
-     * @param array $lazy
-     * @param array $relations
+     * @param array<string,mixed> $data
+     * @param array<string,callable> $lazy
+     * @param array<string,callable> $relations
      * @return T
      */
     protected function instance(array $data = [], array $lazy = [], array $relations = []): Entity

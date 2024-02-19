@@ -26,6 +26,11 @@ class Entity
      */
     protected array $cached = [];
 
+    /**
+     * @param array<string,mixed> $data
+     * @param array<string,callable> $lazy
+     * @param array<string,callable> $relations
+     */
     public function __construct(array $data = [], array $lazy = [], array $relations = [])
     {
         $this->data = $data;

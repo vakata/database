@@ -25,4 +25,14 @@ interface MapperInterface
      * @return void
      */
     public function delete(object $entity): void;
+    /**
+     * @param T $entity
+     * @return array<string,mixed>
+     */
+    public function id(Entity $entity): array;
+    /**
+     * @param T $entity
+     * @return array<string,mixed>
+     */
+    public function toArray(Entity $entity): array;
 }

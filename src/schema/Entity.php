@@ -50,7 +50,7 @@ class Entity
             $relation = $this->__call($property, []);
             return $relation;
         }
-        throw new DBException('Invalid property name');
+        return null;
     }
     /**
      * @param string $method
@@ -72,8 +72,6 @@ class Entity
     }
     public function __set(string $property, mixed $value): void
     {
-        if (array_key_exists($property, $this->data) || array_key_exists($property, $this->lazy)) {
-            $this->changed[$property] = $value;
-        }
+        $this->changed[$property] = $value;
     }
 }

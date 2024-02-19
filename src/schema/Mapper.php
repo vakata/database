@@ -35,7 +35,22 @@ class Mapper implements MapperInterface
      * @param T $entity
      * @return array<string,mixed>
      */
-    protected function toArray(Entity $entity): array
+    public function id(Entity $entity): array
+    {
+        $data = [];
+        foreach ($this->table->getPrimaryKey() as $column) {
+            try {
+                $data[$column] = $entity->{$column} ?? null;
+            } catch (\Throwable $ignore) {
+            }
+        }
+        return $data;
+    }
+    /**
+     * @param T $entity
+     * @return array<string,mixed>
+     */
+    public function toArray(Entity $entity): array
     {
         $data = [];
         foreach ($this->table->getColumns() as $column) {

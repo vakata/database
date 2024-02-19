@@ -10,26 +10,19 @@ use vakata\database\DBInterface;
 interface MapperInterface
 {
     /**
-     * @param Table $definition
      * @param array<string,mixed> $data
      * @param boolean $empty
      * @return T
      */
-    public function entity(Table $definition, array $data, bool $empty = false): object;
+    public function entity(array $data, bool $empty = false): object;
     /**
-     * @param TableQueryIterator $iterator
-     * @param Table $definition
-     * @return Collection<int,T>
+     * @param T $entity
+     * @return T
      */
-    public function collection(TableQueryIterator $iterator, Table $definition): Collection;
-    /**
-     * @param object $entity
-     * @param TableRelation $relation
-     * @param Table $definition
-     * @return TableQueryMapped<T>
-     */
-    public function relation(object $entity, TableRelation $relation, Table $definition): TableQueryMapped;
     public function save(object $entity): object;
+    /**
+     * @param T $entity
+     * @return void
+     */
     public function delete(object $entity): void;
-    public function refresh(object $entity): object;
 }

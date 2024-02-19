@@ -1,7 +1,6 @@
 <?php
 namespace vakata\database\schema;
 
-use vakata\collection\Collection;
 use vakata\database\DBInterface;
 
 /**
@@ -13,93 +12,142 @@ use vakata\database\DBInterface;
 class Mapper implements MapperInterface
 {
     protected DBInterface $db;
+    protected Table $table;
     protected array $objects = [];
 
-    public function __construct(DBInterface $db)
+    public function __construct(DBInterface $db, Table $table)
     {
         $this->db = $db;
+        $this->table = $table;
     }
     /**
-     * @param Table $definition
-     * @param array<string,mixed> $data
+     * 
+     * @param array $data
+     * @param array $lazy
+     * @param array $relations
      * @return T
      */
-    protected function instance(Table $definition, array $data = []): Entity
+    protected function instance(array $data = [], array $lazy = [], array $relations = []): Entity
     {
-        return new Entity($this, $definition, $data);
+        return new Entity($data, $lazy, $relations);
     }
+    /**
+     * @param T $entity
+     * @return array<string,mixed>
+     */
+    protected function toArray(Entity $entity): array
+    {
+        $data = [];
+        foreach ($this->table->getColumns() as $column) {
+            try {
+                $data[$column] = $entity->{$column} ?? null;
+            } catch (\Throwable $ignore) {
+            }
+        }
+        return $data;
+    }
+
     /**
      * Create an entity from an array of data
      *
-     * @param Table $definition
      * @param array<string,mixed> $data
      * @param boolean $empty
      * @return T
      */
-    public function entity(Table $definition, array $data, bool $empty = false): Entity
+    public function entity(array $data, bool $empty = false): Entity
     {
         $primary = [];
         if (!$empty) {
-            foreach ($definition->getPrimaryKey() as $column) {
+            foreach ($this->table->getPrimaryKey() as $column) {
                 $primary[$column] = $data[$column];
             }
-            if (isset($this->objects[$definition->getFullName()][base64_encode(serialize($primary))])) {
-                return $this->objects[$definition->getFullName()][base64_encode(serialize($primary))];
+            if (isset($this->objects[base64_encode(serialize($primary))])) {
+                return $this->objects[base64_encode(serialize($primary))][1];
             }
         }
-        $entity = $this->instance($definition, $data);
+        $temp = [];
+        foreach ($this->table->getColumns() as $column) {
+            if (isset($data[$column])) {
+                $temp[$column] = $data[$column];
+            }
+            if ($empty) {
+                $temp[$column] = null;
+            }
+        }
         if ($empty) {
-            return $entity;
+            return $this->instance($temp);
         }
-        $this->lazy($entity, $data);
-        return $this->objects[$definition->getFullName()][base64_encode(serialize($primary))] = $entity;
-    }
-    /**
-     * Get a collection of entities
-     *
-     * @param TableQueryIterator $iterator
-     * @param Table $definition
-     * @return Collection<int,Entity>
-     */
-    public function collection(TableQueryIterator $iterator, Table $definition) : Collection
-    {
-        return Collection::from($iterator)
-            ->map(function ($v) use ($definition) {
-                return $this->entity($definition, $v);
-            });
-    }
-    public function relation(object $entity, TableRelation $relation, Table $definition): TableQueryMapped
-    {
-        $query = $this->db->tableMapped($relation->table->getFullName());
-        if ($relation->sql) {
-            $query->where($relation->sql, $relation->par?:[]);
+        $lazy = [];
+        foreach ($this->table->getColumns() as $column) {
+            if (!array_key_exists($column, $temp)) {
+                $lazy[$column] = function () use ($primary, $column) {
+                    $query = $this->db->table($this->table->getFullName());
+                    foreach ($primary as $k => $v) {
+                        $query->filter($k, $v);
+                    }
+                    return $query->select([$column])[0][$column] ?? null;
+                };
+            }
         }
-        if ($relation->pivot) {
-            $nm = null;
-            foreach ($relation->table->getRelations() as $rname => $rdata) {
-                if ($rdata->pivot && $rdata->pivot->getFullName() === $relation->pivot->getFullName()) {
-                    $nm = $rname;
+        $relations = [];
+        foreach ($this->table->getRelations() as $name => $relation) {
+            $mapper = $this->db->getMapper($relation->table);
+            $relations[$name] = function (bool $queryOnly = false) use (
+                $name,
+                $relation,
+                $mapper,
+                $data
+            ) {
+                if (!$queryOnly && isset($data[$name])) {
+                    return $relation->many ?
+                        array_map(function ($v) use ($mapper) {
+                            return $mapper->entity($v);
+                        }, $data[$name]) :
+                        $mapper->entity($data[$name]);
                 }
-            }
-            if (!$nm) {
-                $nm = $definition->getName();
-                $relation->table->manyToMany(
-                    $definition,
-                    $relation->pivot,
-                    $nm,
-                    array_flip($relation->keymap),
-                    $relation->pivot_keymap
-                );
-            }
-            foreach ($definition->getPrimaryKey() as $v) {
-                $query->filter($nm . '.' . $v, $entity->{$v} ?? null);
-            }
-        } else {
-            foreach ($relation->keymap as $k => $v) {
-                $query->filter($v, $entity->{$k} ?? null);
-            }
+                $query = $this->db->tableMapped($relation->table->getFullName());
+                if ($relation->sql) {
+                    $query->where($relation->sql, $relation->par?:[]);
+                }
+                if ($relation->pivot) {
+                    $nm = null;
+                    foreach ($relation->table->getRelations() as $rname => $rdata) {
+                        if ($rdata->pivot && $rdata->pivot->getFullName() === $relation->pivot->getFullName()) {
+                            $nm = $rname;
+                        }
+                    }
+                    if (!$nm) {
+                        $nm = $this->table->getName();
+                        $relation->table->manyToMany(
+                            $this->table,
+                            $relation->pivot,
+                            $nm,
+                            array_flip($relation->keymap),
+                            $relation->pivot_keymap
+                        );
+                    }
+                    foreach ($this->table->getPrimaryKey() as $v) {
+                        $query->filter($nm . '.' . $v, $data[$v] ?? null);
+                    }
+                } else {
+                    foreach ($relation->keymap as $k => $v) {
+                        $query->filter($v, $data[$k] ?? null);
+                    }
+                }
+                if ($queryOnly) {
+                    return $query;
+                }
+                return $relation->many ?
+                    $query->iterator() :
+                    ($query[0] ?? null);
+            };
         }
-        return $query;
+        $entity = $this->instance($temp, $lazy, $relations);
+        $this->objects[base64_encode(serialize($primary))] = $this->objects[spl_object_hash($entity)] = [
+            $primary,
+            $entity
+        ];
+        return $entity;
     }
     /**
      * Persist all changes to an entity in the DB. Does not include modified relation collections.
@@ -112,27 +160,39 @@ class Mapper implements MapperInterface
         if (!($entity instanceof Entity)) {
             throw new \Exception('Invalid object');
         }
-        $query = $this->db->table($entity->definition()->getFullName());
-        $primary = $entity->id();
-        if (!isset($this->objects[$entity->definition()->getFullName()][base64_encode(serialize($primary))])) {
-            $new = $query->insert($entity->toArray());
-            $entity->fromArray($new);
-            $this->objects[$entity->definition()->getFullName()][base64_encode(serialize($new))] = $entity;
+        $query = $this->db->table($this->table->getFullName());
+        $data = $this->toArray($entity);
+        if (!isset($this->objects[spl_object_hash($entity)])) {
+            foreach ($this->table->getPrimaryKey() as $column) {
+                if (array_key_exists($column, $data) && !isset($data[$column])) {
+                    unset($data[$column]);
+                }
+            }
+            $new = $query->insert($data);
+            $entity = $this->entity(array_merge($data, $new));
+            $this->objects[base64_encode(serialize($new))] = $this->objects[spl_object_hash($entity)] = [
+                $new,
+                $entity
+            ];
         } else {
+            $primary = $this->objects[spl_object_hash($entity)][0];
             foreach ($primary as $k => $v) {
                 $query->filter($k, $v);
             }
-            $query->update($entity->toArray());
+            $query->update($data);
             $new = [];
-            foreach ($primary as $k => $v) {
-                $new[$k] = $entity->{$k};
+            foreach ($this->table->getPrimaryKey() as $column) {
+                $new[$column] = $data[$column];
             }
-            if (base64_encode(serialize($new)) !== base64_encode(serialize($primary))) {
-                unset($this->objects[$entity->definition()->getFullName()][base64_encode(serialize($primary))]);
-                $this->objects[$entity->definition()->getFullName()][base64_encode(serialize($new))] = $entity;
-            }
+            unset($this->objects[base64_encode(serialize($primary))]);
+            unset($this->objects[spl_object_hash($entity)]);
+            $entity = $this->entity(array_merge($data, $new));
+            $this->objects[base64_encode(serialize($new))] = $this->objects[spl_object_hash($entity)] = [
+                $new,
+                $entity
+            ];
         }
-        return $this->lazy($entity, $entity->toArray());
+        return $entity;
     }
     /**
      * Delete an entity from the database
@@ -145,84 +205,15 @@ class Mapper implements MapperInterface
         if (!($entity instanceof Entity)) {
             throw new \Exception('Invalid object');
         }
-        $query = $this->db->table($entity->definition()->getFullName());
-        $primary = $entity->id();
-        if (isset($this->objects[$entity->definition()->getFullName()][base64_encode(serialize($primary))])) {
+        if (isset($this->objects[spl_object_hash($entity)])) {
+            $query = $this->db->table($this->table->getFullName());
+            $primary = $this->objects[spl_object_hash($entity)][0];
             foreach ($primary as $k => $v) {
                 $query->filter($k, $v);
             }
             $query->delete();
-            unset($this->objects[$entity->definition()->getFullName()][base64_encode(serialize($primary))]);
+            unset($this->objects[base64_encode(serialize($primary))]);
+            unset($this->objects[spl_object_hash($entity)]);
         }
-    }
-    /**
-     * Refresh an entity from the DB (includes own columns and relations).
-     *
-     * @param Т $entity
-     * @return Т
-     */
-    public function refresh(object $entity): Entity
-    {
-        if (!($entity instanceof Entity)) {
-            throw new \Exception('Invalid object');
-        }
-        $query = $this->db->table($entity->definition()->getFullName());
-        $primary = $entity->id();
-        foreach ($primary as $k => $v) {
-            $query->filter($k, $v);
-        }
-        $data = $query[0] ?? [];
-        $entity->fromArray($data);
-        return $this->lazy($entity, $data);
-    }
-    protected function lazy(Entity $entity, array $data): Entity
-    {
-        $primary = $entity->id();
-        $definition = $entity->definition();
-        foreach ($definition->getColumns() as $column) {
-            if (!array_key_exists($column, $data)) {
-                $entity->__lazyProperty($column, function () use ($definition, $primary, $column) {
-                    $query = $this->db->table($definition->getFullName());
-                    foreach ($primary as $k => $v) {
-                        $query->filter($k, $v);
-                    }
-                    return $query->select([$column])[0][$column] ?? null;
-                });
-            }
-        }
-        foreach ($definition->getRelations() as $name => $relation) {
-            $mapper = $this->db->getMapper($relation->table);
-            $entity->__lazyProperty(
-                $name,
-                array_key_exists($name, $data) && isset($data[$name]) ?
-                    ($relation->many ?
-                        array_map(function ($v) use ($relation, $mapper) {
-                            return $mapper->entity($relation->table, $v);
-                        }, $data[$name]) :
-                        $mapper->entity($relation->table, $data[$name])
-                    ) :
-                    function (
-                        array $columns = null,
-                        string $order = null,
-                        bool $desc = false
-                    ) use (
-                        $entity,
-                        $definition,
-                        $relation
-                    ) {
-                        $query = $this->relation($entity, $relation, $definition);
-                        if ($columns !== null) {
-                            $query->columns($columns);
-                        }
-                        if ($relation->many && $order) {
-                            $query->sort($order, $desc);
-                        }
-                        return $relation->many ?
-                            $query->iterator() :
-                            $query[0];
-                    }
-            );
-        }
-        return $entity;
     }
 }

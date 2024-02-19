@@ -85,8 +85,6 @@ class DB implements DBInterface
         if (!class_exists($tmp)) {
             throw new DBException('Unknown DB backend');
         }
-
-        $this->mappers['*'] = new Mapper($this);
         /* @phpstan-ignore-next-line */
         $this->driver = new $tmp($connection);
     }
@@ -376,7 +374,10 @@ class DB implements DBInterface
         if (is_string($table)) {
             $table = $this->definition($table);
         }
-        return $this->mappers[$table->getFullName()] ?? $this->mappers['*'];
+        if (isset($this->mappers[$table->getFullName()])) {
+            return $this->mappers[$table->getFullName()];
+        }
+        return $this->mappers[$table->getFullName()] = new Mapper($this, $table);
     }
     public function setMapper(Table|string $table, MapperInterface $mapper): static
     {

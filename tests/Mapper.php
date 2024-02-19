@@ -136,7 +136,7 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
         
         $resig = $author->create();
         $resig->name = 'John Resig';
-        $resig->save();
+        $this->getDB()->getMapper('author')->save($resig);
 
         $this->assertEquals($author[4]->name, 'John Resig');
         $this->assertEquals(self::$db->one('SELECT name FROM author WHERE id = 5'), 'John Resig');
@@ -147,32 +147,32 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
     {
         $author = $this->getDB()->author(true);
         $author[0]->name = 'Terry Pratchett, Sir';
-        $author[0]->save();
+        $this->getDB()->getMapper('author')->save($author[0]);
         $this->assertEquals($author[0]->name, 'Terry Pratchett, Sir');
         $this->assertEquals(self::$db->one('SELECT name FROM author WHERE id = 1'), 'Terry Pratchett, Sir');
     }
     public function testDelete()
     {
-        $author = $this->getDB()->author(true);
-        $author[4]->delete();
+        $author = $this->getDB()->author(true)->sort('id');
+        $this->getDB()->getMapper('author')->delete($author[4]);
         $author = $this->getDB()->author(true);
         $this->assertEquals(count($author), 4);
         $this->assertEquals(self::$db->one('SELECT COUNT(id) FROM author'), 4);
     }
     public function testChangePK()
     {
-        $author = $this->getDB()->author(true);
+        $author = $this->getDB()->author(true)->sort('id');
         $this->assertEquals($author[2]->name, 'Douglas Adams');
         $this->assertEquals($author[2]->id, 3);
         $author[2]->id = 42;
-        $author[2]->save();
-        $this->assertEquals('Douglas Adams', $this->getDB()->author(true)[3]->name);
-        $this->assertEquals(42, $this->getDB()->author(true)[3]->id);
+        $this->getDB()->getMapper('author')->save($author[2]);
+        $this->assertEquals('Douglas Adams', $this->getDB()->author(true)->sort('id')[3]->name);
+        $this->assertEquals(42, $this->getDB()->author(true)->sort('id')[3]->id);
         $this->assertEquals(self::$db->one('SELECT name FROM author WHERE id = 42'), 'Douglas Adams');
     }
     public function testCreateRelationFromDB()
     {
-        $author = $this->getDB()->author(true);
+        $author = $this->getDB()->author(true)->sort('id');
         self::$db->query(
             'INSERT INTO book (name, author_id) VALUES(?, ?)',
             ['The Hitchhiker\'s Guide to the Galaxy', 42]

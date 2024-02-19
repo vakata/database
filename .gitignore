@@ -4,3 +4,4 @@ vendor
 .vscode
 .phpls
 .phpunit.cache
+index.php

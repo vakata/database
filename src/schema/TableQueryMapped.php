@@ -30,7 +30,10 @@ class TableQueryMapped extends TableQuery
      */
     public function iterator(array $fields = null, array $collectionKey = null): Collection
     {
-        return $this->mapper->collection(parent::iterator($fields, $collectionKey), $this->definition);
+        return Collection::from(parent::iterator($fields, $collectionKey))
+            ->map(function ($v) {
+                return $this->mapper->entity($v);
+            });
     }
     /**
      * @param array|null $fields
@@ -48,6 +51,6 @@ class TableQueryMapped extends TableQuery
      */
     public function create(array $data = []): object
     {
-        return $this->mapper->entity($this->definition, $data, true);
+        return $this->mapper->entity($data, true);
     }
 }

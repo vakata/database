@@ -46,7 +46,8 @@ class Entity
             return $this->data[$property];
         }
         if (isset($this->lazy[$property])) {
-            return $this->data[$property] = call_user_func($this->lazy[$property]);
+            $this->data[$property] = call_user_func($this->lazy[$property]);
+            return $this->data[$property];
         }
         if (array_key_exists($property, $this->cached)) {
             return $this->cached[$property];

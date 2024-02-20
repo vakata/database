@@ -14,11 +14,28 @@ class Mapper implements MapperInterface
     protected DBInterface $db;
     protected Table $table;
     protected array $objects = [];
+    /**
+     * @var class-string<T>
+     */
+    protected string $clss = Entity::class;
 
-    public function __construct(DBInterface $db, Table $table)
+    /**
+     * @param DBInterface $db
+     * @param string|Table|null $table
+     * @param class-string<T> $clss
+     * @return void
+     */
+    public function __construct(DBInterface $db, string|Table $table = '', string $clss = Entity::class)
     {
         $this->db = $db;
+        if (!$table) {
+            $table = preg_replace('(mapper$)', '', strtolower(basename(str_replace('\\', '/', static::class))));
+        }
+        if (!($table instanceof Table)) {
+            $table = $this->db->definition($table);
+        }
         $this->table = $table;
+        $this->clss = $clss;
     }
     /**
      * 
@@ -27,15 +44,15 @@ class Mapper implements MapperInterface
      * @param array<string,callable> $relations
      * @return T
      */
-    protected function instance(array $data = [], array $lazy = [], array $relations = []): Entity
+    protected function instance(array $data = [], array $lazy = [], array $relations = []): object
     {
-        return new Entity($data, $lazy, $relations);
+        return new ($this->clss)($data, $lazy, $relations);
     }
     /**
      * @param T $entity
      * @return array<string,mixed>
      */
-    public function id(Entity $entity): array
+    public function id(object $entity): array
     {
         $data = [];
         foreach ($this->table->getPrimaryKey() as $column) {
@@ -50,7 +67,7 @@ class Mapper implements MapperInterface
      * @param T $entity
      * @return array<string,mixed>
      */
-    public function toArray(Entity $entity): array
+    public function toArray(object $entity): array
     {
         $data = [];
         foreach ($this->table->getColumns() as $column) {
@@ -69,7 +86,7 @@ class Mapper implements MapperInterface
      * @param boolean $empty
      * @return T
      */
-    public function entity(array $data, bool $empty = false): Entity
+    public function entity(array $data, bool $empty = false): object
     {
         $primary = [];
         if (!$empty) {
@@ -170,11 +187,8 @@ class Mapper implements MapperInterface
      * @param T $entity
      * @return T
      */
-    public function save(object $entity): Entity
+    public function save(object $entity): object
     {
-        if (!($entity instanceof Entity)) {
-            throw new \Exception('Invalid object');
-        }
         $query = $this->db->table($this->table->getFullName());
         $data = $this->toArray($entity);
         if (!isset($this->objects[spl_object_hash($entity)])) {
@@ -217,9 +231,6 @@ class Mapper implements MapperInterface
      */
     public function delete(object $entity): void
     {
-        if (!($entity instanceof Entity)) {
-            throw new \Exception('Invalid object');
-        }
         if (isset($this->objects[spl_object_hash($entity)])) {
             $query = $this->db->table($this->table->getFullName());
             $primary = $this->objects[spl_object_hash($entity)][0];

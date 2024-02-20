@@ -55,7 +55,8 @@ class Entity
             $relation = $this->__call($property, []);
             return $relation;
         }
-        return null;
+        $null = null;
+        return $null;
     }
     /**
      * @param string $method

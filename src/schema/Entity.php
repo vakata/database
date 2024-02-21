@@ -1,6 +1,7 @@
 <?php
 namespace vakata\database\schema;
 
+use vakata\collection\Collection;
 use vakata\database\DBException;
 
 class Entity
@@ -80,5 +81,30 @@ class Entity
     public function __set(string $property, mixed $value): void
     {
         $this->changed[$property] = $value;
+    }
+    protected function relatedQuery(string $name): TableQueryMapped
+    {
+        if (!array_key_exists($name, $this->relations)) {
+            throw new DBException('Invalid relation name');
+        }
+        return call_user_func_array($this->relations[$name], [true]);
+    }
+    protected function relatedRow(string $name): mixed
+    {
+        if (!array_key_exists($name, $this->relations)) {
+            throw new DBException('Invalid relation name');
+        }
+        return call_user_func_array($this->relations[$name], []);
+    }
+    /**
+     * @param string $name
+     * @return Collection<Entity>
+     */
+    protected function relatedRows(string $name): Collection
+    {
+        if (!array_key_exists($name, $this->relations)) {
+            throw new DBException('Invalid relation name');
+        }
+        return call_user_func_array($this->relations[$name], []);
     }
 }

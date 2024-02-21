@@ -98,7 +98,7 @@ class Entity
     }
     /**
      * @param string $name
-     * @return Collection<Entity>
+     * @return Collection<int,Entity>
      */
     protected function relatedRows(string $name): Collection
     {

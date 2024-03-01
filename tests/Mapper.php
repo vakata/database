@@ -15,7 +15,7 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
         static::$db = null;
     }
 
-    protected function getDB()
+    protected function getDB(): DBI
     {
         if (!static::$db) {
             $connection = $this->getConnectionString();
@@ -54,7 +54,8 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
     }
     public function testMappedRelations()
     {
-        $books = $this->getDB()->book(true);
+        $books = $this->getDB()->book(true)->sort('id');
+        //var_dump($books[0]->author); die();
         $this->assertEquals('Terry Pratchett', $books[0]->author->name);
         $this->assertEquals(2, count($books[0]->tag));
         $this->assertEquals('Terry Pratchett', $books[0]->author->book[0]->tag[0]->book[0]->author->name);
@@ -132,11 +133,12 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
 
     public function testCreate()
     {
-        $author = $this->getDB()->author(true);
-        
+        $author = $this->getDB()->tableMapped('author');
         $resig = $author->create();
         $resig->name = 'John Resig';
         $this->getDB()->getMapper('author')->save($resig);
+
+        $author = $this->getDB()->tableMapped('author');
 
         $this->assertEquals($author[4]->name, 'John Resig');
         $this->assertEquals(self::$db->one('SELECT name FROM author WHERE id = 5'), 'John Resig');
@@ -145,7 +147,7 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
     }
     public function testUpdate()
     {
-        $author = $this->getDB()->author(true);
+        $author = $this->getDB()->author(true)->sort('id');
         $author[0]->name = 'Terry Pratchett, Sir';
         $this->getDB()->getMapper('author')->save($author[0]);
         $this->assertEquals($author[0]->name, 'Terry Pratchett, Sir');
@@ -154,6 +156,7 @@ abstract class Mapper extends \PHPUnit\Framework\TestCase
     public function testDelete()
     {
         $author = $this->getDB()->author(true)->sort('id');
+        $this->assertEquals(count($author), 5);
         $this->getDB()->getMapper('author')->delete($author[4]);
         $author = $this->getDB()->author(true);
         $this->assertEquals(count($author), 4);

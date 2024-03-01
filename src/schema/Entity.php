@@ -47,7 +47,7 @@ class Entity
             return $this->data[$property];
         }
         if (isset($this->lazy[$property])) {
-            $this->data[$property] = call_user_func($this->lazy[$property]);
+            $this->data[$property] = call_user_func($this->lazy[$property], $this);
             return $this->data[$property];
         }
         if (array_key_exists($property, $this->cached)) {
@@ -68,7 +68,7 @@ class Entity
     public function __call(string $method, array $args): mixed
     {
         if (array_key_exists($method, $this->relations)) {
-            $rslt = call_user_func_array($this->relations[$method], $args);
+            $rslt = call_user_func($this->relations[$method], $this, ...$args);
             if (isset($args[0]) && $args[0] === true) {
                 return $rslt;
             }
@@ -87,14 +87,14 @@ class Entity
         if (!array_key_exists($name, $this->relations)) {
             throw new DBException('Invalid relation name');
         }
-        return call_user_func_array($this->relations[$name], [true]);
+        return call_user_func_array($this->relations[$name], [$this, true]);
     }
     protected function relatedRow(string $name): mixed
     {
         if (!array_key_exists($name, $this->relations)) {
             throw new DBException('Invalid relation name');
         }
-        return call_user_func_array($this->relations[$name], []);
+        return call_user_func_array($this->relations[$name], [$this]);
     }
     /**
      * @param string $name
@@ -105,6 +105,6 @@ class Entity
         if (!array_key_exists($name, $this->relations)) {
             throw new DBException('Invalid relation name');
         }
-        return call_user_func_array($this->relations[$name], []);
+        return call_user_func_array($this->relations[$name], [$this]);
     }
 }

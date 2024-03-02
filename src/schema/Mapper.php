@@ -160,9 +160,29 @@ class Mapper implements MapperInterface
                 $temp[$column] = null;
             }
         }
+        $entity = $this->instance(
+            $temp,
+            $this->lazyColumns($temp),
+            $this->lazyRelations($data)
+        );
+        if (!$empty) {
+            $this->index[base64_encode(serialize($primary))] = spl_object_hash($entity);
+        }
+        $this->objects[spl_object_hash($entity)] = [
+            $primary,
+            $entity,
+            '',
+            array_keys($temp),
+            []
+        ];
+        $this->objects[spl_object_hash($entity)][2] = $this->hash($this->toArray($entity));
+        return $entity;
+    }
+    protected function lazyColumns(array $data): array
+    {
         $lazy = [];
         foreach ($this->table->getColumns() as $column) {
-            if (!array_key_exists($column, $temp)) {
+            if (!array_key_exists($column, $data)) {
                 $lazy[$column] = function ($entity) use ($column) {
                     $query = $this->db->table($this->table->getFullName());
                     foreach ($this->id($entity) as $k => $v) {
@@ -180,6 +200,10 @@ class Mapper implements MapperInterface
                 };
             }
         }
+        return $lazy;
+    }
+    protected function lazyRelations(array $data): array
+    {
         $relations = [];
         foreach ($this->table->getRelations() as $name => $relation) {
             $relations[$name] = function (object $entity, bool $queryOnly = false) use (
@@ -251,19 +275,7 @@ class Mapper implements MapperInterface
                 return $value;
             };
         }
-        $entity = $this->instance($temp, $lazy, $relations);
-        if (!$empty) {
-            $this->index[base64_encode(serialize($primary))] = spl_object_hash($entity);
-        }
-        $this->objects[spl_object_hash($entity)] = [
-            $primary,
-            $entity,
-            '',
-            array_keys($temp),
-            []
-        ];
-        $this->objects[spl_object_hash($entity)][2] = $this->hash($this->toArray($entity));
-        return $entity;
+        return $relations;
     }
     /**
      * @param T $entity
@@ -565,5 +577,18 @@ class Mapper implements MapperInterface
             $this->index[base64_encode(serialize($primary))] = false;
             $this->objects[spl_object_hash($entity)] = false;
         }
+    }
+    public function entities(): array
+    {
+        return array_filter(
+            array_values(
+                array_map(
+                    function ($v) {
+                        return $v[1] ?? null;
+                    },
+                    $this->objects
+                )
+            )
+        );
     }
 }

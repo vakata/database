@@ -33,7 +33,7 @@ interface MapperInterface
     /**
      * @param T $entity
      * @param array<string,mixed> $data
-     * @return array<string,mixed>
+     * @return void
      */
     public function fromArray(object $entity, array $data): void;
     /**
@@ -64,4 +64,8 @@ interface MapperInterface
      * @return bool
      */
     public function exists(array|object $entity): bool;
+    /**
+     * @return array<int,T>
+     */
+    public function entities(): array;
 }

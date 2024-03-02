@@ -3,6 +3,7 @@
 namespace vakata\database;
 
 use \vakata\collection\Collection;
+use vakata\database\schema\Entity;
 use vakata\database\schema\MapperInterface;
 use \vakata\database\schema\Table;
 use vakata\database\schema\TableQuery;
@@ -65,13 +66,6 @@ interface DBInterface
     public function getSchema(): Schema;
     public function setSchema(Schema $schema): static;
     public function table(string $table, bool $findRelations = false): TableQuery;
-    public function getMapper(Table|string $table): MapperInterface;
-    public function setMapper(Table|string $table, MapperInterface $mapper): static;
-    public function tableMapped(
-        string $table,
-        bool $findRelations = false,
-        ?MapperInterface $mapper = null
-    ): TableQueryMapped;
     public function findRelation(string $start, string $end): array;
 
     /**
@@ -105,4 +99,16 @@ interface DBInterface
      * @return scalar|null
      */
     public function val(string $sql, array $par = []): mixed;
+
+    public function entity(string $class): Entity;
+    public function delete(Entity $entity): void;
+    public function save(?Entity $entity = null): void;
+
+    public function getMapper(Table|string $table): MapperInterface;
+    public function setMapper(Table|string $table, MapperInterface $mapper, ?string $class = null): static;
+    public function tableMapped(
+        string $table,
+        bool $findRelations = false,
+        ?MapperInterface $mapper = null
+    ): TableQueryMapped;
 }

@@ -505,7 +505,13 @@ class Mapper2Test extends \PHPUnit\Framework\TestCase
         $this->assertEquals($dbc->one("SELECT COUNT(*) FROM cars"), 3);
         $this->assertEquals(
             $dbc->all("SELECT * FROM driver_cars ORDER BY driver, car"),
-            [['driver'=>1,'car'=>1], ['driver'=>2,'car'=>1], ['driver'=>2,'car'=>2], ['driver'=>2,'car'=>3], ['driver'=>3,'car'=>3]]
+            [
+                ['driver'=>1,'car'=>1],
+                ['driver'=>2,'car'=>1],
+                ['driver'=>2,'car'=>2],
+                ['driver'=>2,'car'=>3],
+                ['driver'=>3,'car'=>3]
+            ]
         );
     }
     public function testDereferenceChangePivotRelation3()
@@ -522,5 +528,39 @@ class Mapper2Test extends \PHPUnit\Framework\TestCase
             $dbc->all("SELECT * FROM driver_cars ORDER BY driver, car"),
             [['driver'=>1,'car'=>1], ['driver'=>2,'car'=>1], ['driver'=>3,'car'=>3]]
         );
+    }
+    public function testDelete()
+    {
+        $dbc = $this->reset();
+        $dbc->query("INSERT INTO cars (name) VALUES ('created')");
+        $car = $dbc->tableMapped('cars')->filter('car', 4)[0];
+        $this->assertEquals($car->name, 'created');
+        $dbc->getMapper('cars')->delete($car, false);
+        $this->assertEquals($dbc->one("SELECT 1 FROM cars WHERE car = 4"), null);
+    }
+    public function testDeleteRelations()
+    {
+        $dbc = $this->reset();
+        $dbc->query("INSERT INTO cars (name) VALUES ('created')");
+        $car = $dbc->tableMapped('cars')->filter('car', 2)[0];
+        $dbc->getMapper('cars')->delete($car, true);
+        $this->assertEquals($dbc->one("SELECT 1 FROM cars WHERE car = 2"), null);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM driver_cars"), 3);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM race_participants WHERE car IS NULL"), 3);
+    }
+    public function testDBEntity()
+    {
+        $dbc = $this->reset();
+        $car = $dbc->entity('cars');
+        $car->name = 'created';
+        foreach ($dbc->tableMapped('drivers') as $driver) {
+            $driver->cars->add($car);
+        }
+        $driver = $dbc->tableMapped('drivers')->filter('driver', 1)[0];
+        $dbc->delete($driver);
+        $dbc->save();
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM cars"), 4);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM drivers"), 2);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM driver_cars"), 5);
     }
 }

@@ -3,6 +3,7 @@
 namespace vakata\database;
 
 use \vakata\collection\Collection;
+use vakata\database\schema\Entity;
 use vakata\database\schema\Mapper;
 use vakata\database\schema\MapperInterface;
 use \vakata\database\schema\Table;
@@ -21,6 +22,10 @@ class DB implements DBInterface
      * @var array<string,MapperInterface>
      */
     protected array $mappers = [];
+    /**
+     * @var array<string,Entity>
+     */
+    protected array $deleted = [];
 
     /**
      * Create an instance.
@@ -369,9 +374,57 @@ class DB implements DBInterface
     {
         return new TableQuery($this, $this->definition($table), $findRelations);
     }
+    public function entity(string $class): Entity
+    {
+        return $this->getMapper($class)->entity([], true);
+    }
+    public function delete(Entity $entity): void
+    {
+        $this->deleted[spl_object_hash($entity)] = $entity;
+    }
+    public function save(?Entity $entity = null): void
+    {
+        if (!isset($entity)) {
+            foreach ($this->deleted as $e) {
+                foreach ($this->mappers as $mapper) {
+                    if ($mapper->exists($e)) {
+                        $mapper->delete($e, true);
+                    }
+                }
+            }
+            foreach ($this->mappers as $mapper) {
+                foreach ($mapper->entities() as $e) {
+                    if ($mapper->isDirty($e)) {
+                        $mapper->save($e, false);
+                    }
+                }
+            }
+            foreach ($this->mappers as $mapper) {
+                foreach ($mapper->entities() as $e) {
+                    if ($mapper->isDirty($e, true)) {
+                        $mapper->save($e, true);
+                    }
+                }
+            }
+            return;
+        }
+        foreach ($this->mappers as $mapper) {
+            if ($mapper->exists($entity)) {
+                if (isset($this->deleted[spl_object_hash($entity)])) {
+                    $mapper->delete($entity, true);
+                } else {
+                    $mapper->save($entity, true);
+                }
+            }
+        }
+    }
+    
     public function getMapper(Table|string $table): MapperInterface
     {
         if (is_string($table)) {
+            if (isset($this->mappers['::' . $table])) {
+                return $this->mappers['::' . $table];
+            }
             $table = $this->definition($table);
         }
         if (isset($this->mappers[$table->getFullName()])) {
@@ -379,20 +432,22 @@ class DB implements DBInterface
         }
         return $this->mappers[$table->getFullName()] = new Mapper($this, $table);
     }
-    public function setMapper(Table|string $table, MapperInterface $mapper): static
+    public function setMapper(Table|string $table, MapperInterface $mapper, ?string $class = null): static
     {
         if (is_string($table)) {
             $table = $this->definition($table);
         }
         $this->mappers[$table->getFullName()] = $mapper;
+        if (isset($class)) {
+            $this->mappers['::' . $class] = $mapper;
+        }
         return $this;
     }
     public function tableMapped(
         string $table,
         bool $findRelations = false,
         ?MapperInterface $mapper = null
-    ): TableQueryMapped
-    {
+    ): TableQueryMapped {
         return new TableQueryMapped($this, $this->definition($table), $findRelations, $mapper);
     }
     public function __call(string $method, array $args): TableQuery|TableQueryMapped

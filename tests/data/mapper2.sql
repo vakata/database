@@ -38,8 +38,8 @@ CREATE TABLE IF NOT EXISTS races (
 CREATE TABLE IF NOT EXISTS race_participants (
   participant SERIAL NOT NULL,
   race int NOT NULL,
-  driver int NOT NULL,
-  car int NOT NULL,
+  driver int,
+  car int,
   position int DEFAULT NULL,
   PRIMARY KEY (participant),
   CONSTRAINT RACEP_RACE FOREIGN KEY (race) REFERENCES races (race),

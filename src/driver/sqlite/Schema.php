@@ -44,7 +44,7 @@ trait Schema
                     $row['table'] = $tn;
                     $row['constraint_name'] = md5(
                         implode(
-                            '_', 
+                            '_',
                             [
                                 $row['table'],
                                 $row['referenced_table'],

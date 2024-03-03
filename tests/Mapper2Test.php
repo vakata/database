@@ -576,7 +576,8 @@ class Mapper2Test extends \PHPUnit\Framework\TestCase
             new \vakata\database\schema\Mapper($dbc, 'cars', Mapper2Car::class),
             Mapper2Car::class
         );
-        $driver = $dbc->entities(Mapper2Driver::class)->filter('driver', 1)->collection()[0];
+        $driver = $dbc->entities(Mapper2Driver::class)->find(1);
+
         $this->assertEquals($driver::class, Mapper2Driver::class);
         $this->assertEquals($driver->cars[0]::class, Mapper2Car::class);
     }

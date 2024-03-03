@@ -3,14 +3,14 @@ namespace vakata\database\schema;
 
 use vakata\collection\Collection;
 use vakata\database\DBInterface;
-use vakata\database\DBException;
-use vakata\database\ResultInterface;
 
 /**
  * A database query class with mapping
  * @template T of Entity
+ * @implements \ArrayAccess<?int,T>
+ * @implements \IteratorAggregate<int,T>
  */
-class TableQueryMapped extends TableQuery
+class TableQueryMapped extends TableQuery implements \ArrayAccess, \IteratorAggregate
 {
     /**
      * @var MapperInterface<T>
@@ -66,5 +66,13 @@ class TableQueryMapped extends TableQuery
     public function entity(array $data = []): object
     {
         return $this->mapper->entity($data, true);
+    }
+    /**
+     * @param mixed $primary
+     * @return ?T
+     */
+    public function find(mixed $primary): mixed
+    {
+        return parent::find($primary);
     }
 }

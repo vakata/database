@@ -349,7 +349,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  bool   $negate  optional boolean indicating that the filter should be negated
      * @return $this
      */
-    public function filter(string $column, $value, bool $negate = false) : self
+    public function filter(string $column, $value, bool $negate = false) : static
     {
         $sql = $this->filterSQL($column, $value, $negate);
         return strlen($sql[0]) ? $this->where($sql[0], $sql[1]) : $this;
@@ -359,7 +359,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array $criteria  each row is a column, value and optional negate flag (same as filter method)
      * @return $this
      */
-    public function any(array $criteria) : self
+    public function any(array $criteria) : static
     {
         $sql = [];
         $par = [];
@@ -377,7 +377,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array $criteria  each row is a column, value and optional negate flag (same as filter method)
      * @return $this
      */
-    public function all(array $criteria) : self
+    public function all(array $criteria) : static
     {
         $sql = [];
         $par = [];
@@ -396,7 +396,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  bool|boolean $desc   should the sorting be in descending order, defaults to `false`
      * @return $this
      */
-    public function sort(string $column, bool $desc = false) : self
+    public function sort(string $column, bool $desc = false) : static
     {
         try {
             $this->getColumn($column);
@@ -410,7 +410,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  string|array        $column the column name (or names) to group by
      * @return $this
      */
-    public function group($column) : self
+    public function group($column) : static
     {
         if (!is_array($column)) {
             $column = [ $column ];
@@ -426,7 +426,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  int|integer $perPage the number of records per page - defaults to 25
      * @return $this
      */
-    public function paginate(int $page = 1, int $perPage = 25) : self
+    public function paginate(int $page = 1, int $perPage = 25) : static
     {
         return $this->limit($perPage, ($page - 1) * $perPage);
     }
@@ -447,7 +447,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * Remove all filters, sorting, etc
      * @return $this
      */
-    public function reset() : self
+    public function reset() : static
     {
         $this->where = [];
         $this->joins = [];
@@ -466,7 +466,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array  $params optional params for the statement (defaults to an empty array)
      * @return $this
      */
-    public function groupBy(string $sql, array $params = []) : self
+    public function groupBy(string $sql, array $params = []) : static
     {
         $this->qiterator = null;
         $this->group = [ $sql, $params ];
@@ -502,7 +502,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array  $params parameters for the SQL statement (defaults to an empty array)
      * @return $this
      */
-    public function where(string $sql, array $params = []) : self
+    public function where(string $sql, array $params = []) : static
     {
         $this->qiterator = null;
         $this->where[] = [ $sql, $params ];
@@ -514,7 +514,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array  $params parameters for the SQL statement (defaults to an empty array)
      * @return $this
      */
-    public function having(string $sql, array $params = []) : self
+    public function having(string $sql, array $params = []) : static
     {
         $this->qiterator = null;
         $this->having[] = [ $sql, $params ];
@@ -526,7 +526,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array  $params optional params for the statement (defaults to an empty array)
      * @return $this
      */
-    public function order(string $sql, array $params = []) : self
+    public function order(string $sql, array $params = []) : static
     {
         $this->qiterator = null;
         $name = null;
@@ -551,7 +551,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  int         $offset number of rows to skip from the beginning (defaults to 0)
      * @return $this
      */
-    public function limit(int $limit, int $offset = 0, bool $limitOnMainTable = false) : self
+    public function limit(int $limit, int $offset = 0, bool $limitOnMainTable = false) : static
     {
         $this->qiterator = null;
         $this->li_of = [ $limit, $offset, $limitOnMainTable ? 1 : 0 ];
@@ -773,7 +773,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array $fields optional array of columns to select (related columns can be used too)
      * @return $this
      */
-    public function columns(array $fields, bool $addPrimary = true) : self
+    public function columns(array $fields, bool $addPrimary = true) : static
     {
         $this->qiterator = null;
         foreach ($fields as $k => $v) {
@@ -1272,7 +1272,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  string $relation the relation name to fetch along with the data
      * @return $this
      */
-    public function with(string $relation, bool $select = true, string $order = null, bool $desc = false) : self
+    public function with(string $relation, bool $select = true, string $order = null, bool $desc = false) : static
     {
         $this->qiterator = null;
         $table = $this->definition;
@@ -1349,7 +1349,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
 
     /**
      * @param array|null $fields
-     * @return Collection<int,array<array-key,scalar|null>>
+     * @return Collection<int,mixed>
      */
     public function collection(array $fields = null) : Collection
     {

@@ -63,7 +63,7 @@ class Entity
     /**
      * @param string $method
      * @param array $args
-     * @return iterable<object of Entity>|Entity|null
+     * @return null|Entity|iterable<Entity>
      */
     public function __call(string $method, array $args): mixed
     {

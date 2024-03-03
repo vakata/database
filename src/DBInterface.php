@@ -87,7 +87,6 @@ interface DBInterface
      *
      * @param string $sql
      * @param array $par
-     * @param string|null $key
      * @return array<scalar|null>
      */
     public function col(string $sql, array $par = []): array;
@@ -101,6 +100,7 @@ interface DBInterface
     public function val(string $sql, array $par = []): mixed;
 
     public function entity(string $class): Entity;
+    public function entities(string $class): TableQueryMapped;
     public function delete(Entity $entity): void;
     public function save(?Entity $entity = null): void;
 

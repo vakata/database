@@ -12,6 +12,9 @@ use vakata\database\ResultInterface;
  */
 class TableQueryMapped extends TableQuery
 {
+    /**
+     * @var MapperInterface<T>
+     */
     protected MapperInterface $mapper;
 
     public function __construct(
@@ -33,7 +36,8 @@ class TableQueryMapped extends TableQuery
         return Collection::from(parent::iterator($fields, $collectionKey))
             ->map(function ($v) {
                 return $this->mapper->entity($v);
-            });
+            })
+            ->values();
     }
     /**
      * @param array|null $fields
@@ -41,7 +45,7 @@ class TableQueryMapped extends TableQuery
      */
     public function collection(?array $fields = null): Collection
     {
-        return parent::collection($fields);
+        return new Collection($this->iterator($fields));
     }
     /**
      * Create an empty entity for the queried table.
@@ -50,6 +54,16 @@ class TableQueryMapped extends TableQuery
      * @return T
      */
     public function create(array $data = []): object
+    {
+        return $this->mapper->entity($data, true);
+    }
+    /**
+     * Create an empty entity for the queried table.
+     *
+     * @param array $data optional array of data to populate with
+     * @return T
+     */
+    public function entity(array $data = []): object
     {
         return $this->mapper->entity($data, true);
     }

@@ -59,9 +59,12 @@ trait Schema
             }
         }
 
+        /**
+         * @var array<string,array<string,mixed>>
+         */
         $columns = Collection::from($this
             ->query("PRAGMA table_info(".$table.")"))
-            ->mapKey(function ($v) {
+            ->mapKey(function ($v): string {
                 return $v['name'];
             })
             ->map(function ($v) {

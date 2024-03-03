@@ -200,7 +200,7 @@ class DB implements DBInterface
             });
         }
         if ($key !== null) {
-            $coll->mapKey(function ($v) use ($key) {
+            $coll->mapKey(function ($v) use ($key): int|string {
                 return $v[$key];
             });
         }
@@ -374,8 +374,24 @@ class DB implements DBInterface
     {
         return new TableQuery($this, $this->definition($table), $findRelations);
     }
+    /**
+     * @template T of Entity
+     * @param class-string<T> $class
+     * @return TableQueryMapped<T>
+     */
+    public function entities(string $class): TableQueryMapped
+    {
+        $mapper = $this->getMapper($class);
+        return $this->tableMapped($mapper->table(), false, $mapper);
+    }
+    /**
+     * @template T of Entity
+     * @param class-string<T> $class
+     * @return T
+     */
     public function entity(string $class): Entity
     {
+        /** @phpstan-ignore-next-line */
         return $this->getMapper($class)->entity([], true);
     }
     public function delete(Entity $entity): void
@@ -418,7 +434,11 @@ class DB implements DBInterface
             }
         }
     }
-    
+    /**
+     * @template T of Entity
+     * @param class-string<T>|Table|string $table
+     * @return ($table is class-string ? MapperInterface<T> : MapperInterface<Entity>)
+     */
     public function getMapper(Table|string $table): MapperInterface
     {
         if (is_string($table)) {

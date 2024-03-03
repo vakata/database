@@ -563,4 +563,21 @@ class Mapper2Test extends \PHPUnit\Framework\TestCase
         $this->assertEquals($dbc->one("SELECT COUNT(*) FROM drivers"), 2);
         $this->assertEquals($dbc->one("SELECT COUNT(*) FROM driver_cars"), 5);
     }
+    public function testTypes()
+    {
+        $dbc = $this->reset();
+        $dbc->setMapper(
+            'drivers',
+            new \vakata\database\schema\Mapper($dbc, 'drivers', Mapper2Driver::class),
+            Mapper2Driver::class
+        );
+        $dbc->setMapper(
+            'cars',
+            new \vakata\database\schema\Mapper($dbc, 'cars', Mapper2Car::class),
+            Mapper2Car::class
+        );
+        $driver = $dbc->entities(Mapper2Driver::class)->filter('driver', 1)->collection()[0];
+        $this->assertEquals($driver::class, Mapper2Driver::class);
+        $this->assertEquals($driver->cars[0]::class, Mapper2Car::class);
+    }
 }

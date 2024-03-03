@@ -107,13 +107,16 @@ trait Schema
             }
         }
 
+        /**
+         * @var array<string,array<string,mixed>>
+         */
         $columns = Collection::from($this
             ->query(
                 "SELECT * FROM information_schema.columns
                  WHERE table_name = ? AND table_schema = ? AND table_catalog = ?",
                 [ $table, $schema, $catalog ]
             ))
-            ->mapKey(function ($v) {
+            ->mapKey(function ($v): string {
                 return $v['column_name'];
             })
             ->map(function ($v) {

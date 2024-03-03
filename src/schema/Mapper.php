@@ -6,9 +6,8 @@ use vakata\database\DBInterface;
 
 /**
  * A basic mapper to enable relation traversing and basic create / update / delete functionality
- * 
- * @template-covariant T of Entity
- * @implements MapperInterface<Entity>
+ *
+ * @template T of Entity
  */
 class Mapper implements MapperInterface
 {
@@ -27,11 +26,11 @@ class Mapper implements MapperInterface
      * @param class-string<T> $clss
      * @return void
      */
-    public function __construct(DBInterface $db, string|Table $table = '', string $clss = Entity::class)
+    public function __construct(DBInterface $db, string|Table|null $table = '', string $clss = Entity::class)
     {
         $this->db = $db;
         if (!$table) {
-            $table = preg_replace('(mapper$)', '', strtolower(basename(str_replace('\\', '/', static::class))));
+            $table = preg_replace('(mapper$)', '', strtolower(basename(str_replace('\\', '/', static::class)))) ?? '';
         }
         if (!($table instanceof Table)) {
             $table = $this->db->definition($table);
@@ -45,7 +44,6 @@ class Mapper implements MapperInterface
         return sha1(serialize($data));
     }
     /**
-     * 
      * @param array<string,mixed> $data
      * @param array<string,callable> $lazy
      * @param array<string,callable> $relations
@@ -59,19 +57,20 @@ class Mapper implements MapperInterface
      * @param T $entity
      * @return array<string,mixed>
      */
-    public function id(object $entity): array
+    public function id(Entity $entity): array
     {
         $temp = [];
         foreach ($this->table->getPrimaryKey() as $column) {
             try {
-                $temp[$column] = $entity->{$column} ?? null;
+                $temp[(string)$column] = $entity->{$column} ?? null;
+                /** @phpstan-ignore-next-line */
             } catch (\Throwable $ignore) {
             }
         }
         return $temp;
     }
     /**
-     * 
+     *
      * @param T $entity
      * @param null|array $columns
      * @param null|array $relations
@@ -83,8 +82,7 @@ class Mapper implements MapperInterface
         ?array $columns = null,
         ?array $relations = [],
         bool $fetch = false
-    ): array
-    {
+    ): array {
         if (!isset($columns)) {
             $columns = $this->table->getColumns();
         }
@@ -105,7 +103,7 @@ class Mapper implements MapperInterface
         foreach ($columns as $column) {
             try {
                 if (in_array($column, $fetched) || array_key_exists($column, $hack) || $fetch) {
-                    $temp[$column] = $entity->{$column};
+                    $temp[(string)$column] = $entity->{$column};
                 }
             } catch (\Throwable $ignore) {
             }
@@ -115,7 +113,7 @@ class Mapper implements MapperInterface
         foreach ($relations as $relation) {
             try {
                 if (array_key_exists($relation, $fetched) || array_key_exists($relation, $hack) || $fetch) {
-                    $temp[$relation] = $entity->{$relation};
+                    $temp[(string)$relation] = $entity->{$relation};
                 }
             } catch (\Throwable $ignore) {
             }
@@ -140,7 +138,7 @@ class Mapper implements MapperInterface
      * @param boolean $empty
      * @return T
      */
-    public function entity(array $data, bool $empty = false): object
+    public function entity(array $data, bool $empty = false): Entity
     {
         $primary = [];
         if (!$empty) {
@@ -154,10 +152,10 @@ class Mapper implements MapperInterface
         $temp = [];
         foreach ($this->table->getColumns() as $column) {
             if (array_key_exists($column, $data)) {
-                $temp[$column] = $data[$column];
+                $temp[(string)$column] = $data[$column];
             }
             if ($empty) {
-                $temp[$column] = null;
+                $temp[(string)$column] = null;
             }
         }
         $entity = $this->instance(
@@ -206,7 +204,10 @@ class Mapper implements MapperInterface
     {
         $relations = [];
         foreach ($this->table->getRelations() as $name => $relation) {
-            $relations[$name] = function (object $entity, bool $queryOnly = false) use (
+            $relations[$name] = function (
+                $entity,
+                bool $queryOnly = false
+            ) use (
                 $name,
                 $relation,
                 $data
@@ -323,9 +324,9 @@ class Mapper implements MapperInterface
      * Persist all changes to an entity in the DB. Does not include modified relation collections.
      *
      * @param T $entity
-     * @return T
+     * @return void
      */
-    public function save(object $entity, bool $relations = false): object
+    public function save(object $entity, bool $relations = false): void
     {
         $query = $this->db->table($this->table->getFullName());
         $data = $this->toArray($entity);
@@ -340,8 +341,7 @@ class Mapper implements MapperInterface
                     continue;
                 }
                 // if the relation updated a local column
-                if (
-                    !$relation->many &&
+                if (!$relation->many &&
                     !count(array_intersect(array_keys($relation->keymap), $this->table->getPrimaryKey()))
                 ) {
                     $value = $rels[$relation->name];
@@ -349,7 +349,7 @@ class Mapper implements MapperInterface
                         $mapper = $this->db->getMapper($relation->table);
                         // save the remote relation if dirty
                         if ($mapper->isDirty($value, false)) {
-                            $value = $mapper->save($value, false);
+                            $mapper->save($value, false);
                         }
                         $value = $mapper->toArray($value);
                         foreach ($relation->keymap as $local => $remote) {
@@ -407,8 +407,7 @@ class Mapper implements MapperInterface
                     // relation not hydrated
                     continue;
                 }
-                if (
-                    !$relation->many &&
+                if (!$relation->many &&
                     count(array_intersect(array_keys($relation->keymap), $this->table->getPrimaryKey()))
                 ) {
                     $value = $rels[$relation->name];
@@ -424,7 +423,7 @@ class Mapper implements MapperInterface
                         foreach ($q as $e) {
                             $mapper->fromArray($e, $u);
                             if ($mapper->isDirty($value, false)) {
-                                $value = $mapper->save($value, false);
+                                $mapper->save($value, false);
                             }
                         }
                     }
@@ -437,7 +436,7 @@ class Mapper implements MapperInterface
                         }
                         $mapper->fromArray($value, $temp);
                         if ($mapper->isDirty($value, false)) {
-                            $value = $mapper->save($value, false);
+                            $mapper->save($value, false);
                         }
                     }
                 }
@@ -467,7 +466,7 @@ class Mapper implements MapperInterface
                         }
                         $mapper->fromArray($e, $temp);
                         if ($mapper->isDirty($e, false)) {
-                            $value = $mapper->save($e, false);
+                            $mapper->save($e, false);
                         }
                     }
                 }
@@ -484,14 +483,14 @@ class Mapper implements MapperInterface
                     $mapper = $this->db->getMapper($relation->table);
                     foreach ($value ?? [] as $e) {
                         if ($mapper->isDirty($e, false)) {
-                            $e = $mapper->save($e, false);
+                            $mapper->save($e, false);
                         }
                         $temp = $mapper->toArray($e);
                         $i = [];
                         foreach ($relation->keymap as $local => $remote) {
                             $i[$remote] = $new[$local] ?? $data[$local];
                         }
-                        foreach ($relation->pivot_keymap as $local => $remote) {
+                        foreach ($relation->pivot_keymap ?? [] as $local => $remote) {
                             $i[$local] = $temp[$remote];
                         }
                         $this->db->table($relation->pivot->getFullName())->insert($i);
@@ -499,7 +498,6 @@ class Mapper implements MapperInterface
                 }
             }
         }
-        return $entity;
     }
     public function exists(array|object $entity): bool
     {
@@ -530,7 +528,7 @@ class Mapper implements MapperInterface
     /**
      * Delete an entity from the database
      *
-     * @param Т $entity
+     * @param T $entity
      * @return void
      */
     public function delete(object $entity, bool $relations = false): void
@@ -546,9 +544,8 @@ class Mapper implements MapperInterface
                             $q->filter($remote, $primary[$local]);
                         }
                         $q->delete();
-                    } 
-                    if (
-                        !$relation->many &&
+                    }
+                    if (!$relation->many &&
                         count(array_intersect(array_keys($relation->keymap), $this->table->getPrimaryKey()))
                     ) {
                         // delete related single row
@@ -577,6 +574,10 @@ class Mapper implements MapperInterface
             $this->index[base64_encode(serialize($primary))] = false;
             $this->objects[spl_object_hash($entity)] = false;
         }
+    }
+    public function table(): string
+    {
+        return $this->table->getFullName();
     }
     public function entities(): array
     {

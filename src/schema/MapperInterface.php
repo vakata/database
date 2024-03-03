@@ -5,7 +5,7 @@ use vakata\collection\Collection;
 use vakata\database\DBInterface;
 
 /**
- * @template-covariant T of object
+ * @template T of Entity
  */
 interface MapperInterface
 {
@@ -14,12 +14,12 @@ interface MapperInterface
      * @param boolean $empty
      * @return T
      */
-    public function entity(array $data, bool $empty = false): object;
+    public function entity(array $data, bool $empty = false): Entity;
     /**
      * @param T $entity
-     * @return T
+     * @return void
      */
-    public function save(object $entity, bool $relation = false): object;
+    public function save(object $entity, bool $relation = false): void;
     /**
      * @param T $entity
      * @return void
@@ -29,7 +29,7 @@ interface MapperInterface
      * @param T $entity
      * @return array<string,mixed>
      */
-    public function id(object $entity): array;
+    public function id(Entity $entity): array;
     /**
      * @param T $entity
      * @param array<string,mixed> $data
@@ -68,4 +68,5 @@ interface MapperInterface
      * @return array<int,T>
      */
     public function entities(): array;
+    public function table(): string;
 }

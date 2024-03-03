@@ -26,6 +26,9 @@ trait Schema
             return $tables[$table];
         }
 
+        /**
+         * @var array<string,array<string,mixed>>
+         */
         $columns = Collection::from($this
             ->query(
                 "SELECT * FROM all_tab_cols WHERE UPPER(table_name) = ? AND UPPER(owner) = ? and hidden_column = 'NO'",
@@ -38,7 +41,7 @@ trait Schema
                 }
                 return $new;
             })
-            ->mapKey(function ($v) {
+            ->mapKey(function ($v): string {
                 return $v['COLUMN_NAME'];
             })
             ->map(function ($v) {

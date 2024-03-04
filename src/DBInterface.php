@@ -99,11 +99,25 @@ interface DBInterface
      */
     public function val(string $sql, array $par = []): mixed;
 
+    /**
+     * @template T of Entity
+     * @param class-string<T> $class
+     * @return T
+     */
     public function entity(string $class): Entity;
+    /**
+     * @template T of Entity
+     * @param class-string<T> $class
+     * @return TableQueryMapped<T>
+     */
     public function entities(string $class): TableQueryMapped;
     public function delete(Entity $entity): void;
     public function save(?Entity $entity = null): void;
-
+    /**
+     * @template T of Entity
+     * @param class-string<T>|Table|string $table
+     * @return ($table is class-string ? MapperInterface<T> : MapperInterface<Entity>)
+     */
     public function getMapper(Table|string $table): MapperInterface;
     public function setMapper(Table|string $table, MapperInterface $mapper, ?string $class = null): static;
     public function tableMapped(

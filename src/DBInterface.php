@@ -119,6 +119,13 @@ interface DBInterface
      * @return ($table is class-string ? MapperInterface<T> : MapperInterface<Entity>)
      */
     public function getMapper(Table|string $table): MapperInterface;
+    /*
+     * @template T of Entity
+     * @param Table|string $table
+     * @param MapperInterface<T> $mapper
+     * @param null|class-string<T> $class
+     * @return static 
+     */
     public function setMapper(Table|string $table, MapperInterface $mapper, ?string $class = null): static;
     public function tableMapped(
         string $table,

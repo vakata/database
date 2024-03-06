@@ -122,7 +122,7 @@ class Table
     }
     /**
      * Get all column names
-     * @return array     array of strings, where each element is a column name
+     * @return array<string>     array of strings, where each element is a column name
      */
     public function getColumns(): array
     {
@@ -130,7 +130,7 @@ class Table
     }
     /**
      * Get all column definitions
-     * @return array         key - value pairs, where each key is a column name and each value - the column data
+     * @return array<string,TableColumn> each key is the column name and each value - the column object
      */
     public function getFullColumns(): array
     {
@@ -138,7 +138,7 @@ class Table
     }
     /**
      * Get the primary key columns
-     * @return array        array of column names
+     * @return array<string>        array of column names
      */
     public function getPrimaryKey(): array
     {

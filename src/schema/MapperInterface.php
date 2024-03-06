@@ -55,12 +55,12 @@ interface MapperInterface
      */
     public function isDirty(object $entity, bool $relations = false): bool;
     /**
-     * @param T $entity
+     * @param array|T $entity
      * @return bool
      */
     public function deleted(array|object $entity): bool;
     /**
-     * @param T $entity
+     * @param array|T $entity
      * @return bool
      */
     public function exists(array|object $entity): bool;

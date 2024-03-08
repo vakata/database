@@ -172,7 +172,8 @@ class Mapper implements MapperInterface
             $entity,
             '',
             array_keys($temp),
-            []
+            [],
+            false
         ];
         $this->objects[spl_object_hash($entity)][2] = $this->hash($this->toArray($entity));
         return $entity;
@@ -508,10 +509,11 @@ class Mapper implements MapperInterface
                 $primary[$column] = $entity[$column];
             }
             return isset($this->index[base64_encode(serialize($primary))]) &&
-                $this->index[base64_encode(serialize($primary))] !== false;
+                isset($this->objects[$this->index[base64_encode(serialize($primary))]]) &&
+                $this->objects[$this->index[base64_encode(serialize($primary))]][5] === false;
         }
         return isset($this->objects[spl_object_hash($entity)]) &&
-            $this->objects[spl_object_hash($entity)] !== false;
+            $this->objects[spl_object_hash($entity)][5] === false;
     }
     public function deleted(array|object $entity): bool
     {
@@ -521,10 +523,11 @@ class Mapper implements MapperInterface
                 $primary[$column] = $entity[$column];
             }
             return isset($this->index[base64_encode(serialize($primary))]) &&
-                $this->index[base64_encode(serialize($primary))] === false;
+                isset($this->objects[$this->index[base64_encode(serialize($primary))]]) &&
+                $this->objects[$this->index[base64_encode(serialize($primary))]][5] === true;
         }
         return isset($this->objects[spl_object_hash($entity)]) &&
-            $this->objects[spl_object_hash($entity)] === false;
+            $this->objects[spl_object_hash($entity)][5] === true;
     }
     /**
      * Delete an entity from the database
@@ -572,8 +575,7 @@ class Mapper implements MapperInterface
                 $query->filter($k, $v);
             }
             $query->delete();
-            $this->index[base64_encode(serialize($primary))] = false;
-            $this->objects[spl_object_hash($entity)] = false;
+            $this->objects[spl_object_hash($entity)][5] = true;
         }
     }
     public function table(): string
@@ -586,7 +588,7 @@ class Mapper implements MapperInterface
             array_values(
                 array_map(
                     function ($v) {
-                        return $v[1] ?? null;
+                        return $v[5] ? null : ($v[1] ?? null);
                     },
                     $this->objects
                 )

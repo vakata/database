@@ -187,6 +187,7 @@ class Table
             $name = $toTable->getName() . '_' . implode('_', array_keys($keymap));
         }
         $this->addRelation(new TableRelation(
+            $this,
             $name,
             $toTable,
             $keymap,
@@ -241,6 +242,7 @@ class Table
             $name = $toTable->getName().'_'.implode('_', array_keys($keymap));
         }
         $this->addRelation(new TableRelation(
+            $this,
             $name,
             $toTable,
             $keymap,
@@ -295,6 +297,7 @@ class Table
             $name = $toTable->getName().'_'.implode('_', array_keys($keymap));
         }
         $this->addRelation(new TableRelation(
+            $this,
             $name,
             $toTable,
             $keymap,
@@ -370,6 +373,7 @@ class Table
             $name = $toTable->getName().'_'.implode('_', array_keys($keymap));
         }
         $this->addRelation(new TableRelation(
+            $this,
             $name,
             $toTable,
             $keymap,

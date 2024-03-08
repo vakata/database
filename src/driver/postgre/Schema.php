@@ -211,6 +211,7 @@ trait Schema
                     }
                     $definition->addRelation(
                         new TableRelation(
+                            $definition,
                             $relname,
                             $this->table($foreign['table'], true),
                             $data['keymap'],
@@ -235,6 +236,7 @@ trait Schema
                     }
                     $definition->addRelation(
                         new TableRelation(
+                            $definition,
                             $relname,
                             $this->table($data['table'], true),
                             $data['keymap'],
@@ -269,6 +271,7 @@ trait Schema
                 }
                 $definition->addRelation(
                     new TableRelation(
+                        $definition,
                         $relname,
                         $this->table($data['table'], true),
                         $data['keymap'],

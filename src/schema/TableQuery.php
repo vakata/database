@@ -488,7 +488,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         if (isset($this->joins[$name]) || $this->definition->hasRelation($name)) {
             throw new DBException('Alias / table name already in use');
         }
-        $this->joins[$name] = new TableRelation($name, $table, [], $multiple);
+        $this->joins[$name] = new TableRelation($this->definition, $name, $table, [], $multiple);
         foreach ($fields as $k => $v) {
             $k = explode('.', $k, 2);
             $k = count($k) == 2 ? $k[1] : $k[0];

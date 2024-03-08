@@ -7,6 +7,10 @@ namespace vakata\database\schema;
 class TableRelation
 {
     /**
+     * @var Table
+     */
+    public Table $self;
+    /**
      * @var string
      */
     public string $name;
@@ -51,6 +55,7 @@ class TableRelation
      * @param  array       $par    parameters for the above statement, defaults to null
      */
     public function __construct(
+        Table $self,
         string $name,
         Table $table,
         array $keymap,
@@ -60,6 +65,7 @@ class TableRelation
         ?string $sql = null,
         ?array $par = null
     ) {
+        $this->self = $self;
         $this->name = $name;
         $this->table = $table;
         $this->keymap = $keymap;
@@ -68,5 +74,24 @@ class TableRelation
         $this->pivot_keymap = $pivot_keymap;
         $this->sql = $sql;
         $this->par = $par;
+    }
+    public function reverse(): ?TableRelation
+    {
+        foreach ($this->table->getRelations() as $r) {
+            if ($this->pivot) {
+                if ($r->table === $this->self && $r->pivot === $this->pivot) {
+                    if (!array_intersect(array_values($r->keymap), array_values($this->keymap))) {
+                        return $r;
+                    }
+                }
+            } else {
+                if ($r->table === $this->self) {
+                    if (serialize($this->keymap) === serialize(array_flip($r->keymap))) {
+                        return $r;
+                    }
+                }
+            }
+        }
+        return null;
     }
 }

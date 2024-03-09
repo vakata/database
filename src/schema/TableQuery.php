@@ -200,10 +200,10 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 }
                 return $value;
             case 'int':
-                $temp = preg_replace('([^+\-0-9]+)', '', $value);
+                $temp = preg_replace('([^+\-0-9]+)', '', (string)$value);
                 return is_string($temp) ? (int)$temp : 0;
             case 'float':
-                $temp = preg_replace('([^+\-0-9.]+)', '', str_replace(',', '.', $value));
+                $temp = preg_replace('([^+\-0-9.]+)', '', str_replace(',', '.', (string)$value));
                 return is_string($temp) ? (float)$temp : 0;
             case 'text':
                 // check using strlen first, in order to avoid hitting mb_ functions which might be polyfilled

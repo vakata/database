@@ -116,9 +116,6 @@ trait Schema
                  WHERE table_name = ? AND table_schema = ? AND table_catalog = ?",
                 [ $table, $schema, $catalog ]
             ))
-            ->filter(function ($v) {
-                return $v['is_identity'] === 'YES' || $v['is_generated'] !== 'ALWAYS';
-            })
             ->mapKey(function ($v): string {
                 return $v['column_name'];
             })
@@ -133,6 +130,7 @@ trait Schema
                         $v['length'] = (int)$v['character_maximum_length'];
                         break;
                 }
+                $v['hidden'] = $v['is_identity'] !== 'YES' && $v['is_generated'] === 'ALWAYS';
                 return $v;
             })
             ->toArray();

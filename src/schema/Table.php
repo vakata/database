@@ -9,7 +9,10 @@ use \vakata\database\DBException;
  */
 class Table
 {
-    protected array $data = [];
+    /**
+     * @var array{name:string,schema:string,columns:array<string,TableColumn>,hidden:array<string,TableColumn>,comment:string,primary:array<string>}
+     */
+    protected array $data;
     /**
      * @var TableRelation[]
      */
@@ -26,7 +29,8 @@ class Table
             'schema'  => $schema,
             'columns' => [],
             'primary' => [],
-            'comment' => ''
+            'comment' => '',
+            'hidden'  => []
         ];
     }
     /**
@@ -51,11 +55,12 @@ class Table
      * Add a column to the definition
      * @param  string    $column     the column name
      * @param  array     $definition optional array of data associated with the column
+     * @param  bool      $hidden is the column hidden
      * @return  static
      */
-    public function addColumn(string $column, array $definition = []): static
+    public function addColumn(string $column, array $definition = [], bool $hidden = false): static
     {
-        $this->data['columns'][$column] = TableColumn::fromArray($column, $definition);
+        $this->data[$hidden ? 'hidden' : 'columns'][$column] = TableColumn::fromArray($column, $definition);
         return $this;
     }
     /**
@@ -69,7 +74,7 @@ class Table
             if (is_numeric($column) && is_string($definition)) {
                 $this->addColumn($definition, []);
             } else {
-                $this->addColumn($column, $definition);
+                $this->addColumn($column, $definition, isset($definition['hidden']) && $definition['hidden']);
             }
         }
         return $this;
@@ -116,25 +121,35 @@ class Table
      * @param  string    $column the column name to search for
      * @return ?TableColumn the column details or `null` if the column does not exist
      */
-    public function getColumn(string $column): ?TableColumn
+    public function getColumn(string $column, bool $hidden = false): ?TableColumn
     {
-        return $this->data['columns'][$column] ?? null;
+        return $this->data['columns'][$column] ??
+            ($hidden ? ($this->data['hidden'][$column] ?? null) : null) ??
+            null;
     }
     /**
      * Get all column names
      * @return array<string>     array of strings, where each element is a column name
      */
-    public function getColumns(): array
+    public function getColumns(bool $hidden = false): array
     {
-        return array_keys($this->data['columns']);
+        $k = array_keys($this->data['columns']);
+        if ($hidden) {
+            $k = array_merge($k, array_keys($this->data['hidden']));
+        }
+        return $k;
     }
     /**
      * Get all column definitions
      * @return array<string,TableColumn> each key is the column name and each value - the column object
      */
-    public function getFullColumns(): array
+    public function getFullColumns(bool $hidden = false): array
     {
-        return $this->data['columns'];
+        $c = $this->data['columns'];
+        if ($hidden) {
+            $c = array_merge($c, $this->data['hidden']);
+        }
+        return $c;
     }
     /**
      * Get the primary key columns
@@ -459,6 +474,12 @@ class Table
             $v->setName(strtolower($k));
         }
         $this->data['columns'] = $temp;
+        $temp = [];
+        foreach ($this->data['hidden'] as $k => $v) {
+            $temp[strtolower($k)] = $v;
+            $v->setName(strtolower($k));
+        }
+        $this->data['hidden'] = $temp;
         $this->data['primary'] = array_map("strtolower", $this->data['primary']);
         $temp = [];
         foreach ($this->relations as $k => $v) {

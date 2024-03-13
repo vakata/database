@@ -31,7 +31,7 @@ trait Schema
          */
         $columns = Collection::from($this
             ->query(
-                "SELECT * FROM all_tab_cols WHERE UPPER(table_name) = ? AND UPPER(owner) = ? and hidden_column = 'NO'",
+                "SELECT * FROM all_tab_cols WHERE UPPER(table_name) = ? AND UPPER(owner) = ?",
                 [ strtoupper($table), strtoupper($this->name()) ]
             ))
             ->map(function ($v) {
@@ -61,6 +61,7 @@ trait Schema
                         }
                         break;
                 }
+                $v['hidden'] = $v['HIDDEN_COLUMN'] !== 'NO';
                 return $v;
             })
             ->toArray();

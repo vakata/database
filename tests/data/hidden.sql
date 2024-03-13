@@ -1,0 +1,14 @@
+DROP TABLE IF EXISTS tbl_hid;
+DROP TABLE IF EXISTS tbl_hid2;
+
+CREATE TABLE IF NOT EXISTS tbl_hid (
+  hid SERIAL NOT NULL,
+  col varchar(255) NOT NULL,
+  PRIMARY KEY (hid)
+);
+ALTER TABLE tbl_hid ADD col_hid varchar(255) NOT NULL GENERATED ALWAYS AS (col) STORED;
+
+CREATE TABLE IF NOT EXISTS tbl_hid2 (
+  hid2 int GENERATED ALWAYS AS IDENTITY,
+  col2 varchar(255) NOT NULL
+);

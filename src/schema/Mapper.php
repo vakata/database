@@ -419,13 +419,19 @@ class Mapper implements MapperInterface
                         $u = [];
                         foreach ($relation->keymap as $local => $remote) {
                             $q->filter($remote, $old[$local] ?? $data[$local]);
-                            $u[$remote] = null;
+                            if ($relation->table->getColumn($remote)?->isNullable()) {
+                                $u[$remote] = null;
+                            }
                         }
                         $mapper = $this->db->getMapper($relation->table);
                         foreach ($q as $e) {
                             $mapper->fromArray($e, $u);
                             if ($mapper->isDirty($value, false)) {
                                 $mapper->save($value, false);
+                            } else {
+                                if (!count($u) && (!$value || $value !== $e)) {
+                                    $mapper->delete($e);
+                                }
                             }
                         }
                     }
@@ -450,13 +456,19 @@ class Mapper implements MapperInterface
                         $u = [];
                         foreach ($relation->keymap as $local => $remote) {
                             $q->filter($remote, $old[$local] ?? $data[$local]);
-                            $u[$remote] = null;
+                            if ($relation->table->getColumn($remote)?->isNullable()) {
+                                $u[$remote] = null;
+                            }
                         }
                         $mapper = $this->db->getMapper($relation->table);
                         foreach ($q as $e) {
                             $mapper->fromArray($e, $u);
                             if ($mapper->isDirty($e, false)) {
                                 $mapper->save($e, false);
+                            } else {
+                                if (!count($u) && !in_array($e, $value ?? [])) {
+                                    $mapper->delete($e);
+                                }
                             }
                         }
                     }
@@ -564,9 +576,15 @@ class Mapper implements MapperInterface
                         $u = [];
                         foreach ($relation->keymap as $local => $remote) {
                             $q->filter($remote, $primary[$local]);
-                            $u[$remote] = null;
+                            if ($relation->table->getColumn($remote)?->isNullable()) {
+                                $u[$remote] = null;
+                            }
                         }
-                        $q->update($u);
+                        if (count($u)) {
+                            $q->update($u);
+                        } else {
+                            $q->delete();
+                        }
                     }
                 }
             }

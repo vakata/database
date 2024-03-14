@@ -466,7 +466,14 @@ class Mapper implements MapperInterface
                             if ($mapper->isDirty($e, false)) {
                                 $mapper->save($e, false);
                             } else {
-                                if (!count($u) && !in_array($e, $value ?? [])) {
+
+                                if (
+                                    !count($u) &&
+                                    (
+                                        (isset($value) && is_array($value) && !in_array($e, $value)) ||
+                                        (($value instanceof Collection) && !$value->contains($e))
+                                    )
+                                 ) {
                                     $mapper->delete($e);
                                 }
                             }

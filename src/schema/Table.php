@@ -14,7 +14,7 @@ class Table
      */
     protected array $data;
     /**
-     * @var TableRelation[]
+     * @var array<string,TableRelation>
      */
     protected array $relations = [];
 
@@ -421,7 +421,7 @@ class Table
     }
     /**
      * Get all relation definitions
-     * @return TableRelation[]       the relation definitions
+     * @return array<string,TableRelation>       the relation definitions
      */
     public function getRelations(): array
     {

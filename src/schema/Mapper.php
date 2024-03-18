@@ -127,7 +127,38 @@ class Mapper implements MapperInterface
      */
     public function fromArray(object $entity, array $data): void
     {
+        $relations = $this->table->getRelations();
         foreach ($data as $k => $v) {
+            if (isset($relations[$k])) {
+                if ($relations[$k]->many) {
+                    if ($v === null) {
+                        $v = [];
+                    }
+                    if ($v instanceof Entity) {
+                        $v = [ $v ];
+                    }
+                    if (is_array($v)) {
+                        foreach ($v as $kk => $vv) {
+                            if (!($vv instanceof Entity)) {
+                                $q = $this->db->tableMapped($relations[$k]->table->getFullName());
+                                foreach ($relations[$k]->table->getPrimaryKey() as $c) {
+                                    $q->filter($c, is_array($vv) ? ($vv[$c] ?? null) : $vv);
+                                }
+                                $v[$kk] = $q[0] ?? null;
+                            }
+                        }
+                        $v = Collection::from(array_filter($v));
+                    }
+                } else {
+                    if ($v !== null && !($v instanceof Entity)) {
+                        $q = $this->db->tableMapped($relations[$k]->table->getFullName());
+                        foreach ($relations[$k]->table->getPrimaryKey() as $c) {
+                            $q->filter($c, is_array($v) ? ($v[$c] ?? null) : $v);
+                        }
+                        $v = $q[0] ?? null;
+                    }
+                }
+            }
             $entity->{$k} = $v;
         }
     }

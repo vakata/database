@@ -406,7 +406,8 @@ class Mapper implements MapperInterface
                 }
             }
             $new = $query->insert($data);
-            $this->fromArray($entity, array_merge($data, $new));
+            $data = array_merge($data, $new);
+            $this->fromArray($entity, $data);
             $this->index[base64_encode(serialize($new))] = spl_object_hash($entity);
             $this->objects[spl_object_hash($entity)][0] = $new;
             $this->objects[spl_object_hash($entity)][2] = $this->hash($this->toArray($entity));
@@ -546,6 +547,31 @@ class Mapper implements MapperInterface
                             $i[$local] = $temp[$remote];
                         }
                         $this->db->table($relation->pivot->getFullName())->insert($i);
+                    }
+                }
+            }
+            // deep save relations
+            foreach ($this->table->getRelations() as $relation) {
+                if (!array_key_exists($relation->name, $rels)) {
+                    // relation not hydrated
+                    continue;
+                }
+                if (!$relation->many) {
+                    $value = $rels[$relation->name];
+                    if ($value !== null) {
+                        $mapper = $this->db->getMapper($relation->table);
+                        if ($mapper->isDirty($value, true)) {
+                            $mapper->save($value, true);
+                        }
+                    }
+                }
+                if ($relation->many) {
+                    $value = $rels[$relation->name];
+                    $mapper = $this->db->getMapper($relation->table);
+                    foreach ($value ?? [] as $e) {
+                        if ($mapper->isDirty($e, true)) {
+                            $mapper->save($e, true);
+                        }
                     }
                 }
             }

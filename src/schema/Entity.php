@@ -38,6 +38,27 @@ class Entity
         $this->lazy = $lazy;
         $this->relations = $relations;
     }
+    public function __isset(string $property): bool
+    {
+        if (array_key_exists($property, $this->changed)) {
+            return isset($this->changed[$property]);
+        }
+        if (array_key_exists($property, $this->data)) {
+            return isset($this->data[$property]);
+        }
+        if (isset($this->lazy[$property])) {
+            $this->data[$property] = call_user_func($this->lazy[$property], $this);
+            return isset($this->data[$property]);
+        }
+        if (array_key_exists($property, $this->cached)) {
+            return isset($this->cached[$property]);
+        }
+        if (isset($this->relations[$property])) {
+            $relation = $this->__call($property, []);
+            return isset($relation);
+        }
+        return false;
+    }
     public function &__get(string $property): mixed
     {
         if (array_key_exists($property, $this->changed)) {

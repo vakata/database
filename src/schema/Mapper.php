@@ -462,7 +462,7 @@ class Mapper implements MapperInterface
                                 $mapper->save($value, false);
                             } else {
                                 if (!count($u) && (!$value || $value !== $e)) {
-                                    $mapper->delete($e);
+                                    $mapper->delete($e, true);
                                 }
                             }
                         }
@@ -506,7 +506,7 @@ class Mapper implements MapperInterface
                                         (($value instanceof Collection) && !$value->contains($e))
                                     )
                                  ) {
-                                    $mapper->delete($e);
+                                    $mapper->delete($e, true);
                                 }
                             }
                         }

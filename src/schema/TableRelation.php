@@ -42,6 +42,10 @@ class TableRelation
      * @var array|null
      */
     public ?array $par = null;
+    /**
+     * @var bool
+     */
+    public bool $cascade = false;
 
     /**
      * Create a new instance
@@ -63,7 +67,8 @@ class TableRelation
         Table $pivot = null,
         array $pivot_keymap = null,
         ?string $sql = null,
-        ?array $par = null
+        ?array $par = null,
+        bool $cascade = false
     ) {
         $this->self = $self;
         $this->name = $name;
@@ -74,6 +79,7 @@ class TableRelation
         $this->pivot_keymap = $pivot_keymap;
         $this->sql = $sql;
         $this->par = $par;
+        $this->cascade = $cascade;
     }
     public function reverse(): ?TableRelation
     {

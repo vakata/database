@@ -350,7 +350,7 @@ class Mapper2Test extends \PHPUnit\Framework\TestCase
 
         $driver = $dbc->tableMapped('drivers')->create();
         $driver->name = 'created';
-        
+
         $avatar = $dbc->tableMapped('avatars')->filter('avatar', 1)[0];
         $avatar->drivers = Collection::from([$driver]);
         $dbc->getMapper('avatars')->save($avatar, true);
@@ -545,8 +545,30 @@ class Mapper2Test extends \PHPUnit\Framework\TestCase
         $car = $dbc->tableMapped('cars')->filter('car', 2)[0];
         $dbc->getMapper('cars')->delete($car, true);
         $this->assertEquals($dbc->one("SELECT 1 FROM cars WHERE car = 2"), null);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM cars"), 3);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM car_pictures"), 2);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM pictures"), 2);
         $this->assertEquals($dbc->one("SELECT COUNT(*) FROM driver_cars"), 3);
         $this->assertEquals($dbc->one("SELECT COUNT(*) FROM race_participants WHERE car IS NULL"), 3);
+    }
+    public function testDeleteRelations2()
+    {
+        $dbc = $this->reset();
+        $carp = $dbc->tableMapped('car_pictures')->filter('car', 2)[0];
+        $dbc->getMapper('car_pictures')->delete($carp, true);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM cars"), 3);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM car_pictures"), 2);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM pictures"), 2);
+    }
+    public function testDeleteRelations3()
+    {
+        $dbc = $this->reset();
+        $g = $dbc->tableMapped('pgrps')->filter('grp', 1)[0];
+        $dbc->getMapper('pgrps')->delete($g, true);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM pgrps"), 0);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM polls"), 0);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM questions"), 0);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM answers"), 0);
     }
     public function testDBEntity()
     {

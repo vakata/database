@@ -117,7 +117,7 @@ trait Schema
                     "SELECT ac.TABLE_NAME, ac.CONSTRAINT_NAME, cc.COLUMN_NAME, cc.POSITION
                     FROM all_constraints ac
                     LEFT JOIN all_cons_columns cc ON cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
-                    WHERE 
+                    WHERE
                         UPPER(ac.OWNER) = ? AND UPPER(ac.R_OWNER) = ? AND
                         ac.R_CONSTRAINT_NAME = ? AND ac.CONSTRAINT_TYPE = ?
                     ORDER BY cc.POSITION",
@@ -213,7 +213,10 @@ trait Schema
                             $data['keymap'],
                             true,
                             $rtable,
-                            $foreign['keymap']
+                            $foreign['keymap'],
+                            null,
+                            null,
+                            true
                         )
                     );
                 } else {
@@ -228,6 +231,11 @@ trait Schema
                             $relname,
                             $this->table($data['table'], true),
                             $data['keymap'],
+                            true,
+                            null,
+                            null,
+                            null,
+                            null,
                             true
                         )
                     );

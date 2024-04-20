@@ -616,7 +616,7 @@ class Mapper implements MapperInterface
         if (isset($this->objects[spl_object_hash($entity)]) && $this->objects[spl_object_hash($entity)] !== false) {
             $primary = $this->objects[spl_object_hash($entity)][0];
             if ($relations) {
-                foreach ($this->table->getRelations() as $relation) {
+                foreach ($this->table->getRelations() as $name => $relation) {
                     if ($relation->pivot) {
                         // deleted related rows from pivot
                         $q = $this->db->table($relation->pivot->getFullName());
@@ -626,14 +626,19 @@ class Mapper implements MapperInterface
                         $q->delete();
                     }
                     if (!$relation->many &&
-                        count(array_intersect(array_keys($relation->keymap), $this->table->getPrimaryKey()))
+                        count(array_intersect(array_keys($relation->keymap), $this->table->getPrimaryKey())) &&
+                        $relation->cascade
                     ) {
-                        // delete related single row
-                        $q = $this->db->table($relation->table->getFullName());
-                        foreach ($relation->keymap as $local => $remote) {
-                            $q->filter($remote, $primary[$local]);
+                        $val = $entity->{$name}();
+                        if ($val) {
+                            $this->db->getMapper($relation->table)->delete($val, true);
                         }
-                        $q->delete();
+                        // delete related single row
+                        // $q = $this->db->table($relation->table->getFullName());
+                        // foreach ($relation->keymap as $local => $remote) {
+                        //     $q->filter($remote, $primary[$local]);
+                        // }
+                        // $q->delete();
                     }
                     if ($relation->many && !$relation->pivot) {
                         $q = $this->db->table($relation->table->getFullName());
@@ -647,7 +652,10 @@ class Mapper implements MapperInterface
                         if (count($u)) {
                             $q->update($u);
                         } else {
-                            $q->delete();
+                            $mapper = $this->db->getMapper($relation->table);
+                            foreach ($entity->{$name}() as $val) {
+                                $mapper->delete($val, true);
+                            }
                         }
                     }
                 }

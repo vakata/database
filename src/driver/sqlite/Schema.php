@@ -153,7 +153,10 @@ trait Schema
                             $data['keymap'],
                             true,
                             $rtable,
-                            $foreign['keymap']
+                            $foreign['keymap'],
+                            null,
+                            null,
+                            true
                         )
                     );
                 } else {
@@ -176,6 +179,11 @@ trait Schema
                             $relname,
                             $this->table($data['table'], true),
                             $data['keymap'],
+                            true,
+                            null,
+                            null,
+                            null,
+                            null,
                             true
                         )
                     );

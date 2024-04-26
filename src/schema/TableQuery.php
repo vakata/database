@@ -229,7 +229,14 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
         if (is_array($value) &&
             count($value) === 1 &&
-            (isset($value['like']) || isset($value['ilike']) || isset($value['contains']) || isset($value['icontains']))
+            (
+                isset($value['like']) ||
+                isset($value['ilike']) ||
+                isset($value['contains']) ||
+                isset($value['icontains']) ||
+                isset($value['ends']) ||
+                isset($value['iends'])
+            )
         ) {
             if ($column->getBasicType() !== 'text') {
                 switch ($this->db->driverName()) {
@@ -242,23 +249,42 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 }
             }
             $mode = array_keys($value)[0];
-            $value = str_replace(['%', '_'], ['\\%','\\_'], array_values($value)[0]) . '%';
-            if ($mode === 'contains' || $mode === 'icontains') {
-                $value = '%' . $value;
+            $values = array_values($value)[0];
+            if (!is_array($values)) {
+                $values = [$values];
             }
-            if ($mode === 'icontains' || $mode === 'ilike') {
-                $value = mb_strtoupper($value);
-                $name = 'UPPER(' . $name . ')';
+            $sql = [];
+            $par = [];
+            foreach ($values as $value) {
+                $value = str_replace(['%', '_'], ['\\%','\\_'], $value) . '%';
+                if ($mode === 'contains' || $mode === 'icontains') {
+                    $value = '%' . $value;
+                }
+                if ($mode === 'ends' || $mode === 'iends') {
+                    $value = '%' . rtrim($value, '%');
+                }
+                if ($mode === 'icontains' || $mode === 'ilike' || $mode === 'iends') {
+                    $value = mb_strtoupper($value);
+                    $name = 'UPPER(' . $name . ')';
+                }
+                $sql[] = $negate ? $name . ' NOT LIKE ?' : $name . ' LIKE ?';
+                $par[] = $value;
             }
             return $negate ?
                 [
-                    $name . ' NOT LIKE ?',
-                    [ (string)$value ]
+                    '(' . implode(' AND ', $sql) . ')',
+                    $par
                 ] :
                 [
-                    $name . ' LIKE ?',
-                    [ (string)$value ]
+                    '(' . implode(' OR ', $sql) . ')',
+                    $par
                 ];
+        }
+        if (is_array($value) &&
+            count($value) === 1 &&
+            isset($value['isnull'])
+        ) {
+            $value = null;
         }
         if (is_null($value)) {
             return $negate ?
@@ -581,7 +607,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $table = $this->definition->getFullName();
         $sql = 'SELECT COUNT(DISTINCT ('.$table.'.'.implode(', '.$table.'.', $this->pkey).')) FROM '.$table.' ';
         $par = [];
-        
+
         $relations = $this->withr;
         foreach ($relations as $k => $v) {
             $getAlias($k);
@@ -1129,11 +1155,11 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                         $v = explode('.', $v[0], 2);
                         return count($v) === 2 ? $v[1] : $v[0];
                     }, $select);
-                    $sql = "SELECT " . implode(', ', $f) . " 
+                    $sql = "SELECT " . implode(', ', $f) . "
                             FROM (
                                 SELECT tbl__.*, rownum rnum__ FROM (
                                     " . $sql . "
-                                ) tbl__ 
+                                ) tbl__
                                 WHERE rownum <= " . ($this->li_of[0] + $this->li_of[1]) . "
                             ) WHERE rnum__ > " . $this->li_of[1];
                 }
@@ -1380,7 +1406,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
             return $aliases[$name];
         };
-        
+
         $table = $this->definition->getName();
         $relations = $this->withr;
         foreach ($relations as $k => $v) {
@@ -1582,11 +1608,11 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 if ((int)$this->db->driverOption('version', 0) >= 12) {
                     $sql .= 'OFFSET ' . $this->li_of[1] . ' ROWS FETCH NEXT ' . $this->li_of[0] . ' ROWS ONLY';
                 } else {
-                    $sql = "SELECT " . implode(', ', $dst) . " 
+                    $sql = "SELECT " . implode(', ', $dst) . "
                             FROM (
                                 SELECT tbl__.*, rownum rnum__ FROM (
                                     " . $sql . "
-                                ) tbl__ 
+                                ) tbl__
                                 WHERE rownum <= " . ($this->li_of[0] + $this->li_of[1]) . "
                             ) WHERE rnum__ > " . $this->li_of[1];
                 }

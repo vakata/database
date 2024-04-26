@@ -222,85 +222,86 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
 
     protected function filterSQL(string $column, mixed $value, bool $negate = false) : array
     {
+        $orig = $column;
         list($name, $column) = array_values($this->getColumn($column));
-        if (is_array($value) && count($value) === 1 && isset($value['not'])) {
-            $negate = true;
-            $value = $value['not'];
-        }
-        if (is_array($value) &&
-            count($value) === 1 &&
-            (
-                isset($value['like']) ||
-                isset($value['ilike']) ||
-                isset($value['contains']) ||
-                isset($value['icontains']) ||
-                isset($value['ends']) ||
-                isset($value['iends'])
-            )
-        ) {
-            if ($column->getBasicType() !== 'text') {
-                switch ($this->db->driverName()) {
-                    case 'oracle':
-                        $name = 'CAST(' . $name . ' AS NVARCHAR(500))';
-                        break;
-                    case 'postgre':
-                        $name = $name.'::text';
-                        break;
+        $sqls = [];
+        $pars = [];
+        if (is_array($value)) {
+            foreach ($value as $k => $v) {
+                if ($k === 'not') {
+                    $temp = $this->filterSQL($orig, $v, true);
+                    $sqls[] = $temp[0];
+                    $pars = array_merge($pars, $temp[1]);
+                    unset($value[$k]);
+                } elseif ($k === 'isnull') {
+                    $temp = $this->filterSQL($orig, null);
+                    $sqls[] = $temp[0];
+                    $pars = array_merge($pars, $temp[1]);
+                    unset($value[$k]);
+                } elseif (in_array($k, ['like','ilike','contains','icontains','ends','iends'])) {
+                    if ($column->getBasicType() !== 'text') {
+                        switch ($this->db->driverName()) {
+                            case 'oracle':
+                                $name = 'CAST(' . $name . ' AS NVARCHAR(500))';
+                                break;
+                            case 'postgre':
+                                $name = $name.'::text';
+                                break;
+                        }
+                    }
+                    $mode = array_keys($value)[0];
+                    $values = array_values($value)[0];
+                    if (!is_array($values)) {
+                        $values = [$values];
+                    }
+                    $sql = [];
+                    $par = [];
+                    foreach ($values as $v) {
+                        $v = str_replace(['%', '_'], ['\\%','\\_'], $v) . '%';
+                        if ($mode === 'contains' || $mode === 'icontains') {
+                            $v = '%' . $v;
+                        }
+                        if ($mode === 'ends' || $mode === 'iends') {
+                            $v = '%' . rtrim($v, '%');
+                        }
+                        if ($mode === 'icontains' || $mode === 'ilike' || $mode === 'iends') {
+                            $v = mb_strtoupper($v);
+                            $name = 'UPPER(' . $name . ')';
+                        }
+                        $sql[] = $negate ? $name . ' NOT LIKE ?' : $name . ' LIKE ?';
+                        $par[] = $v;
+                    }
+                    if ($negate) {
+                        $sqls[] = '(' . implode(' AND ', $sql) . ')';
+                        $pars = array_merge($pars, $par);
+                    } else {
+                        $sqls[] = '(' . implode(' OR ', $sql) . ')';
+                        $pars = array_merge($pars, $par);
+                    }
+                    unset($value[$k]);
                 }
             }
-            $mode = array_keys($value)[0];
-            $values = array_values($value)[0];
-            if (!is_array($values)) {
-                $values = [$values];
-            }
-            $sql = [];
-            $par = [];
-            foreach ($values as $value) {
-                $value = str_replace(['%', '_'], ['\\%','\\_'], $value) . '%';
-                if ($mode === 'contains' || $mode === 'icontains') {
-                    $value = '%' . $value;
-                }
-                if ($mode === 'ends' || $mode === 'iends') {
-                    $value = '%' . rtrim($value, '%');
-                }
-                if ($mode === 'icontains' || $mode === 'ilike' || $mode === 'iends') {
-                    $value = mb_strtoupper($value);
-                    $name = 'UPPER(' . $name . ')';
-                }
-                $sql[] = $negate ? $name . ' NOT LIKE ?' : $name . ' LIKE ?';
-                $par[] = $value;
-            }
-            return $negate ?
-                [
-                    '(' . implode(' AND ', $sql) . ')',
-                    $par
-                ] :
-                [
-                    '(' . implode(' OR ', $sql) . ')',
-                    $par
+            if (!count($value)) {
+                return [
+                    '(' . implode(' AND ', $sqls) . ')',
+                    $pars
                 ];
-        }
-        if (is_array($value) &&
-            count($value) === 1 &&
-            isset($value['isnull'])
-        ) {
-            $value = null;
+            }
         }
         if (is_null($value)) {
-            return $negate ?
-                [ $name . ' IS NOT NULL', [] ]:
-                [ $name . ' IS NULL', [] ];
+            $sqls[] = $negate ? $name . ' IS NOT NULL' : $name . ' IS NULL';
+            return [
+                '(' . implode(' AND ', $sqls) . ')',
+                $pars
+            ];
         }
         if (!is_array($value)) {
-            return $negate ?
-                [
-                    $name . ' <> ?',
-                    [ $this->normalizeValue($column, $value) ]
-                ] :
-                [
-                    $name . ' = ?',
-                    [ $this->normalizeValue($column, $value) ]
-                ];
+            $sqls[] = $negate ? $name . ' <> ?' : $name . ' = ?';
+            $pars[] = $this->normalizeValue($column, $value);
+            return [
+                '(' . implode(' AND ', $sqls) . ')',
+                $pars
+            ];
         }
         if (isset($value['beg']) && strlen($value['beg']) && (!isset($value['end']) || !strlen($value['end']))) {
             $value = [ 'gte' => $value['beg'] ];
@@ -309,21 +310,13 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $value = [ 'lte' => $value['end'] ];
         }
         if (isset($value['beg']) && isset($value['end'])) {
-            return $negate ?
-                [
-                    $name.' NOT BETWEEN ? AND ?',
-                    [
-                        $this->normalizeValue($column, $value['beg']),
-                        $this->normalizeValue($column, $value['end'])
-                    ]
-                ] :
-                [
-                    $name.' BETWEEN ? AND ?',
-                    [
-                        $this->normalizeValue($column, $value['beg']),
-                        $this->normalizeValue($column, $value['end'])
-                    ]
-                ];
+            $sqls[] = $negate ? $name.' NOT BETWEEN ? AND ?' : $name.' BETWEEN ? AND ?';
+            $pars[] = $this->normalizeValue($column, $value['beg']);
+            $pars[] = $this->normalizeValue($column, $value['end']);
+            return [
+                '(' . implode(' AND ', $sqls) . ')',
+                $pars
+            ];
         }
         if (isset($value['gt']) || isset($value['lt']) || isset($value['gte']) || isset($value['lte'])) {
             $sql = [];
@@ -344,9 +337,11 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 $sql[] = $name. ' ' . ($negate ? '>' : '<=') . ' ?';
                 $par[] = $this->normalizeValue($column, $value['lte']);
             }
+            $sqls[] = '(' . implode(' AND ', $sql) . ')';
+            $pars = array_merge($pars, $par);
             return [
-                '(' . implode(' AND ', $sql) . ')',
-                $par
+                '(' . implode(' AND ', $sqls) . ')',
+                $pars
             ];
         }
 
@@ -361,11 +356,18 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 $par[] = array_slice($value, $i, 500);
             }
             $sql = '(' . implode($negate ? ' AND ' : ' OR ', $sql) . ')';
-            return [ $sql, $par ];
+            $sqls[] = $sql;
+            $pars = array_merge($pars, $par);
+            return [
+                '(' . implode(' AND ', $sqls) . ')',
+                $pars
+            ];
         }
+        $sqls[] = $negate ? $name . ' NOT IN (??)' : $name . ' IN (??)';
+        $pars[] = $value;
         return [
-            $negate ? $name . ' NOT IN (??)' : $name . ' IN (??)',
-            [$value]
+            '(' . implode(' AND ', $sqls) . ')',
+            $pars
         ];
     }
     /**

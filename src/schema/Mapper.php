@@ -185,9 +185,10 @@ class Mapper implements MapperInterface
         foreach ($this->table->getColumns() as $column) {
             if (array_key_exists($column, $data)) {
                 $temp[(string)$column] = $data[$column];
-            }
-            if ($empty) {
-                $temp[(string)$column] = null;
+            } else {
+                if ($empty) {
+                    $temp[(string)$column] = null;
+                }
             }
         }
         $entity = $this->instance(

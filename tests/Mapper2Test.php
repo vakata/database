@@ -614,12 +614,12 @@ class Mapper2Test extends \PHPUnit\Framework\TestCase
         $dbc->getMapper('drivers')->save($driver, true);
         $this->assertEquals(2, $dbc->one("SELECT avatar FROM drivers WHERE driver = 2"));
     }
-    // public function testRelationChangeFromColumn()
-    // {
-    //     $dbc = $this->reset();
-    //     $dbc->query("INSERT INTO avatars (url) VALUES ('avatar2')");
-    //     $driver = $dbc->tableMapped('drivers')->sort('driver')->collection()[1];
-    //     $driver->avatar = 2;
-    //     $this->assertEquals('avatar2', $driver->avatars->url);
-    // }
+    public function testRelationChangeFromColumn()
+    {
+        $dbc = $this->reset();
+        $dbc->query("INSERT INTO avatars (url) VALUES ('avatar2')");
+        $driver = $dbc->tableMapped('drivers')->sort('driver')->collection()[1];
+        $driver->avatar = 2;
+        $this->assertEquals('avatar2', $driver->avatars->url);
+    }
 }

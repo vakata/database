@@ -316,6 +316,28 @@ class Mapper implements MapperInterface
      * @param T $entity
      * @return array<int,string>
      */
+    protected function changedColumns(object $entity): array
+    {
+        // BEG: ugly hack to get changed columns
+        $hack = [];
+        foreach ((array)$entity as $k => $v) {
+            $hack[$k[0] === "\0" ? substr($k, strrpos($k, "\0", 1) + 1) : $k] = $v;
+        }
+        $hack = $hack['changed'] ?? [];
+        // END: ugly hack
+
+        $temp = [];
+        foreach ($this->table->getColumns() as $name) {
+            if (array_key_exists($name, $hack)) {
+                $temp[$name] = $hack[$name];
+            }
+        }
+        return $temp;
+    }
+    /**
+     * @param T $entity
+     * @return array<int,string>
+     */
     protected function changedRelations(object $entity): array
     {
         $temp = [];
@@ -341,7 +363,7 @@ class Mapper implements MapperInterface
     public function isDirty(object $entity, bool $relations = false): bool
     {
         // new record, not found in DB
-        if (!in_array(spl_object_hash($entity), $this->index)) {
+        if (!in_array(spl_object_hash($entity), $this->index, true)) {
             return true;
         }
         // changed internal columns
@@ -368,10 +390,21 @@ class Mapper implements MapperInterface
         $old = [];
         if ($relations) {
             $rels = $this->toArray($entity, [], null);
+            $cols = $this->changedColumns($entity);
             foreach ($this->table->getRelations() as $relation) {
                 // cannot filter based on changed as the remote object may be modified
                 if (!array_key_exists($relation->name, $rels)) {
                     // relation not hydrated
+                    continue;
+                }
+                $columnOverride = false;
+                foreach (array_keys($relation->keymap) as $local) {
+                    if (isset($cols[$local])) {
+                        $columnOverride = true;
+                        break;
+                    }
+                }
+                if ($columnOverride) {
                     continue;
                 }
                 // if the relation updated a local column
@@ -398,7 +431,7 @@ class Mapper implements MapperInterface
             }
         }
         $changed = 0; // 0 - nothing is done, 1 - record is created, 2 - changed, 3 - primary key changed
-        if (!in_array(spl_object_hash($entity), $this->index)) {
+        if (!in_array(spl_object_hash($entity), $this->index, true)) {
             $changed = 1;
             // this is a new record
             foreach ($this->table->getPrimaryKey() as $column) {
@@ -503,7 +536,7 @@ class Mapper implements MapperInterface
                                 if (
                                     !count($u) &&
                                     (
-                                        (isset($value) && is_array($value) && !in_array($e, $value)) ||
+                                        (isset($value) && is_array($value) && !in_array($e, $value, true)) ||
                                         (($value instanceof Collection) && !$value->contains($e))
                                     )
                                  ) {

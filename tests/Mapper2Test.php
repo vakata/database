@@ -659,5 +659,6 @@ class Mapper2Test extends \PHPUnit\Framework\TestCase
         $driver->avatar = null;
         $dbc->getMapper('drivers')->save($driver, true);
         $this->assertEquals(null, $driver->avatars?->url);
+        $this->assertEquals(null, $dbc->one("SELECT avatar FROM drivers WHERE driver = 2"));
     }
 }

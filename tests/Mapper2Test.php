@@ -622,4 +622,21 @@ class Mapper2Test extends \PHPUnit\Framework\TestCase
         $driver->avatar = 2;
         $this->assertEquals('avatar2', $driver->avatars->url);
     }
+    public function testDereferenceChangeRelationAndColumn()
+    {
+        $dbc = $this->reset();
+
+        $avatar = $dbc->tableMapped('avatars')->create();
+        $avatar->url = 'created';
+        $dbc->getMapper('avatars')->save($avatar, true);
+        $this->assertEquals($avatar->avatar, 2);
+        $driver = $dbc->tableMapped('drivers')->filter('driver', 2)[0];
+        $driver->avatars = $avatar;
+        $driver->avatar = 1;
+        $dbc->getMapper('drivers')->save($driver, true);
+        $this->assertEquals(
+            1,
+            $dbc->one("SELECT avatar FROM drivers WHERE driver = 2")
+        );
+    }
 }

@@ -603,4 +603,23 @@ class Mapper2Test extends \PHPUnit\Framework\TestCase
         $this->assertEquals($driver::class, Mapper2Driver::class);
         $this->assertEquals($driver->cars[0]::class, Mapper2Car::class);
     }
+    public function testHydratedRelationChangeFromColumn()
+    {
+        $dbc = $this->reset();
+        $dbc->query("INSERT INTO avatars (url) VALUES ('avatar2')");
+        $driver = $dbc->tableMapped('drivers')->with('avatars')->sort('driver')->collection()[1];
+        $this->assertEquals('avatar', $driver->avatars->url);
+        $this->assertEquals(1, $dbc->one("SELECT avatar FROM drivers WHERE driver = 2"));
+        $driver->avatar = 2;
+        $dbc->getMapper('drivers')->save($driver, true);
+        $this->assertEquals(2, $dbc->one("SELECT avatar FROM drivers WHERE driver = 2"));
+    }
+    // public function testRelationChangeFromColumn()
+    // {
+    //     $dbc = $this->reset();
+    //     $dbc->query("INSERT INTO avatars (url) VALUES ('avatar2')");
+    //     $driver = $dbc->tableMapped('drivers')->sort('driver')->collection()[1];
+    //     $driver->avatar = 2;
+    //     $this->assertEquals('avatar2', $driver->avatars->url);
+    // }
 }

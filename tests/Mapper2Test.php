@@ -639,4 +639,25 @@ class Mapper2Test extends \PHPUnit\Framework\TestCase
             $dbc->one("SELECT avatar FROM drivers WHERE driver = 2")
         );
     }
+    public function testHydratedRelationChangeFromColumn2()
+    {
+        $dbc = $this->reset();
+        $dbc->query("INSERT INTO avatars (url) VALUES ('avatar2')");
+        $driver = $dbc->tableMapped('drivers')->with('avatars')->sort('driver')->collection()[1];
+        $this->assertEquals('avatar', $driver->avatars->url);
+        $this->assertEquals(1, $dbc->one("SELECT avatar FROM drivers WHERE driver = 2"));
+        $driver->avatar = 2;
+        $dbc->getMapper('drivers')->save($driver, true);
+        $this->assertEquals('avatar2', $driver->avatars->url);
+    }
+    public function testHydratedRelationChangeFromColumn3()
+    {
+        $dbc = $this->reset();
+        $driver = $dbc->tableMapped('drivers')->with('avatars')->sort('driver')->collection()[1];
+        $this->assertEquals('avatar', $driver->avatars->url);
+        $this->assertEquals(1, $dbc->one("SELECT avatar FROM drivers WHERE driver = 2"));
+        $driver->avatar = null;
+        $dbc->getMapper('drivers')->save($driver, true);
+        $this->assertEquals(null, $driver->avatars?->url);
+    }
 }

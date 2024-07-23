@@ -399,12 +399,17 @@ class Mapper implements MapperInterface
                 }
                 $columnOverride = false;
                 foreach (array_keys($relation->keymap) as $local) {
-                    if (isset($cols[$local])) {
+                    if (array_key_exists($local, $cols)) {
                         $columnOverride = true;
                         break;
                     }
                 }
                 if ($columnOverride) {
+                    $q = $this->db->tableMapped($relation->table->getFullName());
+                    foreach ($relation->keymap as $local => $remote) {
+                        $q->filter($remote, $data[$local]);
+                    }
+                    $entity->{$relation->name} = $q[0] ?? null;
                     continue;
                 }
                 // if the relation updated a local column

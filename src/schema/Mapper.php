@@ -314,7 +314,7 @@ class Mapper implements MapperInterface
     }
     /**
      * @param T $entity
-     * @return array<int,string>
+     * @return array<string,mixed>
      */
     protected function changedColumns(object $entity): array
     {
@@ -537,9 +537,7 @@ class Mapper implements MapperInterface
                             if ($mapper->isDirty($e, false)) {
                                 $mapper->save($e, false);
                             } else {
-
-                                if (
-                                    !count($u) &&
+                                if (!count($u) &&
                                     (
                                         (isset($value) && is_array($value) && !in_array($e, $value, true)) ||
                                         (($value instanceof Collection) && !$value->contains($e))

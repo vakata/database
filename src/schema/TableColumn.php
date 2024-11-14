@@ -152,8 +152,7 @@ class TableColumn
             $this->btype = 'date';
         } elseif (strpos($type, 'time') !== false) {
             $this->btype = 'time';
-        } elseif (
-            strpos($type, 'lob') !== false ||
+        } elseif (strpos($type, 'lob') !== false ||
             strpos($type, 'binary') !== false ||
             strpos($type, 'byte') !== false
         ) {

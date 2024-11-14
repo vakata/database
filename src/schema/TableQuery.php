@@ -66,24 +66,24 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             $column = [ $this->definition->getFullName(), $column[0] ];
             $col = $this->definition->getColumn($column[1]);
             if (!$col) {
-                throw new DBException('Invalid column name in own table');
+                throw new DBException('Invalid column name in main table: ' . $column[1]);
             }
         } elseif (count($column) === 2) {
             if ($column[0] === $this->definition->getName()) {
                 $col = $this->definition->getColumn($column[1]);
                 if (!$col) {
-                    throw new DBException('Invalid column name in own table');
+                    throw new DBException('Invalid column name in main table: ' . $column[1]);
                 }
             } else {
                 if ($this->definition->hasRelation($column[0])) {
                     $col = $this->definition->getRelation($column[0])?->table?->getColumn($column[1]);
                     if (!$col) {
-                        throw new DBException('Invalid column name in related table');
+                        throw new DBException('Invalid column name in related table: ' . $column[1]);
                     }
                 } elseif (isset($this->joins[$column[0]])) {
                     $col = $this->joins[$column[0]]->table->getColumn($column[1]);
                     if (!$col) {
-                        throw new DBException('Invalid column name in related table');
+                        throw new DBException('Invalid column name in related table: ' . $column[1]);
                     }
                 } else {
                     $col = null;
@@ -144,7 +144,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                     $temp = strtotime($value);
                     if (!$temp) {
                         if ($strict) {
-                            throw new DBException('Invalid value for date column ' . $col->getName());
+                            throw new DBException('Invalid value for date column: ' . $col->getName());
                         }
                         return null;
                     }
@@ -157,7 +157,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                     return $value->format('Y-m-d');
                 }
                 if ($strict) {
-                    throw new DBException('Invalid value (unknown data type) for date column ' . $col->getName());
+                    throw new DBException('Invalid value (unknown data type) for date column: ' . $col->getName());
                 }
                 return $value;
             case 'datetime':
@@ -165,7 +165,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                     $temp = strtotime($value);
                     if (!$temp) {
                         if ($strict) {
-                            throw new DBException('Invalid value for datetime column ' . $col->getName());
+                            throw new DBException('Invalid value for datetime column: ' . $col->getName());
                         }
                         return null;
                     }
@@ -186,7 +186,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 if (is_int($value)) {
                     if (!isset($values[$value])) {
                         if ($strict) {
-                            throw new DBException('Invalid value (using integer) for enum ' . $col->getName());
+                            throw new DBException('Invalid value (using integer) for enum: ' . $col->getName());
                         }
                         return $value;
                     }
@@ -194,7 +194,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 }
                 if (!in_array($value, $col->getValues())) {
                     if ($strict) {
-                        throw new DBException('Invalid value for enum ' . $col->getName());
+                        throw new DBException('Invalid value for enum: ' . $col->getName());
                     }
                     return 0;
                 }
@@ -210,7 +210,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 // because the polyfill is quite slow
                 if ($col->hasLength() && strlen($value) > $col->getLength() && mb_strlen($value) > $col->getLength()) {
                     if ($strict) {
-                        throw new DBException('Invalid value for text column ' . $col->getName());
+                        throw new DBException('Invalid value for text column: ' . $col->getName());
                     }
                     return mb_substr($value, 0, $col->getLength());
                 }
@@ -429,7 +429,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         try {
             $this->getColumn($column);
         } catch (DBException $e) {
-            throw new DBException('Invalid sort column');
+            throw new DBException('Invalid sort column: ' . $column);
         }
         return $this->order($column . ' ' . ($desc ? 'DESC' : 'ASC'));
     }
@@ -817,7 +817,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                     } elseif (isset($this->joins[$table])) {
                         $cols = $this->joins[$table]->table->getColumns();
                     } else {
-                        throw new DBException('Invalid foreign table name');
+                        throw new DBException('Invalid foreign table name: ' . $table);
                     }
                 } else {
                     array_pop($temp);

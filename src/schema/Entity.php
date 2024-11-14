@@ -95,7 +95,7 @@ class Entity
             }
             $this->cached[$method] = $rslt;
         } else {
-            throw new DBException('Invalid relation name');
+            throw new DBException('Invalid relation name: ' . $method);
         }
         return $this->cached[$method] ?? null;
     }
@@ -106,14 +106,14 @@ class Entity
     protected function relatedQuery(string $name): TableQueryMapped
     {
         if (!array_key_exists($name, $this->relations)) {
-            throw new DBException('Invalid relation name');
+            throw new DBException('Invalid relation name: ' . $name);
         }
         return call_user_func_array($this->relations[$name], [$this, true]);
     }
     protected function relatedRow(string $name): mixed
     {
         if (!array_key_exists($name, $this->relations)) {
-            throw new DBException('Invalid relation name');
+            throw new DBException('Invalid relation name: ' . $name);
         }
         return call_user_func_array($this->relations[$name], [$this]);
     }
@@ -124,7 +124,7 @@ class Entity
     protected function relatedRows(string $name): Collection
     {
         if (!array_key_exists($name, $this->relations)) {
-            throw new DBException('Invalid relation name');
+            throw new DBException('Invalid relation name: ' . $name);
         }
         return call_user_func_array($this->relations[$name], [$this]);
     }

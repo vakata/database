@@ -124,7 +124,7 @@ interface DBInterface
      * @param Table|string $table
      * @param MapperInterface<T> $mapper
      * @param null|class-string<T> $class
-     * @return static 
+     * @return static
      */
     public function setMapper(Table|string $table, MapperInterface $mapper, ?string $class = null): static;
     public function tableMapped(

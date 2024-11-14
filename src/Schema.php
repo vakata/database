@@ -31,7 +31,7 @@ class Schema
     public function getTable(string $table): Table
     {
         if (!$this->hasTable($table)) {
-            throw new DBException('Invalid table name');
+            throw new DBException('Invalid table name: ' . $table);
         }
         return $this->tables[$table] ??
             $this->tables[strtoupper($table)] ??

@@ -31,8 +31,8 @@ trait Schema
          */
         $columns = Collection::from($this
             ->query(
-                "SELECT * FROM all_tab_cols WHERE UPPER(table_name) = ? AND UPPER(owner) = ?",
-                [ strtoupper($table), strtoupper($this->name()) ]
+                "SELECT * FROM user_tab_cols WHERE UPPER(table_name) = ?",
+                [ strtoupper($table) ]
             ))
             ->map(function ($v) {
                 $new = [];
@@ -71,9 +71,9 @@ trait Schema
         $owner = strtoupper($this->connection['opts']['schema'] ?? $this->name());
         $pkname = Collection::from($this
             ->query(
-                "SELECT constraint_name FROM all_constraints
-                WHERE table_name = ? AND constraint_type = ? AND UPPER(owner) = ?",
-                [ strtoupper($table), 'P', $owner ]
+                "SELECT constraint_name FROM user_constraints
+                WHERE table_name = ? AND constraint_type = ?",
+                [ strtoupper($table), 'P' ]
             ))
             ->map(function ($v) {
                 $new = [];
@@ -88,9 +88,9 @@ trait Schema
         if ($pkname) {
             $primary = Collection::from($this
                 ->query(
-                    "SELECT column_name FROM all_cons_columns
-                    WHERE table_name = ? AND constraint_name = ? AND UPPER(owner) = ?",
-                    [ strtoupper($table), $pkname, $owner ]
+                    "SELECT column_name FROM user_cons_columns
+                    WHERE table_name = ? AND constraint_name = ?",
+                    [ strtoupper($table), $pkname ]
                 ))
                 ->map(function ($v) {
                     $new = [];
@@ -115,13 +115,12 @@ trait Schema
             foreach (Collection::from($this
                 ->query(
                     "SELECT ac.TABLE_NAME, ac.CONSTRAINT_NAME, cc.COLUMN_NAME, cc.POSITION
-                    FROM all_constraints ac
-                    LEFT JOIN all_cons_columns cc ON cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
+                    FROM user_constraints ac
+                    LEFT JOIN user_cons_columns cc ON cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
                     WHERE
-                        UPPER(ac.OWNER) = ? AND UPPER(ac.R_OWNER) = ? AND
                         ac.R_CONSTRAINT_NAME = ? AND ac.CONSTRAINT_TYPE = ?
                     ORDER BY cc.POSITION",
-                    [ $owner, $owner, $pkname, 'R' ]
+                    [ $pkname, 'R' ]
                 ))
                 ->map(function ($v) {
                     $new = [];
@@ -154,17 +153,16 @@ trait Schema
                                 ac.CONSTRAINT_NAME,
                                 rc.TABLE_NAME AS REFERENCED_TABLE_NAME,
                                 ac.R_CONSTRAINT_NAME
-                            FROM all_constraints ac
-                            JOIN all_constraints rc ON
-                                rc.CONSTRAINT_NAME = ac.R_CONSTRAINT_NAME AND rc.OWNER = ac.OWNER
-                            LEFT JOIN all_cons_columns cc ON
-                                cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
+                            FROM user_constraints ac
+                            JOIN user_constraints rc ON
+                                rc.CONSTRAINT_NAME = ac.R_CONSTRAINT_NAME
+                            LEFT JOIN user_cons_columns cc ON
+                                cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
                             WHERE
-                                UPPER(ac.OWNER) = ? AND UPPER(ac.R_OWNER) = ? AND
                                 ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ? AND
                                 cc.COLUMN_NAME IN (??)
                             ORDER BY POSITION",
-                            [ $owner, $owner, $data['table'], 'R', $columns ]
+                            [ $data['table'], 'R', $columns ]
                         ))
                         ->map(function ($v) {
                             $new = [];
@@ -184,9 +182,9 @@ trait Schema
                     $foreign = current($foreign);
                     $rcolumns = Collection::from($this
                         ->query(
-                            "SELECT COLUMN_NAME FROM all_cons_columns
-                             WHERE UPPER(OWNER) = ? AND CONSTRAINT_NAME = ? ORDER BY POSITION",
-                            [ $owner, current($foreign['keymap']) ]
+                            "SELECT COLUMN_NAME FROM user_cons_columns
+                             WHERE CONSTRAINT_NAME = ? ORDER BY POSITION",
+                            [ current($foreign['keymap']) ]
                         ))
                         ->map(function ($v) {
                             $new = [];
@@ -252,12 +250,12 @@ trait Schema
                         cc.COLUMN_NAME,
                         rc.TABLE_NAME AS REFERENCED_TABLE_NAME,
                         ac.R_CONSTRAINT_NAME
-                    FROM all_constraints ac
-                    JOIN all_constraints rc ON rc.CONSTRAINT_NAME = ac.R_CONSTRAINT_NAME AND rc.OWNER = ac.OWNER
-                    LEFT JOIN all_cons_columns cc ON cc.OWNER = ac.OWNER AND cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
-                    WHERE UPPER(ac.OWNER) = ? AND UPPER(ac.R_OWNER) = ? AND ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ?
+                    FROM user_constraints ac
+                    JOIN user_constraints rc ON rc.CONSTRAINT_NAME = ac.R_CONSTRAINT_NAME
+                    LEFT JOIN user_cons_columns cc ON cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
+                    WHERE ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ?
                     ORDER BY cc.POSITION",
-                    [ $owner, $owner, strtoupper($table), 'R' ]
+                    [ strtoupper($table), 'R' ]
                 ))
                 ->map(function ($v) {
                     $new = [];
@@ -275,9 +273,9 @@ trait Schema
             foreach ($relations as $name => $data) {
                 $rcolumns = Collection::from($this
                     ->query(
-                        "SELECT COLUMN_NAME FROM all_cons_columns
-                         WHERE UPPER(OWNER) = ? AND CONSTRAINT_NAME = ? ORDER BY POSITION",
-                        [ $owner, current($data['keymap']) ]
+                        "SELECT COLUMN_NAME FROM user_cons_columns
+                         WHERE CONSTRAINT_NAME = ? ORDER BY POSITION",
+                        [ current($data['keymap']) ]
                     ))
                     ->map(function ($v) {
                         $new = [];
@@ -313,10 +311,10 @@ trait Schema
     {
         return Collection::from($this
             ->query(
-                "SELECT TABLE_NAME AS TABLE_NAME FROM ALL_TABLES where UPPER(OWNER) = ?
+                "SELECT TABLE_NAME AS TABLE_NAME FROM USER_TABLES
                  UNION
-                 SELECT VIEW_NAME AS TABLE_NAME FROM ALL_VIEWS where UPPER(OWNER) = ?",
-                [strtoupper($this->connection['name']), strtoupper($this->connection['name'])]
+                 SELECT VIEW_NAME AS TABLE_NAME FROM USER_VIEWS",
+                []
             ))
             ->map(function ($v) {
                 $new = [];

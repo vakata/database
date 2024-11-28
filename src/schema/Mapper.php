@@ -397,20 +397,22 @@ class Mapper implements MapperInterface
                     // relation not hydrated
                     continue;
                 }
-                $columnOverride = false;
-                foreach (array_keys($relation->keymap) as $local) {
-                    if (array_key_exists($local, $cols)) {
-                        $columnOverride = true;
-                        break;
+                if (!$relation->many) {
+                    $columnOverride = false;
+                    foreach (array_keys($relation->keymap) as $local) {
+                        if (array_key_exists($local, $cols)) {
+                            $columnOverride = true;
+                            break;
+                        }
                     }
-                }
-                if ($columnOverride) {
-                    $q = $this->db->tableMapped($relation->table->getFullName());
-                    foreach ($relation->keymap as $local => $remote) {
-                        $q->filter($remote, $data[$local]);
+                    if ($columnOverride) {
+                        $q = $this->db->tableMapped($relation->table->getFullName());
+                        foreach ($relation->keymap as $local => $remote) {
+                            $q->filter($remote, $data[$local]);
+                        }
+                        $entity->{$relation->name} = $q[0] ?? null;
+                        continue;
                     }
-                    $entity->{$relation->name} = $q[0] ?? null;
-                    continue;
                 }
                 // if the relation updated a local column
                 if (!$relation->many &&

@@ -291,6 +291,53 @@ trait Schema
         }
         return $definition;
     }
+    public function view(string $table) : Table
+    {
+        $schema = $this->connection['opts']['schema'] ?? 'public';
+        if (strpos($table, '.')) {
+            $temp = explode('.', $table, 2);
+            $schema = $temp[0];
+            $table = $temp[1];
+        }
+
+        /**
+         * @var array<string,array<string,mixed>>
+         */
+        $columns = Collection::from($this
+            ->query(
+                "SELECT
+                    attr.attname as column_name,
+                    format_type(attr.atttypid, attr.atttypmod) as data_type
+                 from pg_catalog.pg_attribute as attr
+                 join pg_catalog.pg_class as cls on cls.oid = attr.attrelid
+                 join pg_catalog.pg_namespace as ns on ns.oid = cls.relnamespace
+                 join pg_catalog.pg_type as tp on tp.typelem = attr.atttypid
+                 where
+                    cls.relname = ? and
+                    ns.nspname = ? and
+                    not attr.attisdropped and
+                    cast(tp.typanalyze as text) = 'array_typanalyze' and
+                    attr.attnum > 0
+                 order by
+                    attr.attnum",
+                [ $table, $schema ]
+            ))
+            ->mapKey(function ($v): string {
+                return $v['column_name'];
+            })
+            ->map(function ($v) {
+                $v['length'] = null;
+                return $v;
+            })
+            ->toArray();
+        if (!count($columns)) {
+            throw new DBException('View not found by name: ' . implode('.', [$schema,$table]));
+        }
+        $tables[$schema . '.' .$table] = $definition = (new Table($table, $schema))
+            ->addColumns($columns)
+            ->setComment('');
+        return $definition;
+    }
     public function tables() : array
     {
         $tables = Collection::from($this
@@ -306,7 +353,24 @@ trait Schema
                 return $this->table($v)->toLowerCase();
             })
             ->toArray();
-
+        // materialized views
+        $views = Collection::from($this
+            ->query(
+                "SELECT cls.oid::regclass::text as table_name
+                 FROM pg_catalog.pg_class cls
+                 join pg_catalog.pg_namespace as ns on ns.oid = cls.relnamespace
+                 WHERE cls.relkind = 'm' and ns.nspname = ?",
+                [ $this->connection['opts']['schema'] ?? 'public' ]
+            ))
+            ->mapKey(function ($v) {
+                return strtolower($v['table_name']);
+            })
+            ->pluck('table_name')
+            ->map(function ($v) {
+                return $this->view($v)->toLowerCase();
+            })
+            ->toArray();
+        $tables = array_merge($views, $tables);
         foreach (array_keys($tables) as $k) {
             $tables[($this->connection['opts']['schema'] ?? 'public') . '.' . $k] = &$tables[$k];
         }

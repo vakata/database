@@ -22,7 +22,8 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     protected array $order = [];
     protected array $group = [];
     protected array $having = [];
-    protected array $li_of = [0,0,0];
+    protected array $li_of = [0,0];
+    protected bool $li_mt = false;
     protected array $fields = [];
     protected array $withr = [];
     protected array $joins = [];
@@ -484,7 +485,8 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $this->order = [];
         $this->having = [];
         $this->aliases = [];
-        $this->li_of = [0,0,0];
+        $this->li_of = [0,0];
+        $this->li_mt = false;
         $this->qiterator = null;
         return $this;
     }
@@ -579,10 +581,18 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  int         $offset number of rows to skip from the beginning (defaults to 0)
      * @return $this
      */
-    public function limit(int $limit, int $offset = 0, bool $limitOnMainTable = false) : static
+    public function limit(int $limit, int $offset = 0, ?bool $limitOnMainTable = null) : static
     {
         $this->qiterator = null;
-        $this->li_of = [ $limit, $offset, $limitOnMainTable ? 1 : 0 ];
+        $this->li_of = [ $limit, $offset ];
+        if (isset($limitOnMainTable)) {
+            $this->li_mt = $limitOnMainTable;
+        }
+        return $this;
+    }
+    public function limitOnMainTable(bool $limit): static
+    {
+        $this->li_mt = $limit;
         return $this;
     }
     /**
@@ -1076,7 +1086,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
             $sql .= implode(' AND ', $tmp) . ' ';
         }
-        if ($many && count($porder) && $this->li_of[2] === 1) {
+        if ($many && count($porder) && $this->li_mt) {
             $ids = $this->ids();
             if (count($ids)) {
                 if (count($porder) > 1) {
@@ -1144,7 +1154,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 $ordered = true;
             }
         }
-        if ((!$many || $this->li_of[2] === 0 || !count($porder)) && $this->li_of[0]) {
+        if ((!$many || !$this->li_mt || !count($porder)) && $this->li_of[0]) {
             if ($this->db->driverName() === 'oracle') {
                 if ((int)$this->db->driverOption('version', 0) >= 12) {
                     $sql .= 'OFFSET ' . $this->li_of[1] . ' ROWS FETCH NEXT ' . $this->li_of[0] . ' ROWS ONLY';
@@ -1607,7 +1617,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
 
         if ($this->li_of[0]) {
             if ($this->db->driverName() === 'oracle') {
-                if ((int)$this->db->driverOption('version', 0) >= 12) {
+                if ((int)$this->db->driverOption('version', 12) >= 12) {
                     $sql .= 'OFFSET ' . $this->li_of[1] . ' ROWS FETCH NEXT ' . $this->li_of[0] . ' ROWS ONLY';
                 } else {
                     $sql = "SELECT " . implode(', ', $dst) . "

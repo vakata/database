@@ -157,6 +157,99 @@ trait Schema
                 $t = $relation['TABLE_NAME'];
                 $duplicated[$t] = isset($duplicated[$t]);
             }
+            // pivot relations where the current table is referenced
+            // assuming current table is on the "one" end having "many" records in the referencing table
+            // resulting in a "hasMany" or "manyToMany" relationship (if a pivot table is detected)
+            $relations = [];
+            foreach ($relationsR as $relation) {
+                $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_NAME'];
+                $relations[$relation['CONSTRAINT_NAME']]['keymap'][$primary[(int)$relation['POSITION']-1]] =
+                    $relation['COLUMN_NAME'];
+            }
+            foreach ($relations as $data) {
+                $rtable = $this->table($data['table'], true);
+                $columns = [];
+                foreach ($rtable->getColumns() as $column) {
+                    if (!in_array($column, $data['keymap'])) {
+                        $columns[] = $column;
+                    }
+                }
+                $foreign = [];
+                $usedcol = [];
+                if (count($columns)) {
+                    foreach (Collection::from($this
+                        ->query(
+                            "SELECT
+                                cc.COLUMN_NAME,
+                                ac.CONSTRAINT_NAME,
+                                rc.TABLE_NAME AS REFERENCED_TABLE_NAME,
+                                ac.R_CONSTRAINT_NAME
+                            FROM user_constraints ac
+                            JOIN user_constraints rc ON
+                                rc.CONSTRAINT_NAME = ac.R_CONSTRAINT_NAME
+                            LEFT JOIN user_cons_columns cc ON
+                                cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
+                            WHERE
+                                ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ? AND
+                                cc.COLUMN_NAME IN (??)
+                            ORDER BY POSITION",
+                            [ $data['table'], 'R', $columns ]
+                        ))
+                        ->map(function ($v) {
+                            $new = [];
+                            foreach ($v as $kk => $vv) {
+                                $new[strtoupper($kk)] = $vv;
+                            }
+                            return $new;
+                        }) as $relation
+                    ) {
+                        $foreign[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
+                        $foreign[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] =
+                            $relation['R_CONSTRAINT_NAME'];
+                        $usedcol[] = $relation['COLUMN_NAME'];
+                    }
+                }
+                if (count($foreign) === 1 && !count(array_diff($columns, $usedcol))) {
+                    $foreign = current($foreign);
+                    $rcolumns = Collection::from($this
+                        ->query(
+                            "SELECT COLUMN_NAME FROM user_cons_columns
+                            WHERE CONSTRAINT_NAME = ? ORDER BY POSITION",
+                            [ current($foreign['keymap']) ]
+                        ))
+                        ->map(function ($v) {
+                            $new = [];
+                            foreach ($v as $kk => $vv) {
+                                $new[strtoupper($kk)] = $vv;
+                            }
+                            return $new;
+                        })
+                        ->pluck('COLUMN_NAME')
+                        ->toArray();
+                    foreach ($foreign['keymap'] as $column => $related) {
+                        $foreign['keymap'][$column] = array_shift($rcolumns);
+                    }
+                    $relname = $foreign['table'];
+                    $cntr = 1;
+                    while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
+                        $relname = $foreign['table'] . '_' . (++ $cntr);
+                    }
+                    $definition->addRelation(
+                        new TableRelation(
+                            $definition,
+                            $relname,
+                            $this->table($foreign['table'], true),
+                            $data['keymap'],
+                            true,
+                            $rtable,
+                            $foreign['keymap'],
+                            null,
+                            null,
+                            true
+                        )
+                    );
+                }
+            }
             // relations where the current table references another table
             // assuming current table is linked to "one" record in the referenced table
             // resulting in a "belongsTo" relationship
@@ -186,7 +279,11 @@ trait Schema
                     $data['keymap'][$column] = array_shift($rcolumns);
                 }
                 $relname = $data['table'];
-                if ($duplicated[$data['table']]) {
+                if ($duplicated[$data['table']] ||
+                    $definition->hasRelation($relname) ||
+                    $definition->getName() == $relname ||
+                    $definition->getColumn($relname)
+                ) {
                     $relname = array_keys($data['keymap'])[0] . '_' . $relname;
                 }
                 $orig = $relname;
@@ -208,7 +305,7 @@ trait Schema
                     )
                 );
             }
-            // relations where the current table is referenced
+            // non-pivot relations where the current table is referenced
             // assuming current table is on the "one" end having "many" records in the referencing table
             // resulting in a "hasMany" or "manyToMany" relationship (if a pivot table is detected)
             $relations = [];
@@ -217,123 +314,81 @@ trait Schema
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$primary[(int)$relation['POSITION']-1]] =
                     $relation['COLUMN_NAME'];
             }
-            foreach ([ true, false ] as $pivot) {
-                foreach ($relations as $data) {
-                    $rtable = $this->table($data['table'], true);
-                    $columns = [];
-                    foreach ($rtable->getColumns() as $column) {
-                        if (!in_array($column, $data['keymap'])) {
-                            $columns[] = $column;
-                        }
+            foreach ($relations as $data) {
+                $rtable = $this->table($data['table'], true);
+                $columns = [];
+                foreach ($rtable->getColumns() as $column) {
+                    if (!in_array($column, $data['keymap'])) {
+                        $columns[] = $column;
                     }
-                    $foreign = [];
-                    $usedcol = [];
-                    if (count($columns)) {
-                        foreach (Collection::from($this
-                            ->query(
-                                "SELECT
-                                    cc.COLUMN_NAME,
-                                    ac.CONSTRAINT_NAME,
-                                    rc.TABLE_NAME AS REFERENCED_TABLE_NAME,
-                                    ac.R_CONSTRAINT_NAME
-                                FROM user_constraints ac
-                                JOIN user_constraints rc ON
-                                    rc.CONSTRAINT_NAME = ac.R_CONSTRAINT_NAME
-                                LEFT JOIN user_cons_columns cc ON
-                                    cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
-                                WHERE
-                                    ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ? AND
-                                    cc.COLUMN_NAME IN (??)
-                                ORDER BY POSITION",
-                                [ $data['table'], 'R', $columns ]
-                            ))
-                            ->map(function ($v) {
-                                $new = [];
-                                foreach ($v as $kk => $vv) {
-                                    $new[strtoupper($kk)] = $vv;
-                                }
-                                return $new;
-                            }) as $relation
-                        ) {
-                            $foreign[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
-                            $foreign[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] =
-                                $relation['R_CONSTRAINT_NAME'];
-                            $usedcol[] = $relation['COLUMN_NAME'];
-                        }
+                }
+                $foreign = [];
+                $usedcol = [];
+                if (count($columns)) {
+                    foreach (Collection::from($this
+                        ->query(
+                            "SELECT
+                                cc.COLUMN_NAME,
+                                ac.CONSTRAINT_NAME,
+                                rc.TABLE_NAME AS REFERENCED_TABLE_NAME,
+                                ac.R_CONSTRAINT_NAME
+                            FROM user_constraints ac
+                            JOIN user_constraints rc ON
+                                rc.CONSTRAINT_NAME = ac.R_CONSTRAINT_NAME
+                            LEFT JOIN user_cons_columns cc ON
+                                cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
+                            WHERE
+                                ac.TABLE_NAME = ? AND ac.CONSTRAINT_TYPE = ? AND
+                                cc.COLUMN_NAME IN (??)
+                            ORDER BY POSITION",
+                            [ $data['table'], 'R', $columns ]
+                        ))
+                        ->map(function ($v) {
+                            $new = [];
+                            foreach ($v as $kk => $vv) {
+                                $new[strtoupper($kk)] = $vv;
+                            }
+                            return $new;
+                        }) as $relation
+                    ) {
+                        $foreign[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
+                        $foreign[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] =
+                            $relation['R_CONSTRAINT_NAME'];
+                        $usedcol[] = $relation['COLUMN_NAME'];
                     }
-                    if ($pivot && count($foreign) === 1 && !count(array_diff($columns, $usedcol))) {
-                        $foreign = current($foreign);
-                        $rcolumns = Collection::from($this
-                            ->query(
-                                "SELECT COLUMN_NAME FROM user_cons_columns
-                                WHERE CONSTRAINT_NAME = ? ORDER BY POSITION",
-                                [ current($foreign['keymap']) ]
-                            ))
-                            ->map(function ($v) {
-                                $new = [];
-                                foreach ($v as $kk => $vv) {
-                                    $new[strtoupper($kk)] = $vv;
-                                }
-                                return $new;
-                            })
-                            ->pluck('COLUMN_NAME')
-                            ->toArray();
-                        foreach ($foreign['keymap'] as $column => $related) {
-                            $foreign['keymap'][$column] = array_shift($rcolumns);
-                        }
-                        $relname = $foreign['table'];
-                        $cntr = 1;
-                        while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
-                            $relname = $foreign['table'] . '_' . (++ $cntr);
-                        }
-                        $definition->addRelation(
-                            new TableRelation(
-                                $definition,
-                                $relname,
-                                $this->table($foreign['table'], true),
-                                $data['keymap'],
-                                true,
-                                $rtable,
-                                $foreign['keymap'],
-                                null,
-                                null,
-                                true
-                            )
-                        );
+                }
+                if (count($foreign) !== 1 || count(array_diff($columns, $usedcol))) {
+                    $relname = $data['table'];
+                    if ($duplicated[$data['table']] ||
+                        $definition->hasRelation($relname) ||
+                        $definition->getName() == $relname ||
+                        $definition->getColumn($relname)
+                    ) {
+                        $relname .= '_' . array_values($data['keymap'])[0];
                     }
-                    if (!$pivot && (count($foreign) !== 1 || count(array_diff($columns, $usedcol)))) {
-                        $relname = $data['table'];
-                        if ($duplicated[$data['table']] ||
-                            $definition->hasRelation($relname) ||
-                            $definition->getName() == $relname ||
-                            $definition->getColumn($relname)
-                        ) {
-                            $relname .= '_' . array_values($data['keymap'])[0];
-                        }
-                        $orig = $relname;
-                        $cntr = 1;
-                        while (
-                            $definition->hasRelation($relname) ||
-                            $definition->getName() == $relname ||
-                            $definition->getColumn($relname)
-                        ) {
-                            $relname = $orig . '_' . (++ $cntr);
-                        }
-                        $definition->addRelation(
-                            new TableRelation(
-                                $definition,
-                                $relname,
-                                $this->table($data['table'], true),
-                                $data['keymap'],
-                                true,
-                                null,
-                                null,
-                                null,
-                                null,
-                                true
-                            )
-                        );
+                    $orig = $relname;
+                    $cntr = 1;
+                    while (
+                        $definition->hasRelation($relname) ||
+                        $definition->getName() == $relname ||
+                        $definition->getColumn($relname)
+                    ) {
+                        $relname = $orig . '_' . (++ $cntr);
                     }
+                    $definition->addRelation(
+                        new TableRelation(
+                            $definition,
+                            $relname,
+                            $this->table($data['table'], true),
+                            $data['keymap'],
+                            true,
+                            null,
+                            null,
+                            null,
+                            null,
+                            true
+                        )
+                    );
                 }
             }
         }

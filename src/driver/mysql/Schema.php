@@ -92,6 +92,7 @@ trait Schema
                     $relationsR[$row['REFERENCED_TABLE_SCHEMA'] . '.' . $row['REFERENCED_TABLE_NAME']][] = $row;
                 }
             }
+
         }
 
         $columns = Collection::from($this->query("SHOW FULL COLUMNS FROM {$schema}.{$table}"));
@@ -149,19 +150,20 @@ trait Schema
             ->setComment($comments[$schema][$table] ?? '');
 
         if ($detectRelations) {
+            $duplicated = [];
+            foreach ($relationsT[$schema . '.' . $table] ?? [] as $relation) {
+                $t = $relation['REFERENCED_TABLE_SCHEMA'] . '.' . $relation['REFERENCED_TABLE_NAME'];
+                $duplicated[$t] = isset($duplicated[$t]);
+            }
+            foreach ($relationsR[$schema . '.' . $table] ?? [] as $relation) {
+                $t = $relation['TABLE_SCHEMA'] . '.' . $relation['TABLE_NAME'];
+                $duplicated[$t] = isset($duplicated[$t]);
+            }
             // relations where the current table references another table
             // assuming current table is linked to "one" record in the referenced table
             // resulting in a "belongsTo" relationship
             $relations = [];
-            foreach (Collection::from($relationsT[$schema . '.' . $table] ?? [])
-                ->map(function (array $v): array {
-                    $new = [];
-                    foreach ($v as $kk => $vv) {
-                        $new[strtoupper($kk)] = $vv;
-                    }
-                    return $new;
-                }) as $relation
-            ) {
+            foreach ($relationsT[$schema . '.' . $table] ?? [] as $relation) {
                 $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_SCHEMA'] . '.' .
                     $relation['REFERENCED_TABLE_NAME'];
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] =
@@ -172,6 +174,9 @@ trait Schema
                 $temp = explode('.', $relname, 2);
                 if ($temp[0] == $main) {
                     $relname = $temp[1];
+                }
+                if ($duplicated[$data['table']]) {
+                    $relname = array_keys($data['keymap'])[0] . '_' . $relname;
                 }
                 $orig = $relname;
                 $cntr = 1;
@@ -261,6 +266,13 @@ trait Schema
                         $temp = explode('.', $relname, 2);
                         if ($temp[0] == $main) {
                             $relname = $temp[1];
+                        }
+                        if ($duplicated[$data['table']] ||
+                            $definition->hasRelation($relname) ||
+                            $definition->getName() == $relname ||
+                            $definition->getColumn($relname)
+                        ) {
+                            $relname .= '_' . array_values($data['keymap'])[0];
                         }
                         $orig = $relname;
                         $cntr = 1;

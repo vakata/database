@@ -108,11 +108,7 @@ trait Schema
             ->setComment('');
 
         if ($detectRelations) {
-            // relations where the current table references another table
-            // assuming current table is linked to "one" record in the referenced table
-            // resulting in a "belongsTo" relationship
-            $relations = [];
-            foreach (Collection::from($this
+            $relationsT = Collection::from($this
                 ->query(
                     "SELECT
                         ac.CONSTRAINT_NAME,
@@ -133,8 +129,39 @@ trait Schema
                     }
                     return $new;
                 })
-                as $relation
-            ) {
+                ->toArray();
+            $relationsR = Collection::from($this
+                ->query(
+                    "SELECT ac.TABLE_NAME, ac.CONSTRAINT_NAME, cc.COLUMN_NAME, cc.POSITION
+                    FROM user_constraints ac
+                    LEFT JOIN user_cons_columns cc ON cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
+                    WHERE
+                        ac.R_CONSTRAINT_NAME = ? AND ac.CONSTRAINT_TYPE = ?
+                    ORDER BY cc.POSITION",
+                    [ $pkname, 'R' ]
+                ))
+                ->map(function ($v) {
+                    $new = [];
+                    foreach ($v as $kk => $vv) {
+                        $new[strtoupper($kk)] = $vv;
+                    }
+                    return $new;
+                })
+                ->toArray();
+            $duplicated = [];
+            foreach ($relationsT as $relation) {
+                $t = $relation['REFERENCED_TABLE_NAME'];
+                $duplicated[$t] = isset($duplicated[$t]);
+            }
+            foreach ($relationsR as $relation) {
+                $t = $relation['TABLE_NAME'];
+                $duplicated[$t] = isset($duplicated[$t]);
+            }
+            // relations where the current table references another table
+            // assuming current table is linked to "one" record in the referenced table
+            // resulting in a "belongsTo" relationship
+            $relations = [];
+            foreach ($relationsT as $relation) {
                 $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['REFERENCED_TABLE_NAME'];
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] =
                     $relation['R_CONSTRAINT_NAME'];
@@ -159,9 +186,17 @@ trait Schema
                     $data['keymap'][$column] = array_shift($rcolumns);
                 }
                 $relname = $data['table'];
+                if ($duplicated[$data['table']]) {
+                    $relname = array_keys($data['keymap'])[0] . '_' . $relname;
+                }
+                $orig = $relname;
                 $cntr = 1;
-                while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
-                    $relname = $data['table'] . '_' . (++ $cntr);
+                while (
+                    $definition->hasRelation($relname) ||
+                    $definition->getName() == $relname ||
+                    $definition->getColumn($relname)
+                ) {
+                    $relname = $orig . '_' . (++ $cntr);
                 }
                 $definition->addRelation(
                     new TableRelation(
@@ -177,25 +212,7 @@ trait Schema
             // assuming current table is on the "one" end having "many" records in the referencing table
             // resulting in a "hasMany" or "manyToMany" relationship (if a pivot table is detected)
             $relations = [];
-            foreach (Collection::from($this
-                ->query(
-                    "SELECT ac.TABLE_NAME, ac.CONSTRAINT_NAME, cc.COLUMN_NAME, cc.POSITION
-                    FROM user_constraints ac
-                    LEFT JOIN user_cons_columns cc ON cc.CONSTRAINT_NAME = ac.CONSTRAINT_NAME
-                    WHERE
-                        ac.R_CONSTRAINT_NAME = ? AND ac.CONSTRAINT_TYPE = ?
-                    ORDER BY cc.POSITION",
-                    [ $pkname, 'R' ]
-                ))
-                ->map(function ($v) {
-                    $new = [];
-                    foreach ($v as $kk => $vv) {
-                        $new[strtoupper($kk)] = $vv;
-                    }
-                    return $new;
-                })
-                 as $relation
-            ) {
+            foreach ($relationsR as $relation) {
                 $relations[$relation['CONSTRAINT_NAME']]['table'] = $relation['TABLE_NAME'];
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$primary[(int)$relation['POSITION']-1]] =
                     $relation['COLUMN_NAME'];
@@ -286,9 +303,21 @@ trait Schema
                     }
                     if (!$pivot && (count($foreign) !== 1 || count(array_diff($columns, $usedcol)))) {
                         $relname = $data['table'];
+                        if ($duplicated[$data['table']] ||
+                            $definition->hasRelation($relname) ||
+                            $definition->getName() == $relname ||
+                            $definition->getColumn($relname)
+                        ) {
+                            $relname .= '_' . array_values($data['keymap'])[0];
+                        }
+                        $orig = $relname;
                         $cntr = 1;
-                        while ($definition->hasRelation($relname) || $definition->getName() == $relname) {
-                            $relname = $data['table'] . '_' . (++ $cntr);
+                        while (
+                            $definition->hasRelation($relname) ||
+                            $definition->getName() == $relname ||
+                            $definition->getColumn($relname)
+                        ) {
+                            $relname = $orig . '_' . (++ $cntr);
                         }
                         $definition->addRelation(
                             new TableRelation(

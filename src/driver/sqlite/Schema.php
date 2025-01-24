@@ -100,6 +100,15 @@ trait Schema
             ->setComment('');
 
         if ($detectRelations) {
+            $duplicated = [];
+            foreach ($relationsT[$schema . '.' . $table] ?? [] as $relation) {
+                $t = 'main.' . $relation['referenced_table'];
+                $duplicated[$t] = isset($duplicated[$t]);
+            }
+            foreach ($relationsR[$schema . '.' . $table] ?? [] as $relation) {
+                $t = 'main.' . $relation['table'];
+                $duplicated[$t] = isset($duplicated[$t]);
+            }
             // relations where the current table references another table
             // assuming current table is linked to "one" record in the referenced table
             // resulting in a "belongsTo" relationship
@@ -113,6 +122,9 @@ trait Schema
                 $temp = explode('.', $relname, 2);
                 if ($temp[0] == $main) {
                     $relname = $temp[1];
+                }
+                if ($duplicated[$data['table']]) {
+                    $relname = array_keys($data['keymap'])[0] . '_' . $relname;
                 }
                 $orig = $relname;
                 $cntr = 1;
@@ -198,6 +210,13 @@ trait Schema
                         $temp = explode('.', $relname, 2);
                         if ($temp[0] == $main) {
                             $relname = $temp[1];
+                        }
+                        if ($duplicated[$data['table']] ||
+                            $definition->hasRelation($relname) ||
+                            $definition->getName() == $relname ||
+                            $definition->getColumn($relname)
+                        ) {
+                            $relname .= '_' . array_values($data['keymap'])[0];
                         }
                         $orig = $relname;
                         $cntr = 1;

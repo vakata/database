@@ -31,7 +31,7 @@ class Result implements ResultInterface
     {
         return $this->aff;
     }
-    public function insertID(string $sequence = null): mixed
+    public function insertID(?string $sequence = null): mixed
     {
         if ($this->iid === null) {
             $temp = @\pg_query(
@@ -42,7 +42,7 @@ class Result implements ResultInterface
             );
             if ($temp) {
                 $res = \pg_fetch_row($temp);
-                $this->iid = $res && is_array($res) && isset($res[0]) ? $res[0] : null;
+                $this->iid = $res && isset($res[0]) ? $res[0] : null;
             }
         }
         return $this->iid;

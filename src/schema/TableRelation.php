@@ -64,8 +64,8 @@ class TableRelation
         Table $table,
         array $keymap,
         bool $many = false,
-        Table $pivot = null,
-        array $pivot_keymap = null,
+        ?Table $pivot = null,
+        ?array $pivot_keymap = null,
         ?string $sql = null,
         ?array $par = null,
         bool $cascade = false

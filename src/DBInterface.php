@@ -25,7 +25,7 @@ interface DBInterface
     public function get(
         string $sql,
         mixed $par = null,
-        string $key = null,
+        ?string $key = null,
         bool $skip = false,
         bool $opti = true,
         bool $buff = true
@@ -34,7 +34,7 @@ interface DBInterface
     public function all(
         string $sql,
         mixed $par = null,
-        string $key = null,
+        ?string $key = null,
         bool $skip = false,
         bool $opti = true
     ): array;
@@ -49,7 +49,7 @@ interface DBInterface
     public function unbuffered(
         string $sql,
         mixed $par = null,
-        string $key = null,
+        ?string $key = null,
         bool $skip = false,
         bool $opti = true
     ) : Collection;

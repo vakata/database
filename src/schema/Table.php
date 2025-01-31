@@ -170,9 +170,9 @@ class Table
      */
     public function hasOne(
         Table $toTable,
-        string $name = null,
+        ?string $name = null,
         string|array|null $toTableColumn = null,
-        string $sql = null,
+        ?string $sql = null,
         array $par = []
     ) : static {
         $columns = $toTable->getColumns();
@@ -225,7 +225,7 @@ class Table
      */
     public function hasMany(
         Table $toTable,
-        string $name = null,
+        ?string $name = null,
         string|array|null $toTableColumn = null,
         ?string $sql = null,
         array $par = []
@@ -280,7 +280,7 @@ class Table
      */
     public function belongsTo(
         Table $toTable,
-        string $name = null,
+        ?string $name = null,
         string|array|null $localColumn = null,
         ?string $sql = null,
         array $par = []

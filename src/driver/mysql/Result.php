@@ -39,13 +39,11 @@ class Result implements ResultInterface
                 }
                 if (count($columns)) {
                     $this->row = array_combine($columns, array_fill(0, count($columns), null));
-                    if ($this->row !== false) {
-                        $temp = [];
-                        foreach ($this->row as $k => $v) {
-                            $temp[] = &$this->row[$k];
-                        }
-                        call_user_func_array(array($this->statement, 'bind_result'), $temp);
+                    $temp = [];
+                    foreach ($this->row as $k => $v) {
+                        $temp[] = &$this->row[$k];
                     }
+                    call_user_func_array(array($this->statement, 'bind_result'), $temp);
                 }
             }
         } catch (\Exception $ignore) {
@@ -55,7 +53,7 @@ class Result implements ResultInterface
     {
         return (int)$this->statement->affected_rows;
     }
-    public function insertID(string $sequence = null): mixed
+    public function insertID(?string $sequence = null): mixed
     {
         return $this->statement->insert_id;
     }

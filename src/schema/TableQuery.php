@@ -510,7 +510,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  bool         $multiple  are multiple rows joined (results in a LEFT JOIN), default to true
      * @return $this
      */
-    public function join($table, array $fields, string $name = null, bool $multiple = true)
+    public function join($table, array $fields, ?string $name = null, bool $multiple = true)
     {
         $this->qiterator = null;
         $table = $table instanceof Table ? $table : $this->db->definition((string)$table);
@@ -871,7 +871,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array|null $fields optional array of columns to select (related columns can be used too)
      * @return mixed               the query result as an iterator (with array access)
      */
-    public function iterator(array $fields = null, array $collectionKey = null)
+    public function iterator(?array $fields = null, ?array $collectionKey = null)
     {
         if (isset($this->qiterator)) {
             return $this->qiterator;
@@ -1191,7 +1191,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array|null $fields optional array of columns to select (related columns can be used too)
      * @return array               the query result as an array
      */
-    public function select(array $fields = null, array $collectionKey = null) : array
+    public function select(?array $fields = null, ?array $collectionKey = null) : array
     {
         return iterator_to_array($this->iterator($fields, $collectionKey));
     }
@@ -1310,7 +1310,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  string $relation the relation name to fetch along with the data
      * @return $this
      */
-    public function with(string $relation, bool $select = true, string $order = null, bool $desc = false) : static
+    public function with(string $relation, bool $select = true, ?string $order = null, bool $desc = false) : static
     {
         $this->qiterator = null;
         $table = $this->definition;
@@ -1389,7 +1389,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param array|null $fields
      * @return Collection<int,mixed>
      */
-    public function collection(array $fields = null) : Collection
+    public function collection(?array $fields = null) : Collection
     {
         return new Collection($this->iterator($fields));
     }

@@ -31,7 +31,7 @@ class TableQueryMapped extends TableQuery implements \ArrayAccess, \IteratorAggr
      * @param  array|null $fields optional array of columns to select (related columns can be used too)
      * @return Collection<int,T>               the query result as a mapped Collection
      */
-    public function iterator(array $fields = null, array $collectionKey = null): Collection
+    public function iterator(?array $fields = null, ?array $collectionKey = null): Collection
     {
         return Collection::from(parent::iterator($fields, $collectionKey))
             ->map(function ($v) {

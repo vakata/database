@@ -52,20 +52,17 @@ class Statement implements StatementInterface
     }
     public function execute(array $data = [], bool $buff = true) : ResultInterface
     {
-        if (!is_array($data)) {
-            $data = array();
-        }
         $log = $this->drv->option('log_file');
         if ($log) {
             $tm = microtime(true);
         }
         try {
             if ($this->name !== null) {
-                $temp = (is_array($data) && count($data)) ?
+                $temp = (count($data)) ?
                     \pg_execute($this->driver, $this->name, $data) :
                     \pg_execute($this->driver, $this->name, array());
             } else {
-                $temp = (is_array($data) && count($data)) ?
+                $temp = (count($data)) ?
                     \pg_query_params($this->driver, $this->statement, $data) :
                     \pg_query_params($this->driver, $this->statement, array());
             }

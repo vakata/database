@@ -24,7 +24,7 @@ class Result implements ResultInterface
     {
         return $this->lnk->affected_rows;
     }
-    public function insertID(string $sequence = null): mixed
+    public function insertID(?string $sequence = null): mixed
     {
         return $this->lnk->insert_id;
     }

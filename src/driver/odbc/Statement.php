@@ -25,9 +25,6 @@ class Statement implements StatementInterface
     }
     public function execute(array $data = [], bool $buff = true) : ResultInterface
     {
-        if (!is_array($data)) {
-            $data = array();
-        }
         $data = $this->convert($data);
         $temp = \odbc_execute($this->statement, $data);
         if (!$temp) {

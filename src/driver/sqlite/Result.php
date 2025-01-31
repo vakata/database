@@ -29,7 +29,7 @@ class Result implements ResultInterface
     {
         return $this->aff;
     }
-    public function insertID(string $sequence = null): int
+    public function insertID(?string $sequence = null): int
     {
         return $this->iid;
     }

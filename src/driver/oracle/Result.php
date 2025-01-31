@@ -26,7 +26,7 @@ class Result implements ResultInterface
     {
         return (int)\oci_num_rows($this->statement);
     }
-    public function insertID(string $sequence = null): mixed
+    public function insertID(?string $sequence = null): mixed
     {
         return null;
     }

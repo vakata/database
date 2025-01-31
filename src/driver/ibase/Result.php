@@ -31,7 +31,7 @@ class Result implements ResultInterface
     {
         return $this->affected;
     }
-    public function insertID(string $sequence = null): mixed
+    public function insertID(?string $sequence = null): mixed
     {
         return null;
     }

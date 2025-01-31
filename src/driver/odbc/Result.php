@@ -47,7 +47,7 @@ class Result implements ResultInterface
     {
         return \odbc_num_rows($this->statement);
     }
-    public function insertID(string $sequence = null): mixed
+    public function insertID(?string $sequence = null): mixed
     {
         return $this->iid;
     }

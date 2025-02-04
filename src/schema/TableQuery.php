@@ -216,6 +216,11 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                     return mb_substr($value, 0, $col->getLength());
                 }
                 return $value;
+            case 'json':
+                if (!is_string($value)) {
+                    $value = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                }
+                return $value;
             default: // time, blob, etc
                 return $value;
         }

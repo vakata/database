@@ -19,7 +19,7 @@ class TableRelation
      */
     public Table $table;
     /**
-     * @var string[]
+     * @var array<string,string>
      */
     public array $keymap;
     /**
@@ -31,7 +31,7 @@ class TableRelation
      */
     public ?Table $pivot = null;
     /**
-     * @var string[]|null
+     * @var array<string,string>|null
      */
     public ?array $pivot_keymap = null;
     /**

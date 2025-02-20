@@ -12,7 +12,7 @@ use \vakata\database\schema\TableRelation;
 class Driver extends DriverAbstract implements DriverInterface
 {
     use Schema;
-    
+
     protected mixed $lnk = null;
     protected bool $transaction = false;
 
@@ -73,7 +73,7 @@ class Driver extends DriverAbstract implements DriverInterface
         $this->softDetect($sql);
         return $this->lnk->query($sql);
     }
-    public function prepare(string $sql, ?string $name = null) : StatementInterface
+    public function prepare(string $sql, ?string $name = null, ?array $map = null) : StatementInterface
     {
         $this->connect();
         $this->softDetect($sql);
@@ -92,7 +92,7 @@ class Driver extends DriverAbstract implements DriverInterface
         if (!$temp) {
             throw new DBException('Could not prepare : '.$this->lnk->lastErrorMsg().' <'.$sql.'>');
         }
-        return new Statement($temp, $this->lnk);
+        return new Statement($temp, $this->lnk, $map);
     }
 
     public function begin() : bool

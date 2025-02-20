@@ -6,6 +6,6 @@ class DBMysqlTest extends DB
 {
     protected function getConnectionString()
     {
-        return "mysql://root@".gethostname().".local/test?charset=utf8";
+        return "mysql://test@localhost/test?charset=utf8";
     }
 }

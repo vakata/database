@@ -12,15 +12,24 @@ class Statement implements StatementInterface
     protected mixed $statement;
     protected Driver $driver;
     protected string $sql;
+    protected ?array $map = null;
 
-    public function __construct(mixed $statement, Driver $driver, string $sql = '')
+    public function __construct(mixed $statement, Driver $driver, string $sql = '', ?array $map = null)
     {
         $this->statement = $statement;
         $this->driver = $driver;
         $this->sql = $sql;
+        $this->map = $map;
     }
     public function execute(array $data = [], bool $buff = true) : ResultInterface
     {
+        if (isset($this->map)) {
+            $par = [];
+            foreach ($this->map as $key) {
+                $par[] = $data[$key] ?? throw new DBException('Missing param ' . $key);
+            }
+            $data = $par;
+        }
         $data = array_values($data);
         $lob = null;
         $ldt = null;

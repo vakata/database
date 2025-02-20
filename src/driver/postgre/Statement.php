@@ -13,13 +13,15 @@ class Statement implements StatementInterface
     protected mixed $driver;
     protected Driver $drv;
     protected ?string $name;
+    protected ?array $map = null;
 
-    public function __construct(string $statement, mixed $lnk, Driver $drv, ?string $name = null)
+    public function __construct(string $statement, mixed $lnk, Driver $drv, ?string $name = null, ?array $map = null)
     {
         $this->statement = $statement;
         $this->driver = $lnk;
         $this->drv = $drv;
         $this->name = $name;
+        $this->map = $map;
         if (strpos(strtolower($statement), 'prepare') === 0) {
             $this->drv->raw($this->statement);
             if (!isset($this->name)) {
@@ -52,6 +54,13 @@ class Statement implements StatementInterface
     }
     public function execute(array $data = [], bool $buff = true) : ResultInterface
     {
+        if (isset($this->map)) {
+            $par = [];
+            foreach ($this->map as $key) {
+                $par[] = $data[$key] ?? throw new DBException('Missing param ' . $key);
+            }
+            $data = $par;
+        }
         $log = $this->drv->option('log_file');
         if ($log) {
             $tm = microtime(true);

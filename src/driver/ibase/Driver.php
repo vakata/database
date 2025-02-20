@@ -65,7 +65,7 @@ class Driver extends DriverAbstract implements DriverInterface
         $this->softDetect($sql);
         return \ibase_query($this->lnk, $sql);
     }
-    public function prepare(string $sql, ?string $name = null): StatementInterface
+    public function prepare(string $sql, ?string $name = null, ?array $map = null): StatementInterface
     {
         $this->connect();
         $this->softDetect($sql);
@@ -75,7 +75,8 @@ class Driver extends DriverAbstract implements DriverInterface
         }
         return new Statement(
             $statement,
-            $this->lnk
+            $this->lnk,
+            $map
         );
     }
 

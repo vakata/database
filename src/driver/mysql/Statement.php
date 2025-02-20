@@ -13,12 +13,14 @@ class Statement implements StatementInterface
     protected mysqli_stmt $statement;
     protected Driver $driver;
     protected string $sql;
+    protected ?array $map = null;
 
-    public function __construct(\mysqli_stmt $statement, Driver $driver, string $sql = '')
+    public function __construct(\mysqli_stmt $statement, Driver $driver, string $sql = '', ?array $map = null)
     {
         $this->statement = $statement;
         $this->driver = $driver;
         $this->sql = $sql;
+        $this->map = $map;
     }
     public function __destruct()
     {
@@ -26,6 +28,13 @@ class Statement implements StatementInterface
     }
     public function execute(array $data = [], bool $buff = true) : ResultInterface
     {
+        if (isset($this->map)) {
+            $par = [];
+            foreach ($this->map as $key) {
+                $par[] = $data[$key] ?? throw new DBException('Missing param ' . $key);
+            }
+            $data = $par;
+        }
         $data = array_values($data);
         $this->statement->reset();
         if ($this->statement->param_count) {

@@ -13,7 +13,7 @@ use \vakata\collection\Collection;
 class Driver extends DriverAbstract implements DriverInterface
 {
     use Schema;
-    
+
     protected mixed $lnk = null;
 
     public function __construct(array $connection)
@@ -78,7 +78,7 @@ class Driver extends DriverAbstract implements DriverInterface
             $this->lnk->close();
         }
     }
-    public function prepare(string $sql, ?string $name = null) : StatementInterface
+    public function prepare(string $sql, ?string $name = null, ?array $map = null) : StatementInterface
     {
         $this->connect();
         $this->softDetect($sql);
@@ -86,7 +86,7 @@ class Driver extends DriverAbstract implements DriverInterface
         if (!$temp) {
             throw new DBException('Could not prepare : '.$this->lnk->error.' <'.$sql.'>');
         }
-        return new Statement($temp, $this, $sql);
+        return new Statement($temp, $this, $sql, $map);
     }
     public function raw(string $sql): mixed
     {

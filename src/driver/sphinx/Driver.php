@@ -71,11 +71,11 @@ class Driver extends MysqlDriver implements DriverInterface
             $this->lnk->close();
         }
     }
-    public function prepare(string $sql, ?string $name = null) : StatementInterface
+    public function prepare(string $sql, ?string $name = null, ?array $map = null) : StatementInterface
     {
         $this->connect();
         $this->softDetect($sql);
-        return new Statement($this->lnk, $sql);
+        return new Statement($this->lnk, $sql, $map);
     }
     public function raw(string $sql): mixed
     {

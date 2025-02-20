@@ -67,7 +67,7 @@ class Driver extends DriverAbstract implements DriverInterface
             \odbc_close($this->lnk);
         }
     }
-    public function prepare(string $sql, ?string $name = null) : StatementInterface
+    public function prepare(string $sql, ?string $name = null, ?array $map = null) : StatementInterface
     {
         $this->connect();
         $this->softDetect($sql);
@@ -75,7 +75,8 @@ class Driver extends DriverAbstract implements DriverInterface
             $sql,
             $this->lnk,
             $this->connection['opts']['charset_in'] ?? null,
-            $this->connection['opts']['charset_out'] ?? null
+            $this->connection['opts']['charset_out'] ?? null,
+            $map
         );
     }
     public function raw(string $sql): mixed

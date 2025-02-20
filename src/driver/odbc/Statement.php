@@ -14,17 +14,32 @@ class Statement implements StatementInterface
     protected mixed $driver;
     protected ?string $charIn;
     protected ?string $charOut;
+    protected ?array $map = null;
 
-    public function __construct(string $statement, mixed $driver, ?string $charIn = null, ?string $charOut = null)
+    public function __construct(
+        string $statement,
+        mixed $driver,
+        ?string $charIn = null,
+        ?string $charOut = null,
+        ?array $map = null
+    )
     {
         $this->sql = $statement;
         $this->driver = $driver;
         $this->charIn = $charIn;
         $this->charOut = $charOut;
+        $this->map = $map;
         $this->statement = \odbc_prepare($this->driver, $statement);
     }
     public function execute(array $data = [], bool $buff = true) : ResultInterface
     {
+        if (isset($this->map)) {
+            $par = [];
+            foreach ($this->map as $key) {
+                $par[] = $data[$key] ?? throw new DBException('Missing param ' . $key);
+            }
+            $data = $par;
+        }
         $data = $this->convert($data);
         $temp = \odbc_execute($this->statement, $data);
         if (!$temp) {

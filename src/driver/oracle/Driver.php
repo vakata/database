@@ -13,7 +13,7 @@ use \vakata\collection\Collection;
 class Driver extends DriverAbstract implements DriverInterface
 {
     use Schema;
-    
+
     protected mixed $lnk = null;
     protected bool $transaction = false;
 
@@ -93,7 +93,7 @@ class Driver extends DriverAbstract implements DriverInterface
         }
         return $res;
     }
-    public function prepare(string $sql, ?string $name = null) : StatementInterface
+    public function prepare(string $sql, ?string $name = null, ?array $map = null) : StatementInterface
     {
         $this->connect();
         $this->softDetect($sql);
@@ -116,7 +116,7 @@ class Driver extends DriverAbstract implements DriverInterface
             }
             throw new DBException('Could not prepare : '.implode(', ', $err).' <'.$sql.'>');
         }
-        return new Statement($temp, $this, $sql);
+        return new Statement($temp, $this, $sql, $map);
     }
 
     public function begin() : bool

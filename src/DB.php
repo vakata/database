@@ -108,7 +108,13 @@ class DB implements DBInterface
      */
     public function prepare(string $sql, ?string $name = null) : StatementInterface
     {
-        return $this->driver->prepare($sql, $name);
+        $map = null;
+        if (strpos($sql, ':')) {
+            $tmp = $this->expandNames($sql);
+            $sql = $tmp['sql'];
+            $map = $tmp['map'];
+        }
+        return $this->driver->prepare($sql, $name, $map);
     }
     /**
      * Test the connection
@@ -118,6 +124,23 @@ class DB implements DBInterface
     public function test() : bool
     {
         return $this->driver->test();
+    }
+    protected function expandNames(string $sql, ?array $par = null) : array
+    {
+        $map = [];
+        $sql = preg_replace_callback(
+            '(\:[a-z_][a-z0-9_]+)i',
+            function ($matches) use (&$map, $par) {
+                $key = substr($matches[0], 1);
+                $map[] = $key;
+                return isset($par) && isset($par[$key]) && is_array($par[$key]) ? '??' : '?';
+            },
+            $sql
+        );
+        return [
+            'sql' => $sql,
+            'map' => $map
+        ];
     }
     protected function expand(string $sql, mixed $par = null) : array
     {
@@ -154,6 +177,15 @@ class DB implements DBInterface
     public function query(string $sql, mixed $par = null, bool $buff = true) : ResultInterface
     {
         $par = isset($par) ? (is_array($par) ? $par : [$par]) : [];
+        if (strpos($sql, ':') && count($par)) {
+            $tmp = $this->expandNames($sql, $par);
+            $sql = $tmp['sql'];
+            $ord = [];
+            foreach ($tmp['map'] as $key) {
+                $ord[] = $par[$key] ?? throw new DBException('Missing param ' . $key);
+            }
+            $par = $ord;
+        }
         if (strpos($sql, '??') && count($par)) {
             list($sql, $par) = $this->expand($sql, $par);
         }
@@ -529,7 +561,7 @@ class DB implements DBInterface
         }
         $graph[$start]['weight'] = 0;
         $graph[$start]['from'] = $start;
-    
+
         // go through graph
         $to_add = $start;
         for ($i = 0; $i < count($graph); $i++) {

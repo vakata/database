@@ -8,7 +8,7 @@ abstract class DriverAbstract implements DriverInterface
 {
     protected array $connection;
     protected int $softTransaction = 0;
-    
+
     protected function expand(string $sql, mixed $par = null): array
     {
         $new = '';
@@ -57,7 +57,7 @@ abstract class DriverAbstract implements DriverInterface
     {
         return isset($this->connection['opts'][$key]) ? $this->connection['opts'][$key] : $default;
     }
-    
+
     public function begin() : bool
     {
         $this->connect();
@@ -133,9 +133,9 @@ abstract class DriverAbstract implements DriverInterface
         $this->softDetect($sql);
         return $this->query($sql);
     }
-    
+
     abstract public function connect(): void;
-    abstract public function prepare(string $sql, ?string $name = null) : StatementInterface;
+    abstract public function prepare(string $sql, ?string $name = null, ?array $map = null) : StatementInterface;
     abstract public function test() : bool;
     public function disconnect(): void
     {

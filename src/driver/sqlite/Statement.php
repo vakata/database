@@ -13,14 +13,23 @@ class Statement implements StatementInterface
 {
     protected SQLite3Stmt $statement;
     protected SQLite3 $driver;
+    protected ?array $map = null;
 
-    public function __construct(SQLite3Stmt $statement, SQLite3 $driver)
+    public function __construct(SQLite3Stmt $statement, SQLite3 $driver, ?array $map = null)
     {
         $this->statement = $statement;
         $this->driver = $driver;
+        $this->map = $map;
     }
     public function execute(array $data = [], bool $buff = true) : ResultInterface
     {
+        if (isset($this->map)) {
+            $par = [];
+            foreach ($this->map as $key) {
+                $par[] = $data[$key] ?? throw new DBException('Missing param ' . $key);
+            }
+            $data = $par;
+        }
         $data = array_values($data);
         if ($this->statement->paramCount()) {
             if (count($data) < $this->statement->paramCount()) {

@@ -89,12 +89,12 @@ class Driver extends DriverAbstract implements DriverInterface
         $this->softDetect($sql);
         return $this->lnk->query($sql);
     }
-    public function prepare(string $sql, ?string $name = null) : StatementInterface
+    public function prepare(string $sql, ?string $name = null, ?array $map = null) : StatementInterface
     {
         $this->connect();
         $this->softDetect($sql);
         try {
-            return new Statement($this->lnk->prepare($sql), $this->lnk);
+            return new Statement($this->lnk->prepare($sql), $this->lnk, $map);
         } catch (\PDOException $e) {
             throw new DBException($e->getMessage());
         }

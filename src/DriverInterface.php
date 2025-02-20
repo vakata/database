@@ -6,7 +6,7 @@ use \vakata\database\schema\Table;
 
 interface DriverInterface
 {
-    public function prepare(string $sql, ?string $name = null): StatementInterface;
+    public function prepare(string $sql, ?string $name = null, ?array $map = null): StatementInterface;
     public function query(string $sql, mixed $par = null, bool $buff = true): ResultInterface;
     public function raw(string $raw): mixed;
 

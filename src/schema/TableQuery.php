@@ -30,6 +30,8 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     protected array $pkey = [];
     protected array $aliases = [];
     protected bool $findRelations = false;
+    protected bool $manualColumns = false;
+    protected bool $aliasColumns = false;
 
     /**
      * Create an instance
@@ -46,6 +48,7 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         $columns = $this->definition->getColumns();
         $this->pkey = count($primary) ? $primary : $columns;
         $this->columns($columns);
+        $this->manualColumns = false;
     }
     public function __clone()
     {
@@ -816,8 +819,10 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
      * @param  array $fields optional array of columns to select (related columns can be used too)
      * @return $this
      */
-    public function columns(array $fields, bool $addPrimary = true) : static
+    public function columns(array $fields, bool $addPrimary = true, bool $alias = false) : static
     {
+        $this->manualColumns = true;
+        $this->aliasColumns = $alias;
         $this->qiterator = null;
         foreach ($fields as $k => $v) {
             if (strpos($v, '*') !== false) {
@@ -923,11 +928,19 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             if ($this->definition->hasRelation($k)) {
                 continue;
             }
+            $temp = [];
             foreach ($f as $kk => $field) {
                 if (strpos($field, $k . '.') === 0) {
                     $f[$kk] = str_replace($k . '.', $getAlias($k) . '.', $field);
+                    $nk = $this->aliasColumns && is_numeric($kk) ?
+                        $getAlias($k . static::SEP . str_replace($k . '.', '', $field)) :
+                        $kk;
+                    $temp[$nk] = $f[$kk];
+                } else {
+                    $temp[$kk] = $field;
                 }
             }
+            $f = $temp;
             foreach ($w as $kk => $v) {
                 if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
                     $w[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $getAlias($k) . '.', $v[0]);
@@ -957,12 +970,20 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
         }
         foreach ($this->definition->getRelations() as $k => $relation) {
+            $temp = [];
             foreach ($f as $kk => $field) {
                 if (strpos($field, $k . '.') === 0) {
                     $relations[$k] = [ $relation, $table ];
                     $f[$kk] = str_replace($k . '.', $getAlias($k) . '.', $field);
+                    $nk = $this->aliasColumns && is_numeric($kk) ?
+                        $getAlias($k . static::SEP . str_replace($k . '.', '', $field)) :
+                        $kk;
+                    $temp[$nk] = $f[$kk];
+                } else {
+                    $temp[$kk] = $field;
                 }
             }
+            $f = $temp;
             foreach ($w as $kk => $v) {
                 if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
                     $relations[$k] = [ $relation, $table ];
@@ -997,11 +1018,19 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
             }
         }
         foreach ($aliases_ext as $k => $alias) {
+            $temp = [];
             foreach ($f as $kk => $field) {
                 if (strpos($field, $k . '.') === 0) {
                     $f[$kk] = str_replace($k . '.', $alias . '.', $field);
+                    $nk = $this->aliasColumns && is_numeric($kk) ?
+                        $getAlias($k . static::SEP . str_replace($k . '.', '', $field)) :
+                        $kk;
+                    $temp[$nk] = $f[$kk];
+                } else {
+                    $temp[$kk] = $field;
                 }
             }
+            $f = $temp;
             foreach ($w as $kk => $v) {
                 if (preg_match('(\b'.preg_quote($k . '.'). ')i', $v[0])) {
                     $w[$kk][0] = preg_replace('(\b'.preg_quote($k . '.'). ')i', $alias . '.', $v[0]);
@@ -1036,8 +1065,14 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
         foreach ($this->withr as $name => $relation) {
             if ($relation[2]) {
-                foreach ($relation[0]->table->getColumns() as $column) {
-                    $select[] = $getAlias($name) . '.' . $column . ' ' . $getAlias($name . static::SEP . $column);
+                if (!$this->manualColumns) {
+                    foreach ($relation[0]->table->getColumns() as $column) {
+                        $select[] = $getAlias($name) . '.' . $column . ' ' . $getAlias($name . static::SEP . $column);
+                    }
+                } else {
+                    foreach ($relation[0]->table->getPrimaryKey() as $column) {
+                        $select[] = $getAlias($name) . '.' . $column . ' ' . $getAlias($name . static::SEP . $column);
+                    }
                 }
             }
         }
@@ -1664,3 +1699,4 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         return $this->iterator()[0] ?? null;
     }
 }
+

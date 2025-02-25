@@ -26,6 +26,10 @@ class TableQueryMapped extends TableQuery implements \ArrayAccess, \IteratorAggr
         parent::__construct($db, $table, $findRelations);
         $this->mapper = $mapper ?? $db->getMapper($this->definition);
     }
+    public function columns(array $fields, bool $addPrimary = true, bool $alias = true): static
+    {
+        return parent::columns($fields, $addPrimary, $alias);
+    }
     /**
      * Perform the actual fetch
      * @param  array|null $fields optional array of columns to select (related columns can be used too)

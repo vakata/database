@@ -80,8 +80,10 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
                     if (isset($this->aliases[$nm])) {
                         $nm = $this->aliases[$nm];
                     }
-                    $fields[$column] = $row[$nm];
-                    if (!$exists && $row[$nm] !== null) {
+                    if (array_key_exists($nm, $row)) {
+                        $fields[$column] = $row[$nm];
+                    }
+                    if (!$exists && array_key_exists($nm, $row)) {
                         $exists = true;
                     }
                     $remove[] = $nm; // $name . static::SEP . $column;
@@ -240,3 +242,4 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
         throw new DBException('Invalid call to offsetUnset');
     }
 }
+

@@ -83,7 +83,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
                     if (array_key_exists($nm, $row)) {
                         $fields[$column] = $row[$nm];
                     }
-                    if (!$exists && array_key_exists($nm, $row)) {
+                    if (!$exists && array_key_exists($nm, $row) && $row[$nm]) {
                         $exists = true;
                     }
                     $remove[] = $nm; // $name . static::SEP . $column;

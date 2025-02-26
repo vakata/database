@@ -1059,22 +1059,26 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 }
             }
         }
-        $select = [];
-        foreach ($f as $k => $field) {
-            $select[] = $field . (!is_numeric($k) ? ' ' . $k : '');
-        }
         foreach ($this->withr as $name => $relation) {
             if ($relation[2]) {
                 if (!$this->manualColumns) {
                     foreach ($relation[0]->table->getColumns() as $column) {
-                        $select[] = $getAlias($name) . '.' . $column . ' ' . $getAlias($name . static::SEP . $column);
+                        if (!in_array($getAlias($name) . '.' . $column, $f)) {
+                            $f[$getAlias($name . static::SEP . $column)] = $getAlias($name) . '.' . $column;
+                        }
                     }
                 } else {
                     foreach ($relation[0]->table->getPrimaryKey() as $column) {
-                        $select[] = $getAlias($name) . '.' . $column . ' ' . $getAlias($name . static::SEP . $column);
+                        if (!in_array($getAlias($name) . '.' . $column, $f)) {
+                            $f[$getAlias($name . static::SEP . $column)] = $getAlias($name) . '.' . $column;
+                        }
                     }
                 }
             }
+        }
+        $select = [];
+        foreach ($f as $k => $field) {
+            $select[] = $field . (!is_numeric($k) ? ' ' . $k : '');
         }
         $sql = 'SELECT '.implode(', ', $select).' FROM '.$this->definition->getFullName().' ';
         $par = [];

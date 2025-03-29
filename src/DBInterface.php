@@ -127,6 +127,7 @@ interface DBInterface
      * @return static
      */
     public function setMapper(Table|string $table, MapperInterface $mapper, ?string $class = null): static;
+    public function clearMappers(): static;
     public function tableMapped(
         string $table,
         bool $findRelations = false,

@@ -495,6 +495,11 @@ class DB implements DBInterface
         }
         return $this;
     }
+    public function clearMappers(): static
+    {
+        $this->mappers = [];
+        return $this;
+    }
     public function tableMapped(
         string $table,
         bool $findRelations = false,

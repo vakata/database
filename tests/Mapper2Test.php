@@ -661,4 +661,23 @@ class Mapper2Test extends \PHPUnit\Framework\TestCase
         $this->assertEquals(null, $driver->avatars?->url);
         $this->assertEquals(null, $dbc->one("SELECT avatar FROM drivers WHERE driver = 2"));
     }
+    public function testDereferenceNewPivotPopulatedRelationArray()
+    {
+        $dbc = $this->reset();
+
+        $driver = $dbc->tableMapped('drivers')->filter('driver', 2)[0];
+        $dbc->getMapper('drivers')->fromArray($driver, [
+            'cars' => [
+                [ 'name' => 'created' ],
+                [ 'name' => 'created2' ],
+            ]
+        ]);
+        $dbc->getMapper('drivers')->save($driver, true);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM drivers"), 3);
+        $this->assertEquals($dbc->one("SELECT COUNT(*) FROM cars"), 5);
+        $this->assertEquals(
+            $dbc->all("SELECT * FROM driver_cars ORDER BY driver, car"),
+            [['driver'=>1,'car'=>1], ['driver'=>2,'car'=>4], ['driver'=>2,'car'=>5], ['driver'=>3,'car'=>3]]
+        );
+    }
 }

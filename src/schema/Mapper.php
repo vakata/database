@@ -141,10 +141,20 @@ class Mapper implements MapperInterface
                         foreach ($v as $kk => $vv) {
                             if (!($vv instanceof Entity)) {
                                 $q = $this->db->tableMapped($relations[$k]->table->getFullName());
+                                $f = [];
                                 foreach ($relations[$k]->table->getPrimaryKey() as $c) {
-                                    $q->filter($c, is_array($vv) ? ($vv[$c] ?? null) : $vv);
+                                    $f[$c] = is_array($vv) ? ($vv[$c] ?? null) : $vv;
                                 }
-                                $v[$kk] = $q[0] ?? null;
+                                if (count(array_filter($f))) {
+                                    foreach ($f as $c => $vvv) {
+                                        $q->filter($c, $vvv);
+                                    }
+                                    $v[$kk] = $q[0] ?? null;
+                                } else {
+                                    $mapper = $this->db->getMapper($relations[$k]->table);
+                                    $v[$kk] = $mapper->entity($vv, true);
+                                    $mapper->fromArray($v[$kk], $vv);
+                                }
                             }
                         }
                         $v = Collection::from(array_filter($v));
@@ -152,10 +162,21 @@ class Mapper implements MapperInterface
                 } else {
                     if ($v !== null && !($v instanceof Entity)) {
                         $q = $this->db->tableMapped($relations[$k]->table->getFullName());
+                        $f = [];
                         foreach ($relations[$k]->table->getPrimaryKey() as $c) {
-                            $q->filter($c, is_array($v) ? ($v[$c] ?? null) : $v);
+                            $f[$c] = is_array($v) ? ($v[$c] ?? null) : $v;
                         }
-                        $v = $q[0] ?? null;
+                        if (count(array_filter($f))) {
+                            foreach ($f as $c => $vv) {
+                                $q->filter($c, $vv);
+                            }
+                            $v = $q[0] ?? null;
+                        } else {
+                            $mapper = $this->db->getMapper($relations[$k]->table);
+                            $temp = $mapper->entity($v, true);
+                            $mapper->fromArray($temp, $v);
+                            $v = $temp;
+                        }
                     }
                 }
             }

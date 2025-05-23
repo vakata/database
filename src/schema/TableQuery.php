@@ -877,6 +877,52 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         return $this;
     }
     /**
+     * Get the columns returned by the query
+     * @return list<string>        the columns string array
+     */
+    public function schema(): array
+    {
+        $f = array_values($this->fields);
+        foreach ($this->withr as $name => $relation) {
+            if ($relation[2]) {
+                if (!$this->manualColumns) {
+                    foreach ($relation[0]->table->getColumns() as $column) {
+                        $f[] = $name . '.' . $column;
+                    }
+                } else {
+                    foreach ($relation[0]->table->getPrimaryKey() as $column) {
+                        $f[] = $name . '.' . $column;
+                    }
+                }
+            }
+        }
+        $r = [];
+        foreach (array_unique($f) as $v) {
+            $temp = explode('.', $v);
+            if (count($temp) === 1 && $this->definition->getColumn($temp[0])) {
+                $r[] = $temp[0];
+            }
+            if (count($temp) === 2 && $temp[0] === $this->definition->getName() && $this->definition->getColumn($temp[1])) {
+                $r[] = $temp[1];
+                continue;
+            }
+            if (count($temp) === 3 && $temp[0] === $this->definition->getSchema() && $temp[1] === $this->definition->getName()) {
+                $r[] = $temp[2];
+                continue;
+            }
+            if (count($temp) === 2 && $this->definition->hasRelation($temp[0]) && $this->definition->getRelation($temp[0])?->table->getColumn($temp[1])) {
+                $r[] = $temp[0] . '.' . $temp[1];
+                continue;
+            }
+            if (count($temp) === 3 && $temp[0] === $this->definition->getSchema() && $this->definition->hasRelation($temp[1])) {
+                $r[] = $temp[1] . '.' . $temp[2];
+                continue;
+            }
+        }
+        $r = array_unique($r);
+        return $r;
+    }
+    /**
      * Perform the actual fetch
      * @param  array|null $fields optional array of columns to select (related columns can be used too)
      * @return mixed               the query result as an iterator (with array access)

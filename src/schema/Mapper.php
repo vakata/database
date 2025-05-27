@@ -3,6 +3,7 @@ namespace vakata\database\schema;
 
 use vakata\collection\Collection;
 use vakata\database\DBInterface;
+use vakata\database\DBException;
 
 /**
  * A basic mapper to enable relation traversing and basic create / update / delete functionality
@@ -265,7 +266,8 @@ class Mapper implements MapperInterface
         foreach ($this->table->getRelations() as $name => $relation) {
             $relations[$name] = function (
                 $entity,
-                bool $queryOnly = false
+                bool $queryOnly = false,
+                bool $fetchedOnly = false
             ) use (
                 $name,
                 $relation,
@@ -286,6 +288,9 @@ class Mapper implements MapperInterface
                         ($mapper->deleted($data[$name]) ? null : $mapper->entity($data[$name]));
                     $this->objects[spl_object_hash($entity)][4][$name] = isset($value) ? spl_object_hash($value) : null;
                     return $value;
+                }
+                if ($fetchedOnly) {
+                    throw new DBException();
                 }
                 $query = $this->db->tableMapped($relation->table->getFullName());
                 if ($relation->sql) {

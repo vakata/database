@@ -1,10 +1,11 @@
 <?php
 namespace vakata\database\schema;
 
+use JsonSerializable;
 use vakata\collection\Collection;
 use vakata\database\DBException;
 
-class Entity
+class Entity implements JsonSerializable
 {
     /**
      * @var array<string,mixed>
@@ -127,5 +128,19 @@ class Entity
             throw new DBException('Invalid relation name: ' . $name);
         }
         return call_user_func_array($this->relations[$name], [$this]);
+    }
+    public function toArray(): array
+    {
+        $temp = $this->data;
+        foreach ($this->relations as $name => $relation) {
+            try {
+                $temp[$name] = call_user_func_array($relation, [ $this, false, true ]);
+            } catch (DBException $ignore) {}
+        }
+        return $temp;
+    }
+    public function jsonSerialize(): mixed
+    {
+        return $this->toArray();
     }
 }

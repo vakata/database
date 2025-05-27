@@ -150,10 +150,12 @@ class Mapper implements MapperInterface
                                         $q->filter($c, $vvv);
                                     }
                                     $v[$kk] = $q[0] ?? null;
-                                } else {
+                                } elseif (is_array($vv) && count($vv)) {
                                     $mapper = $this->db->getMapper($relations[$k]->table);
                                     $v[$kk] = $mapper->entity($vv, true);
                                     $mapper->fromArray($v[$kk], $vv);
+                                } else {
+                                    $v[$kk] = null;
                                 }
                             }
                         }
@@ -171,11 +173,13 @@ class Mapper implements MapperInterface
                                 $q->filter($c, $vv);
                             }
                             $v = $q[0] ?? null;
-                        } else {
+                        } elseif (is_array($v) && count($v)) {
                             $mapper = $this->db->getMapper($relations[$k]->table);
                             $temp = $mapper->entity($v, true);
                             $mapper->fromArray($temp, $v);
                             $v = $temp;
+                        } else {
+                            $v = null;
                         }
                     }
                 }

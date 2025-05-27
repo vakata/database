@@ -117,6 +117,7 @@ trait Schema
                 $relations[$relation['constraint_name']]['table'] = 'main.' . $relation['table'];
                 $relations[$relation['constraint_name']]['keymap'][$relation['to']] = $relation['from'];
             }
+            ksort($relations);
             foreach ($relations as $data) {
                 $rtable = $this->table($data['table'], true);
                 $columns = [];
@@ -178,6 +179,7 @@ trait Schema
                 $relations[$relation['constraint_name']]['table'] = 'main.' . $relation['referenced_table'];
                 $relations[$relation['constraint_name']]['keymap'][$relation['from']] = $relation['to'];
             }
+            ksort($relations);
             foreach ($relations as $name => $data) {
                 $relname = $data['table'];
                 $temp = explode('.', $relname, 2);
@@ -217,6 +219,7 @@ trait Schema
                 $relations[$relation['constraint_name']]['table'] = 'main.' . $relation['table'];
                 $relations[$relation['constraint_name']]['keymap'][$relation['to']] = $relation['from'];
             }
+            ksort($relations);
             foreach ($relations as $data) {
                 $rtable = $this->table($data['table'], true);
                 $columns = [];

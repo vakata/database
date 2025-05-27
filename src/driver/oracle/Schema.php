@@ -166,6 +166,7 @@ trait Schema
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$primary[(int)$relation['POSITION']-1]] =
                     $relation['COLUMN_NAME'];
             }
+            ksort($relations);
             foreach ($relations as $data) {
                 $rtable = $this->table($data['table'], true);
                 $columns = [];
@@ -259,6 +260,7 @@ trait Schema
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$relation['COLUMN_NAME']] =
                     $relation['R_CONSTRAINT_NAME'];
             }
+            ksort($relations);
             foreach ($relations as $name => $data) {
                 $rcolumns = Collection::from($this
                     ->query(
@@ -314,6 +316,7 @@ trait Schema
                 $relations[$relation['CONSTRAINT_NAME']]['keymap'][$primary[(int)$relation['POSITION']-1]] =
                     $relation['COLUMN_NAME'];
             }
+            ksort($relations);
             foreach ($relations as $data) {
                 $rtable = $this->table($data['table'], true);
                 $columns = [];

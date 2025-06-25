@@ -318,7 +318,7 @@ class Mapper implements MapperInterface
                         $query->filter($nm . '.' . $k, $v);
                     }
                 } else {
-                    $temp = $this->toArray($entity, array_keys($relation->keymap));
+                    $temp = $this->toArray($entity, array_keys($relation->keymap), [], true);
                     foreach ($relation->keymap as $k => $v) {
                         $query->filter($v, $temp[$k] ?? null);
                     }

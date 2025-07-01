@@ -146,7 +146,7 @@ class Mapper implements MapperInterface
                                 foreach ($relations[$k]->table->getPrimaryKey() as $c) {
                                     $f[$c] = is_array($vv) ? ($vv[$c] ?? null) : $vv;
                                 }
-                                if (count(array_filter($f))) {
+                                if (count(array_filter($f)) === count($relations[$k]->table->getPrimaryKey())) {
                                     foreach ($f as $c => $vvv) {
                                         $q->filter($c, $vvv);
                                     }

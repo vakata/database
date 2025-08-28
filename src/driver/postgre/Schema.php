@@ -403,8 +403,14 @@ trait Schema
     {
         $tables = Collection::from($this
             ->query(
-                "SELECT table_name FROM information_schema.tables where table_schema = ? AND table_catalog = ?",
-                [ $this->connection['opts']['schema'] ?? 'public', $this->connection['name'] ]
+                "SELECT cls.oid::regclass::text as table_name
+                 FROM pg_catalog.pg_class cls
+                 JOIN pg_catalog.pg_namespace as ns ON ns.oid = cls.relnamespace
+                 WHERE
+                    (cls.relkind = 'p' OR cls.relkind = 'r') AND
+                    ns.nspname = ? AND
+                    NOT EXISTS (SELECT 1 FROM pg_inherits WHERE inhrelid = cls.oid) ",
+                [ $this->connection['opts']['schema'] ?? 'public' ]
             ))
             ->mapKey(function ($v) {
                 return strtolower($v['table_name']);

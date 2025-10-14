@@ -129,7 +129,7 @@ class DB implements DBInterface
     {
         $map = [];
         $sql = preg_replace_callback(
-            '(\:[a-z_][a-z0-9_]+)i',
+            '((?<!:)\:[a-z_][a-z0-9_]+)i',
             function ($matches) use (&$map, $par) {
                 $key = substr($matches[0], 1);
                 $map[] = $key;

@@ -210,6 +210,12 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                 $temp = preg_replace('([^+\-0-9.]+)', '', str_replace(',', '.', (string)$value));
                 return is_string($temp) ? (float)$temp : 0;
             case 'text':
+                if (!is_scalar($value)) {
+                    $value = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                }
+                if (!is_string($value)) {
+                    $value = (string)$value;
+                }
                 // check using strlen first, in order to avoid hitting mb_ functions which might be polyfilled
                 // because the polyfill is quite slow
                 if ($col->hasLength() && strlen($value) > $col->getLength() && mb_strlen($value) > $col->getLength()) {

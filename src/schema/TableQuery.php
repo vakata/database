@@ -1246,7 +1246,8 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
         }
         foreach ($this->withr as $k => $v) {
             if (isset($v[3])) {
-                $sql .= ($ordered ? ', ' : 'ORDER BY ') . $getAlias($k) . '.' . $v[3] . ' ' . ($v[4] ? 'DESC' : 'ASC');
+                $sql .= ($ordered ? ', ' : 'ORDER BY ') .
+                    $getAlias($k) . '.' . $v[3] . ' ' . ($v[4] ? 'DESC' : 'ASC') . ' ';
                 $ordered = true;
             }
         }
@@ -1436,7 +1437,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
                         $this->withr[$name] = [
                             $relation,
                             $carry ?? $table->getName(),
-                            $select || ($this->withr[$name][2] ?? false)
+                            $select || ($this->withr[$name][2] ?? false),
+                            $this->withr[$name][3] ?? null,
+                            $this->withr[$name][4] ?? false
                         ];
                         $table = $relation->table;
                         return $name;

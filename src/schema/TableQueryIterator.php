@@ -144,11 +144,7 @@ class TableQueryIterator implements \Iterator, \ArrayAccess
                     unset($v['___clean']);
                     $data[$k] = array_values($v);
                 }
-                foreach ($data[$k] as $kk => $vv) {
-                    if (is_array($vv)) {
-                        $data[$k][$kk] = $this->values($vv);
-                    }
-                }
+                $data[$k] = $this->values($data[$k]);
             }
         }
         return $data;

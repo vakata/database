@@ -104,7 +104,12 @@ class Mapper implements MapperInterface
         $fetched = $this->objects[spl_object_hash($entity)][3];
         foreach ($columns as $column) {
             try {
-                if (in_array($column, $fetched) || array_key_exists($column, $hack) || $fetch) {
+                if (
+                    property_exists($entity, $column) ||
+                    in_array($column, $fetched) ||
+                    array_key_exists($column, $hack) ||
+                        $fetch
+                ) {
                     $temp[(string)$column] = $entity->{$column};
                 }
             } catch (\Throwable $ignore) {
@@ -353,11 +358,21 @@ class Mapper implements MapperInterface
         foreach ((array)$entity as $k => $v) {
             $hack[$k[0] === "\0" ? substr($k, strrpos($k, "\0", 1) + 1) : $k] = $v;
         }
+        $orig = $hack['data'] ?? [];
         $hack = $hack['changed'] ?? [];
         // END: ugly hack
 
         $temp = [];
         foreach ($this->table->getColumns() as $name) {
+            if (
+                property_exists($entity, $name) &&
+                (
+                    (!isset($orig[$name]) && isset($entity->{$name})) ||
+                    (isset($orig[$name]) && $orig[$name] !== $entity->{$name})
+                )
+            ) {
+                $temp[$name] = $entity->{$name};
+            }
             if (array_key_exists($name, $hack)) {
                 $temp[$name] = $hack[$name];
             }

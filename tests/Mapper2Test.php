@@ -602,6 +602,10 @@ class Mapper2Test extends \PHPUnit\Framework\TestCase
 
         $this->assertEquals($driver::class, Mapper2Driver::class);
         $this->assertEquals($driver->cars[0]::class, Mapper2Car::class);
+        $this->assertEquals($driver->cars[0]->name, 'car1');
+        $driver->cars[0]->name = 'changed';
+        $dbc->getMapper('cars')->save($driver->cars[0]);
+        $this->assertEquals('changed', $dbc->one("SELECT name FROM cars WHERE car = 1"));
     }
     public function testHydratedRelationChangeFromColumn()
     {

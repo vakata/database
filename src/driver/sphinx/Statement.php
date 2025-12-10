@@ -42,6 +42,9 @@ class Statement implements StatementInterface
                 $sql .= $v;
                 if (isset($tmp[($i + 1)])) {
                     $par = array_shift($data);
+                    if ($par instanceof \BackedEnum) {
+                        $par = $par->value;
+                    }
                     switch (gettype($par)) {
                         case 'boolean':
                         case 'integer':

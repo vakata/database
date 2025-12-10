@@ -5,6 +5,7 @@ use JsonSerializable;
 use vakata\collection\Collection;
 use vakata\database\DBException;
 
+/** @package vakata\database\schema */
 class Entity implements JsonSerializable
 {
     /**
@@ -38,6 +39,46 @@ class Entity implements JsonSerializable
         $this->data = $data;
         $this->lazy = $lazy;
         $this->relations = $relations;
+        foreach ($data as $k => $v) {
+            if (property_exists($this, $k)) {
+                $e = $this->__isBackedEnum($k);
+                $this->{$k} = $e ? $e::tryFrom($v) : $v;
+            }
+        }
+    }
+    /**
+     * @param string $property
+     * @return class-string<\BackedEnum>
+     */
+    protected function __isBackedEnum(string $property): ?string
+    {
+        $pr = new \ReflectionProperty($this, $property);
+        $pt = $pr->getType();
+
+        $types = [];
+        if ($pt instanceof \ReflectionNamedType) {
+            $types[] = $pt;
+        }
+        if ($pt instanceof \ReflectionUnionType) {
+            foreach ($pt->getTypes() as $t) {
+                if ($t instanceof \ReflectionNamedType) {
+                    $types[] = $t;
+                }
+            }
+        }
+        foreach ($types as $t) {
+            if ($t->isBuiltin()) {
+                continue;
+            }
+            $n = $t->getName();
+            if (!enum_exists($n)) {
+                continue;
+            }
+            if (is_subclass_of($n, \BackedEnum::class)) {
+                return $n;
+            }
+        }
+        return null;
     }
     public function __isset(string $property): bool
     {
@@ -64,6 +105,9 @@ class Entity implements JsonSerializable
     {
         if (array_key_exists($property, $this->changed)) {
             return $this->changed[$property];
+        }
+        if (property_exists($this, $property)) {
+            return $this->{$property};
         }
         if (array_key_exists($property, $this->data)) {
             return $this->data[$property];
@@ -102,6 +146,9 @@ class Entity implements JsonSerializable
     }
     public function __set(string $property, mixed $value): void
     {
+        if (property_exists($this, $property)) {
+            $this->{$property} = $value;
+        }
         $this->changed[$property] = $value;
     }
     protected function relatedQuery(string $name): TableQueryMapped

@@ -138,6 +138,9 @@ class TableQuery implements \IteratorAggregate, \ArrayAccess, \Countable
     }
     protected function normalizeValue(TableColumn $col, mixed $value): mixed
     {
+        if ($value instanceof \BackedEnum) {
+            $value = $value->value;
+        }
         $strict = (int)$this->db->driverOption('strict', 0) > 0;
         if ($value === null && $col->isNullable()) {
             return null;

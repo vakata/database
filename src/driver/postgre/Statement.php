@@ -61,6 +61,11 @@ class Statement implements StatementInterface
             }
             $data = $par;
         }
+        foreach ($data as $k => $v) {
+            if ($v instanceof \BackedEnum) {
+                $data[$k] = $v->value;
+            }
+        }
         $log = $this->drv->option('log_file');
         if ($log) {
             $tm = microtime(true);

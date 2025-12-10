@@ -32,6 +32,9 @@ class Statement implements StatementInterface
         }
         $data = array_values($data);
         foreach ($data as $i => $v) {
+            if ($v instanceof \BackedEnum) {
+                $v = $v->value;
+            }
             switch (gettype($v)) {
                 case 'boolean':
                     $this->statement->bindValue($i+1, $v, \PDO::PARAM_BOOL);

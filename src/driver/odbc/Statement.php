@@ -40,6 +40,11 @@ class Statement implements StatementInterface
             }
             $data = $par;
         }
+        foreach ($data as $k => $v) {
+            if ($v instanceof \BackedEnum) {
+                $data[$k] = $v->value;
+            }
+        }
         $data = $this->convert($data);
         $temp = \odbc_execute($this->statement, $data);
         if (!$temp) {

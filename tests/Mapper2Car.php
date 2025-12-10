@@ -5,4 +5,5 @@ use vakata\database\schema\Entity;
 
 class Mapper2Car extends Entity
 {
+    public string $name;
 }

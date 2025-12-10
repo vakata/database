@@ -5,3 +5,4 @@ vendor
 .phpls
 .phpunit.cache
 index.php
+tests/run.php

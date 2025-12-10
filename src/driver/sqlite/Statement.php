@@ -36,6 +36,9 @@ class Statement implements StatementInterface
                 throw new DBException('Prepared execute - not enough parameters.');
             }
             foreach ($data as $i => $v) {
+                if ($v instanceof \BackedEnum) {
+                    $v = $v->value;
+                }
                 switch (gettype($v)) {
                     case 'boolean':
                     case 'integer':

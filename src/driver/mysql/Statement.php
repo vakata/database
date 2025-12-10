@@ -46,6 +46,9 @@ class Statement implements StatementInterface
             $lng = array();
             $nul = null;
             foreach ($data as $i => $v) {
+                if ($v instanceof \BackedEnum) {
+                    $v = $v->value;
+                }
                 switch (gettype($v)) {
                     case 'boolean':
                     case 'integer':

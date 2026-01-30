@@ -33,9 +33,12 @@ class Driver extends DriverAbstract implements DriverInterface
                     ($this->connection['port'] ? 'PORT='.$this->connection['port'] : null),
                     'DATABASE='.$this->connection['name'],
             ])),
-            null,
-            null
+            '',
+            ''
         );
+        if (isset($this->connection['opts']['schema'])) {
+            @\db2_exec($this->lnk, "SET SCHEMA " . \db2_escape_string($this->connection['opts']['schema']));
+        }
         if ($this->lnk === false) {
             throw new DBException('Connect error: '.\db2_conn_errormsg());
         }

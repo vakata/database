@@ -57,6 +57,6 @@ class Statement implements StatementInterface
         if (!$temp) {
             throw new DBException('Could not execute query');
         }
-        return new Result($temp, $data, $this->driver);
+        return new Result($this->statement, $data, $this->driver);
     }
 }

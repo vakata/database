@@ -97,7 +97,7 @@ class Mapper implements MapperInterface
         foreach ((array)$entity as $k => $v) {
             $hack[$k[0] === "\0" ? substr($k, strrpos($k, "\0", 1) + 1) : $k] = $v;
         }
-        $hack = $hack['changed'] ?? [];
+        $hack = $hack['__changed'] ?? [];
         // END: ugly hack to get relations changed directly on the object (not hydrated)
 
         $temp = [];
@@ -108,7 +108,7 @@ class Mapper implements MapperInterface
                     property_exists($entity, $column) ||
                     in_array($column, $fetched) ||
                     array_key_exists($column, $hack) ||
-                        $fetch
+                    $fetch
                 ) {
                     $temp[(string)$column] = $entity->{$column};
                 }
@@ -358,8 +358,8 @@ class Mapper implements MapperInterface
         foreach ((array)$entity as $k => $v) {
             $hack[$k[0] === "\0" ? substr($k, strrpos($k, "\0", 1) + 1) : $k] = $v;
         }
-        $orig = $hack['data'] ?? [];
-        $hack = $hack['changed'] ?? [];
+        $orig = $hack['__data'] ?? [];
+        $hack = $hack['__changed'] ?? [];
         // END: ugly hack
 
         $temp = [];

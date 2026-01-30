@@ -11,23 +11,23 @@ class Entity implements JsonSerializable
     /**
      * @var array<string,mixed>
      */
-    protected array $data = [];
+    protected array $__data = [];
     /**
      * @var array<string,callable>
      */
-    protected array $lazy = [];
+    protected array $__lazy = [];
     /**
      * @var array<string,mixed>
      */
-    protected array $changed = [];
+    protected array $__changed = [];
     /**
      * @var array<string,callable>
      */
-    protected array $relations = [];
+    protected array $__relations = [];
     /**
      * @var array<string,mixed>
      */
-    protected array $cached = [];
+    protected array $__cached = [];
 
     /**
      * @param array<string,mixed> $data
@@ -36,9 +36,9 @@ class Entity implements JsonSerializable
      */
     public function __construct(array $data = [], array $lazy = [], array $relations = [])
     {
-        $this->data = $data;
-        $this->lazy = $lazy;
-        $this->relations = $relations;
+        $this->__data = $data;
+        $this->__lazy = $lazy;
+        $this->__relations = $relations;
         foreach ($data as $k => $v) {
             if (property_exists($this, $k)) {
                 $e = $this->__isBackedEnum($k);
@@ -82,20 +82,20 @@ class Entity implements JsonSerializable
     }
     public function __isset(string $property): bool
     {
-        if (array_key_exists($property, $this->changed)) {
-            return isset($this->changed[$property]);
+        if (array_key_exists($property, $this->__changed)) {
+            return isset($this->__changed[$property]);
         }
-        if (array_key_exists($property, $this->data)) {
-            return isset($this->data[$property]);
+        if (array_key_exists($property, $this->__data)) {
+            return isset($this->__data[$property]);
         }
-        if (isset($this->lazy[$property])) {
-            $this->data[$property] = call_user_func($this->lazy[$property], $this);
-            return isset($this->data[$property]);
+        if (isset($this->__lazy[$property])) {
+            $this->__data[$property] = call_user_func($this->__lazy[$property], $this);
+            return isset($this->__data[$property]);
         }
-        if (array_key_exists($property, $this->cached)) {
-            return isset($this->cached[$property]);
+        if (array_key_exists($property, $this->__cached)) {
+            return isset($this->__cached[$property]);
         }
-        if (isset($this->relations[$property])) {
+        if (isset($this->__relations[$property])) {
             $relation = $this->__call($property, []);
             return isset($relation);
         }
@@ -103,23 +103,23 @@ class Entity implements JsonSerializable
     }
     public function &__get(string $property): mixed
     {
-        if (array_key_exists($property, $this->changed)) {
-            return $this->changed[$property];
+        if (array_key_exists($property, $this->__changed)) {
+            return $this->__changed[$property];
         }
         if (property_exists($this, $property)) {
             return $this->{$property};
         }
-        if (array_key_exists($property, $this->data)) {
-            return $this->data[$property];
+        if (array_key_exists($property, $this->__data)) {
+            return $this->__data[$property];
         }
-        if (isset($this->lazy[$property])) {
-            $this->data[$property] = call_user_func($this->lazy[$property], $this);
-            return $this->data[$property];
+        if (isset($this->__lazy[$property])) {
+            $this->__data[$property] = call_user_func($this->__lazy[$property], $this);
+            return $this->__data[$property];
         }
-        if (array_key_exists($property, $this->cached)) {
-            return $this->cached[$property];
+        if (array_key_exists($property, $this->__cached)) {
+            return $this->__cached[$property];
         }
-        if (isset($this->relations[$property])) {
+        if (isset($this->__relations[$property])) {
             $relation = $this->__call($property, []);
             return $relation;
         }
@@ -133,37 +133,37 @@ class Entity implements JsonSerializable
      */
     public function __call(string $method, array $args): mixed
     {
-        if (array_key_exists($method, $this->relations)) {
-            $rslt = call_user_func($this->relations[$method], $this, ...$args);
+        if (array_key_exists($method, $this->__relations)) {
+            $rslt = call_user_func($this->__relations[$method], $this, ...$args);
             if (isset($args[0]) && $args[0] === true) {
                 return $rslt;
             }
-            $this->cached[$method] = $rslt;
+            $this->__cached[$method] = $rslt;
         } else {
             throw new DBException('Invalid relation name: ' . $method);
         }
-        return $this->cached[$method] ?? null;
+        return $this->__cached[$method] ?? null;
     }
     public function __set(string $property, mixed $value): void
     {
         if (property_exists($this, $property)) {
             $this->{$property} = $value;
         }
-        $this->changed[$property] = $value;
+        $this->__changed[$property] = $value;
     }
     protected function relatedQuery(string $name): TableQueryMapped
     {
-        if (!array_key_exists($name, $this->relations)) {
+        if (!array_key_exists($name, $this->__relations)) {
             throw new DBException('Invalid relation name: ' . $name);
         }
-        return call_user_func_array($this->relations[$name], [$this, true]);
+        return call_user_func_array($this->__relations[$name], [$this, true]);
     }
     protected function relatedRow(string $name): mixed
     {
-        if (!array_key_exists($name, $this->relations)) {
+        if (!array_key_exists($name, $this->__relations)) {
             throw new DBException('Invalid relation name: ' . $name);
         }
-        return call_user_func_array($this->relations[$name], [$this]);
+        return call_user_func_array($this->__relations[$name], [$this]);
     }
     /**
      * @param string $name
@@ -171,15 +171,15 @@ class Entity implements JsonSerializable
      */
     protected function relatedRows(string $name): Collection
     {
-        if (!array_key_exists($name, $this->relations)) {
+        if (!array_key_exists($name, $this->__relations)) {
             throw new DBException('Invalid relation name: ' . $name);
         }
-        return call_user_func_array($this->relations[$name], [$this]);
+        return call_user_func_array($this->__relations[$name], [$this]);
     }
     public function toArray(): array
     {
-        $temp = $this->data;
-        foreach ($this->relations as $name => $relation) {
+        $temp = $this->__data;
+        foreach ($this->__relations as $name => $relation) {
             try {
                 $temp[$name] = call_user_func_array($relation, [ $this, false, true ]);
             } catch (DBException $ignore) {}

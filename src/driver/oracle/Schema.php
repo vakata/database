@@ -31,7 +31,7 @@ trait Schema
          */
         $columns = Collection::from($this
             ->query(
-                "SELECT * FROM user_tab_cols WHERE UPPER(table_name) = ?",
+                "SELECT * FROM user_tab_cols WHERE UPPER(table_name) = ? ORDER BY column_id",
                 [ strtoupper($table) ]
             ))
             ->map(function ($v) {
@@ -151,11 +151,20 @@ trait Schema
             $duplicated = [];
             foreach ($relationsT as $relation) {
                 $t = $relation['REFERENCED_TABLE_NAME'];
-                $duplicated[$t] = isset($duplicated[$t]);
+                if (!isset($duplicated[$t])) {
+                    $duplicated[$t] = [];
+                }
+                $duplicated[$t][] = $relation['R_CONSTRAINT_NAME'];
             }
             foreach ($relationsR as $relation) {
                 $t = $relation['TABLE_NAME'];
-                $duplicated[$t] = isset($duplicated[$t]);
+                if (!isset($duplicated[$t])) {
+                    $duplicated[$t] = [];
+                }
+                $duplicated[$t][] = $relation['CONSTRAINT_NAME'];
+            }
+            foreach ($duplicated as $k => $v) {
+                $duplicated[$k] = count(array_unique($v)) > 1;
             }
             // pivot relations where the current table is referenced
             // assuming current table is on the "one" end having "many" records in the referencing table

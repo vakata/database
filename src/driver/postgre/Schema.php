@@ -60,7 +60,8 @@ trait Schema
                         kc.table_catalog = ? AND
                         (kc.table_schema = ? OR ct.table_schema = ?) AND
                         kc.table_name IS NOT NULL AND
-                        kc.position_in_unique_constraint IS NOT NULL",
+                        kc.position_in_unique_constraint IS NOT NULL
+                    ORDER BY 2, 4, 3, 7",
                     [ $catalog, $main, $main ]
                 )
             )->toArray();
@@ -96,7 +97,8 @@ trait Schema
                             kc.table_catalog = ? AND
                             (kc.table_schema = ? AND ct.table_schema = ?) AND
                             kc.table_name IS NOT NULL AND
-                            kc.position_in_unique_constraint IS NOT NULL",
+                            kc.position_in_unique_constraint IS NOT NULL
+                        ORDER BY 2, 4, 3, 7",
                         [ $catalog, $s, $s ]
                     )
                 )->toArray();
@@ -113,7 +115,8 @@ trait Schema
         $columns = Collection::from($this
             ->query(
                 "SELECT * FROM information_schema.columns
-                 WHERE table_name = ? AND table_schema = ? AND table_catalog = ?",
+                 WHERE table_name = ? AND table_schema = ? AND table_catalog = ?
+                 ORDER BY ordinal_position",
                 [ $table, $schema, $catalog ]
             ))
             ->mapKey(function ($v): string {
@@ -150,7 +153,8 @@ trait Schema
             $primary = Collection::from($this
                 ->query(
                     "SELECT column_name FROM information_schema.constraint_column_usage
-                     WHERE table_name = ? AND constraint_name = ? AND table_schema = ? AND table_catalog = ?",
+                     WHERE table_name = ? AND constraint_name = ? AND table_schema = ? AND table_catalog = ?
+                     ORDER BY 1",
                     [ $table, $pkname, $schema, $catalog ]
                 ))
                 ->pluck('column_name')
@@ -165,11 +169,20 @@ trait Schema
             $duplicated = [];
             foreach ($relationsT[$schema . '.' . $table] ?? [] as $relation) {
                 $t = $relation['referenced_table_schema'] . '.' . $relation['referenced_table_name'];
-                $duplicated[$t] = isset($duplicated[$t]);
+                if (!isset($duplicated[$t])) {
+                    $duplicated[$t] = [];
+                }
+                $duplicated[$t][] = $relation['constraint_name'];
             }
             foreach ($relationsR[$schema . '.' . $table] ?? [] as $relation) {
                 $t = $relation['table_schema'] . '.' . $relation['table_name'];
-                $duplicated[$t] = isset($duplicated[$t]);
+                if (!isset($duplicated[$t])) {
+                    $duplicated[$t] = [];
+                }
+                $duplicated[$t][] = $relation['constraint_name'];
+            }
+            foreach ($duplicated as $k => $v) {
+                $duplicated[$k] = count(array_unique($v)) > 1;
             }
             // pivot relations where the current table is referenced
             // assuming current table is on the "one" end having "many" records in the referencing table
@@ -409,7 +422,8 @@ trait Schema
                  WHERE
                     (cls.relkind = 'p' OR cls.relkind = 'r') AND
                     ns.nspname = ? AND
-                    NOT EXISTS (SELECT 1 FROM pg_inherits WHERE inhrelid = cls.oid) ",
+                    NOT EXISTS (SELECT 1 FROM pg_inherits WHERE inhrelid = cls.oid)
+                 ORDER BY 1",
                 [ $this->connection['opts']['schema'] ?? 'public' ]
             ))
             ->mapKey(function ($v) {
@@ -426,7 +440,8 @@ trait Schema
                 "SELECT cls.oid::regclass::text as table_name
                  FROM pg_catalog.pg_class cls
                  join pg_catalog.pg_namespace as ns on ns.oid = cls.relnamespace
-                 WHERE cls.relkind = 'm' and ns.nspname = ?",
+                 WHERE cls.relkind = 'm' and ns.nspname = ?
+                 ORDER BY 1",
                 [ $this->connection['opts']['schema'] ?? 'public' ]
             ))
             ->mapKey(function ($v) {

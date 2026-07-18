@@ -60,7 +60,8 @@ trait Schema
                      FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
                      WHERE
                         (TABLE_SCHEMA = ? OR REFERENCED_TABLE_SCHEMA = ?) AND
-                        TABLE_NAME IS NOT NULL AND REFERENCED_TABLE_NAME IS NOT NULL",
+                        TABLE_NAME IS NOT NULL AND REFERENCED_TABLE_NAME IS NOT NULL
+                     ORDER BY TABLE_NAME, CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_COLUMN_NAME",
                     [ $main, $main ]
                 )
             )->toArray();
@@ -83,7 +84,8 @@ trait Schema
                         FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
                         WHERE
                             TABLE_SCHEMA = ? AND REFERENCED_TABLE_SCHEMA = ? AND
-                            TABLE_NAME IS NOT NULL AND REFERENCED_TABLE_NAME IS NOT NULL",
+                            TABLE_NAME IS NOT NULL AND REFERENCED_TABLE_NAME IS NOT NULL
+                            ORDER BY TABLE_NAME, CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_COLUMN_NAME",
                         [ $s, $s ]
                     )
                 )->toArray();
@@ -153,11 +155,20 @@ trait Schema
             $duplicated = [];
             foreach ($relationsT[$schema . '.' . $table] ?? [] as $relation) {
                 $t = $relation['REFERENCED_TABLE_SCHEMA'] . '.' . $relation['REFERENCED_TABLE_NAME'];
-                $duplicated[$t] = isset($duplicated[$t]);
+                if (!isset($duplicated[$t])) {
+                    $duplicated[$t] = [];
+                }
+                $duplicated[$t][] = $relation['CONSTRAINT_NAME'];
             }
             foreach ($relationsR[$schema . '.' . $table] ?? [] as $relation) {
                 $t = $relation['TABLE_SCHEMA'] . '.' . $relation['TABLE_NAME'];
-                $duplicated[$t] = isset($duplicated[$t]);
+                if (!isset($duplicated[$t])) {
+                    $duplicated[$t] = [];
+                }
+                $duplicated[$t][] = $relation['CONSTRAINT_NAME'];
+            }
+            foreach ($duplicated as $k => $v) {
+                $duplicated[$k] = count(array_unique($v)) > 1;
             }
             // pivot relations where the current table is referenced
             // assuming current table is on the "one" end having "many" records in the referencing table
@@ -349,7 +360,8 @@ trait Schema
     {
         $tables = Collection::from($this
             ->query(
-                "SELECT table_name FROM information_schema.tables where table_schema = ?",
+                "SELECT table_name FROM information_schema.tables where table_schema = ?
+                 ORDER BY table_name",
                 [$this->connection['opts']['schema'] ?? $this->connection['name']]
             ))
             ->map(function (array $v): array {

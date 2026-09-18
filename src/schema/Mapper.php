@@ -279,6 +279,7 @@ class Mapper implements MapperInterface
                 $data
             ) {
                 $mapper = $this->db->getMapper($relation->table);
+                $isnew = !in_array(spl_object_hash($entity), $this->index, true);
                 if (!$queryOnly && array_key_exists($name, $data)) {
                     if (!isset($data[$name])) {
                         return $this->objects[spl_object_hash($entity)][4][$name] = null;
@@ -297,49 +298,56 @@ class Mapper implements MapperInterface
                 if ($fetchedOnly) {
                     throw new DBException();
                 }
-                $query = $this->db->tableMapped($relation->table->getFullName());
-                if ($relation->sql) {
-                    $query->where($relation->sql, $relation->par?:[]);
-                }
-                if ($relation->pivot) {
-                    $nm = null;
-                    foreach ($relation->table->getRelations() as $rname => $rdata) {
-                        if ($rdata->pivot && $rdata->pivot->getFullName() === $relation->pivot->getFullName()) {
-                            $nm = $rname;
+                if ($isnew) {
+                    if ($queryOnly) {
+                        throw new DBException("Cannot create query for unsaved entity");
+                    }
+                    $value = $relation->many ? new Collection([]) : null;
+                } else {
+                    $query = $this->db->tableMapped($relation->table->getFullName());
+                    if ($relation->sql) {
+                        $query->where($relation->sql, $relation->par?:[]);
+                    }
+                    if ($relation->pivot) {
+                        $nm = null;
+                        foreach ($relation->table->getRelations() as $rname => $rdata) {
+                            if ($rdata->pivot && $rdata->pivot->getFullName() === $relation->pivot->getFullName()) {
+                                $nm = $rname;
+                            }
+                        }
+                        if (!$nm) {
+                            $nm = $this->table->getName();
+                            $relation->table->manyToMany(
+                                $this->table,
+                                $relation->pivot,
+                                $nm,
+                                array_flip($relation->keymap),
+                                $relation->pivot_keymap
+                            );
+                        }
+                        $pk = $this->id($entity);
+                        foreach ($pk as $k => $v) {
+                            $query->filter($nm . '.' . $k, $v);
+                        }
+                    } else {
+                        $temp = $this->toArray($entity, array_keys($relation->keymap), [], true);
+                        foreach ($relation->keymap as $k => $v) {
+                            $query->filter($v, $temp[$k] ?? null);
                         }
                     }
-                    if (!$nm) {
-                        $nm = $this->table->getName();
-                        $relation->table->manyToMany(
-                            $this->table,
-                            $relation->pivot,
-                            $nm,
-                            array_flip($relation->keymap),
-                            $relation->pivot_keymap
-                        );
+                    if ($queryOnly) {
+                        return $query;
                     }
-                    $pk = $this->id($entity);
-                    foreach ($pk as $k => $v) {
-                        $query->filter($nm . '.' . $k, $v);
+                    $value = $relation->many ?
+                        $query->iterator() :
+                        ($query[0] ?? null);
+                    if ($value instanceof Collection) {
+                        $value->filter(function ($v) use ($mapper) {
+                            return !$mapper->deleted($v);
+                        });
+                    } elseif (isset($value) && $mapper->deleted($value)) {
+                        $value = null;
                     }
-                } else {
-                    $temp = $this->toArray($entity, array_keys($relation->keymap), [], true);
-                    foreach ($relation->keymap as $k => $v) {
-                        $query->filter($v, $temp[$k] ?? null);
-                    }
-                }
-                if ($queryOnly) {
-                    return $query;
-                }
-                $value = $relation->many ?
-                    $query->iterator() :
-                    ($query[0] ?? null);
-                if ($value instanceof Collection) {
-                    $value->filter(function ($v) use ($mapper) {
-                        return !$mapper->deleted($v);
-                    });
-                } elseif (isset($value) && $mapper->deleted($value)) {
-                    $value = null;
                 }
                 $this->objects[spl_object_hash($entity)][4][$name] = isset($value) ? spl_object_hash($value) : null;
                 return $value;
